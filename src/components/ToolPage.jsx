@@ -24,6 +24,8 @@ import {
   Home,
 } from "lucide-react";
 import { useAuth } from "../AuthContext.jsx";
+import { generateApi } from "../lib/generateApi.js";
+import { useToast } from "../lib/Toast.jsx";
 
 /* ─────────────────────────────── Custom Select ─────────────────────────── */
 function CustomSelect({ label, options, value, onChange }) {
@@ -198,13 +200,17 @@ function ChipsField({ field, value, onChange }) {
   // value is a set of selected chip strings + optional custom text
   const [selected, setSelected] = useState(new Set());
   const [custom, setCustom] = useState("");
+  const maxSelect = field.maxSelect || Infinity;
 
   function toggleChip(chip) {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(chip)) next.delete(chip);
-      else next.add(chip);
-      // propagate as comma-joined string
+      if (next.has(chip)) {
+        next.delete(chip);
+      } else {
+        if (next.size >= maxSelect) return prev; // block if at limit
+        next.add(chip);
+      }
       const all = [...next, ...(custom ? [custom] : [])].join(", ");
       onChange(all);
       return next;
@@ -253,7 +259,7 @@ function ChipsField({ field, value, onChange }) {
               borderRadius: 4,
             }}
           >
-            optional · pick any
+            {field.maxSelect ? `pick up to ${field.maxSelect}` : "optional · pick any"}
           </span>
         </div>
         <div style={{ padding: "14px 16px" }}>
@@ -1041,6 +1047,126 @@ function VariantPanel({ variants, replies, activeTab, setActiveTab, onShare }) {
   );
 }
 
+/* ─────────────────────────────── Decision Briefing ────────────────────── */
+function DecisionBriefing({ result, toolColor }) {
+  const briefing = result._briefing || {};
+  const receipt  = result._receipt  || {};
+
+  const stats = [
+    { l: "Tone",     v: receipt.tone     || result.tone     || "—", c: "var(--blue)"  },
+    { l: "Risk",     v: receipt.risk     || result.risk     || "—",
+      c: (result.risk || "") === "High" ? "#ef4444" : (result.risk || "") === "Medium" ? "#f59e0b" : "var(--green)" },
+    { l: "Intent",   v: receipt.intent   || result.intent   || "—", c: "var(--teal)"  },
+  ].filter(s => s.v && s.v !== "—");
+
+  const strategy = briefing.strategy || result.strategy || "";
+  const riskDetail = briefing.risk_detail || result.risk_detail || "";
+
+  if (!stats.length && !strategy) return null;
+
+  return (
+    <div style={{
+      borderRadius: 20,
+      border: "1px solid var(--border2)",
+      background: "var(--surface)",
+      overflow: "hidden",
+      marginBottom: 16,
+      position: "relative",
+    }}>
+      {/* Glow backdrop */}
+      <div style={{
+        position: "absolute", top: 0, left: 0, right: 0, height: 120,
+        background: `radial-gradient(ellipse at 30% 0%, ${toolColor}14 0%, transparent 70%)`,
+        pointerEvents: "none",
+      }} />
+
+      {/* Header */}
+      <div style={{
+        padding: "16px 20px 12px",
+        borderBottom: "1px solid var(--border)",
+        display: "flex", alignItems: "center", gap: 8, position: "relative",
+      }}>
+        <div style={{
+          width: 6, height: 6, borderRadius: "50%",
+          background: toolColor,
+          boxShadow: `0 0 8px ${toolColor}`,
+          animation: "glow-pulse 2s ease infinite",
+        }} />
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-4)", textTransform: "uppercase", letterSpacing: "0.09em" }}>
+          Decision Briefing
+        </span>
+        <span style={{
+          marginLeft: "auto", fontSize: 10.5, fontWeight: 600,
+          color: toolColor, background: `${toolColor}14`,
+          padding: "2px 9px", borderRadius: 20,
+          border: `1px solid ${toolColor}30`,
+        }}>
+          AI Analysis
+        </span>
+      </div>
+
+      {/* Stats row */}
+      {stats.length > 0 && (
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${stats.length}, 1fr)`,
+          gap: 1, padding: "0 0 0 0",
+          borderBottom: "1px solid var(--border)",
+          position: "relative",
+        }}>
+          {stats.map((s, i) => (
+            <div key={s.l} style={{
+              padding: "14px 18px",
+              borderRight: i < stats.length - 1 ? "1px solid var(--border)" : "none",
+              animation: `fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) ${i * 0.08}s both`,
+            }}>
+              <p style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-4)", textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 6 }}>
+                {s.l}
+              </p>
+              <p style={{ fontSize: 14.5, fontWeight: 700, color: s.c, lineHeight: 1.2 }}>
+                {s.v}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Strategy */}
+      {strategy && (
+        <div style={{
+          padding: "14px 20px",
+          borderBottom: riskDetail ? "1px solid var(--border)" : "none",
+          animation: "fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.1s both",
+        }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-4)", textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 6 }}>
+            Recommended Strategy
+          </p>
+          <p style={{ fontSize: 14.5, color: "var(--ink)", lineHeight: 1.65, fontWeight: 500 }}>
+            {strategy}
+          </p>
+        </div>
+      )}
+
+      {/* Risk detail */}
+      {riskDetail && (
+        <div style={{
+          padding: "14px 20px",
+          background: "rgba(239,68,68,0.04)",
+          borderTop: "1px solid rgba(239,68,68,0.1)",
+          animation: "fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.15s both",
+        }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: "#ef4444", textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 6 }}>
+            Risk if unaddressed
+          </p>
+          <p style={{ fontSize: 13.5, color: "var(--ink-2)", lineHeight: 1.65 }}>
+            {riskDetail}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─────────────────────────────── Insight card ─────────────────────────── */
 function InsightRow({ label, value, color }) {
   return (
@@ -1120,6 +1246,7 @@ const TOOL_NAV = [
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const { user } = useAuth();
+  const toast = useToast();
   const displayName = user?.full_name || user?.email?.split('@')[0] || 'User';
   const displayInitial = displayName[0].toUpperCase();
   const planTier = user?.plan_tier || 'free';
@@ -1128,6 +1255,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const [fields, setFields] = useState({});
   const [phase, setPhase] = useState("idle");
   const [result, setResult] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
   const [activeTab, setActiveTab] = useState(tool.outputVariants?.[0] || "");
   const [showShare, setShowShare] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -1146,25 +1274,59 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
     if (!canSubmit() || phase === "generating") return;
     setPhase("generating");
     setResult(null);
+    setErrorMessage("");
     setActiveTab(tool.outputVariants?.[0] || "");
     try {
-      const prompt = tool.buildPrompt(fields);
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [{ role: "user", content: prompt }],
-        }),
-      });
-      const data = await res.json();
-      const raw = data.content?.find((b) => b.type === "text")?.text || "{}";
-      const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+      let parsed;
+      if (tool.backendRoute && generateApi[tool.backendRoute]) {
+        // ── Backend API call ──────────────────────────────────────────────
+        parsed = await generateApi[tool.backendRoute](fields);
+        toast.success("Done! Here are your results.");
+      } else {
+        // ── Fallback: direct Anthropic call (for tools without backend route) ──
+        const prompt = tool.buildPrompt(fields);
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 1000,
+            messages: [{ role: "user", content: prompt }],
+          }),
+        });
+        const data = await res.json();
+        const raw = data.content?.find((b) => b.type === "text")?.text || "{}";
+        parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+        toast.success("Done! Here are your results.");
+      }
       setResult(parsed);
       setPhase("done");
-    } catch {
+    } catch (err) {
+      const status = err?.response?.status || err?.status;
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Something went wrong. Please try again.";
+
       setPhase("error");
+
+      if (status === 401) {
+        setErrorMessage("Your session has expired. Please sign in again.");
+        toast.error("Session expired — please sign in again.");
+      } else if (status === 403) {
+        setErrorMessage(msg || "Your trial has expired or your plan doesn't include this tool.");
+        toast.warning(msg || "Plan access denied.");
+      } else if (status === 429) {
+        setErrorMessage(msg || "You've reached your daily limit. Upgrade to continue.");
+        toast.warning(msg || "Daily limit reached.");
+      } else if (status === 504) {
+        setErrorMessage("The AI took too long to respond. Your usage was not affected — please try again.");
+        toast.error("AI timeout — try again.");
+      } else {
+        setErrorMessage(msg);
+        toast.error(msg);
+      }
     }
   }
 
@@ -2014,24 +2176,38 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
           {phase === "error" && (
             <div
               style={{
-                padding: "20px",
+                padding: "20px 24px",
                 background: "rgba(239,68,68,0.06)",
                 border: "1px solid rgba(239,68,68,0.2)",
                 borderRadius: 14,
-                textAlign: "center",
                 marginBottom: 20,
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12,
               }}
             >
-              <p style={{ color: "#ef4444", fontWeight: 600, marginBottom: 8 }}>
-                Something went wrong. Please try again.
-              </p>
-              <button
-                onClick={() => setPhase("idle")}
-                className="btn-ghost"
-                style={{ padding: "8px 20px", borderRadius: 8, fontSize: 13 }}
-              >
-                Try again
-              </button>
+              <div style={{
+                width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                background: "rgba(239,68,68,0.1)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <AlertTriangle size={16} color="#ef4444" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ color: "#ef4444", fontWeight: 600, marginBottom: 4, fontSize: 14 }}>
+                  {errorMessage || "Something went wrong. Please try again."}
+                </p>
+                <button
+                  onClick={() => { setPhase("idle"); setErrorMessage(""); }}
+                  style={{
+                    fontSize: 13, fontWeight: 600, color: "var(--ink-3)",
+                    background: "none", border: "none", cursor: "pointer",
+                    padding: 0, fontFamily: "inherit",
+                  }}
+                >
+                  Try again →
+                </button>
+              </div>
             </div>
           )}
 
@@ -2042,6 +2218,11 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                 animation: "fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both",
               }}
             >
+              {/* Decision Briefing — shown for backend-powered tools */}
+              {tool.backendRoute && (result._briefing || result._receipt) && (
+                <DecisionBriefing result={result} toolColor={tool.color} />
+              )}
+
               {/* Insight rows */}
               {insightRows.length > 0 && (
                 <div

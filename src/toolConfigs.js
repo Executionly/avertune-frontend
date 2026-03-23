@@ -1,5 +1,3 @@
-// Each tool definition: id, label, icon name, tagline, color, fields, and system prompt builder
-
 export const TOOL_CONFIGS = {
   'reply-generator': {
     id: 'reply-generator',
@@ -9,50 +7,99 @@ export const TOOL_CONFIGS = {
     color: 'var(--green)',
     bg: 'rgba(34,197,94,0.08)',
     border: 'rgba(34,197,94,0.2)',
+    backendRoute: 'replies',
     fields: [
-      { id: 'message',  label: 'Message received',    type: 'textarea', placeholder: 'Paste the message you received…', required: true, rows: 5 },
-      { id: 'context',  label: 'Context',             type: 'chips',    placeholder: 'Add more context…',
+      {
+        id: 'message',
+        label: 'Message received',
+        type: 'textarea',
+        placeholder: 'Paste the message you received…',
+        required: true,
+        rows: 5,
+      },
+      {
+        id: 'thread_context',
+        label: 'Thread context',
+        type: 'textarea',
+        placeholder: 'Any prior context or background to this conversation… (optional)',
+        required: false,
+        rows: 2,
+      },
+      {
+        id: 'context',
+        label: 'Context chips',
+        type: 'chips',
+        placeholder: 'Or type your own context…',
+        maxSelect: 2,
         chips: [
           'This is my boss',
-          'We\'ve had tension before',
+          "We've had tension before",
           'This is a client',
-          'We\'re in a negotiation',
+          "We're in a negotiation",
           'This is a close friend',
           'First time this happened',
-          'They\'ve said this before',
+          "They've said this before",
           'High-stakes relationship',
           'I need to stay calm',
           'I want to end the conversation',
-        ]
+          'Urgent',
+          'Sensitive',
+        ],
       },
-      { id: 'medium',   label: 'Reply medium',        type: 'select',   options: ['Email', 'SMS / Text', 'WhatsApp', 'LinkedIn', 'Slack', 'In person'], default: 'Email' },
-      { id: 'length',   label: 'Preferred length',    type: 'select',   options: ['Very short (1-2 sentences)', 'Short (3-4 sentences)', 'Medium (1 paragraph)', 'Long (detailed)'], default: 'Short (3-4 sentences)' },
-      { id: 'tone_pref',label: 'Your tone preference',type: 'select',   options: ['Professional', 'Friendly', 'Direct', 'Empathetic', 'Formal'], default: 'Professional' },
+      {
+        id: 'audience',
+        label: 'Who sent this?',
+        type: 'select',
+        options: ['Boss', 'Colleague', 'Client', 'Direct report', 'Partner', 'Friend', 'Stranger', 'Recruiter'],
+        default: 'Boss',
+      },
+      {
+        id: 'medium',
+        label: 'Reply medium',
+        type: 'select',
+        options: ['Email', 'SMS / Text', 'WhatsApp', 'LinkedIn', 'Slack', 'In person'],
+        default: 'Email',
+      },
+      {
+        id: 'length',
+        label: 'Preferred length',
+        type: 'select',
+        options: ['Very short (1-2 sentences)', 'Short (3-4 sentences)', 'Medium (1 paragraph)', 'Long (detailed)'],
+        default: 'Short (3-4 sentences)',
+      },
+      {
+        id: 'tone_pref',
+        label: 'Your tone',
+        type: 'select',
+        options: ['Professional', 'Friendly', 'Direct', 'Empathetic', 'Formal'],
+        default: 'Professional',
+      },
+      {
+        id: 'goal',
+        label: 'Your goal',
+        type: 'select',
+        options: [
+          'De-escalate and set a clear timeline',
+          'Assert my position',
+          'Build rapport',
+          'Set a boundary',
+          'Request more time',
+          'Decline gracefully',
+          'Escalate urgency',
+          'Close the conversation',
+        ],
+        default: 'De-escalate and set a clear timeline',
+      },
+      {
+        id: 'pack',
+        label: 'Context pack',
+        type: 'select',
+        options: ['Workplace', 'Sales', 'Personal', 'Dating', 'Legal / Formal'],
+        default: 'Workplace',
+      },
     ],
     outputVariants: ['Balanced', 'Firm', 'Warm', 'Delay'],
-    buildPrompt: (f) => `You are an expert communication coach. Analyze this message and generate 4 reply options.
-
-Message received: "${f.message}"
-${f.context ? `Context: ${f.context}` : ''}
-Reply medium: ${f.medium || 'Email'}
-Preferred length: ${f.length || 'Short (3-4 sentences)'}
-Tone preference: ${f.tone_pref || 'Professional'}
-
-Return ONLY valid JSON:
-{
-  "tone": "<detected tone in 2 words>",
-  "risk": "<risk label>",
-  "intent": "<sender intent>",
-  "strategy": "<one sentence recommended strategy>",
-  "risk_detail": "<2 sentence explanation of the risk if not handled well>",
-  "replies": {
-    "Balanced": "<reply>",
-    "Firm": "<reply>",
-    "Warm": "<reply>",
-    "Delay": "<reply>"
-  },
-  "tip": "<one practical communication tip for this situation>"
-}`,
+    buildPrompt: (f) => `You are an expert communication coach. Analyze this message and generate 4 reply options.\n\nMessage received: "${f.message}"\n${f.thread_context ? `Thread context: ${f.thread_context}` : ''}\n${f.context ? `Context: ${f.context}` : ''}\nAudience: ${f.audience || 'Boss'}\nReply medium: ${f.medium || 'Email'}\nPreferred length: ${f.length || 'Short (3-4 sentences)'}\nTone preference: ${f.tone_pref || 'Professional'}\nGoal: ${f.goal || 'De-escalate and set a clear timeline'}\n\nReturn ONLY valid JSON:\n{\n  "tone": "<detected tone in 2 words>",\n  "risk": "<risk label>",\n  "intent": "<sender intent>",\n  "strategy": "<one sentence recommended strategy>",\n  "risk_detail": "<2 sentence explanation of the risk if not handled well>",\n  "replies": {\n    "Balanced": "<reply>",\n    "Firm": "<reply>",\n    "Warm": "<reply>",\n    "Delay": "<reply>"\n  },\n  "tip": "<one practical communication tip for this situation>"\n}`,
   },
 
   'tone-checker': {
@@ -63,32 +110,41 @@ Return ONLY valid JSON:
     color: 'var(--teal)',
     bg: 'rgba(45,212,191,0.08)',
     border: 'rgba(45,212,191,0.2)',
+    backendRoute: 'tone',
     fields: [
-      { id: 'message',      label: 'Message to analyze',     type: 'textarea', placeholder: 'Paste any message here…', required: true, rows: 5 },
-      { id: 'relationship', label: 'Your relationship',      type: 'select',   options: ['Colleague', 'Boss / Manager', 'Direct report', 'Client', 'Partner / Spouse', 'Friend', 'Stranger'], default: 'Colleague' },
-      { id: 'history',      label: 'Any prior tension?',     type: 'select',   options: ['No history', 'Minor tension', 'Ongoing conflict', 'Recent argument', 'Reconciling'], default: 'No history' },
+      {
+        id: 'message',
+        label: 'Message to analyze',
+        type: 'textarea',
+        placeholder: 'Paste any message here…',
+        required: true,
+        rows: 5,
+      },
+      {
+        id: 'relationship',
+        label: 'Your relationship',
+        type: 'select',
+        options: ['Colleague', 'Boss / Manager', 'Direct report', 'Client', 'Partner / Spouse', 'Friend', 'Stranger'],
+        default: 'Colleague',
+      },
+      {
+        id: 'history',
+        label: 'Any prior tension?',
+        type: 'select',
+        options: ['No history', 'Minor tension', 'Ongoing conflict', 'Recent argument', 'Reconciling'],
+        default: 'No history',
+      },
+      {
+        id: 'context',
+        label: 'Extra context',
+        type: 'textarea',
+        placeholder: 'Any background info that might affect tone… (optional)',
+        required: false,
+        rows: 2,
+      },
     ],
     outputVariants: null,
-    buildPrompt: (f) => `You are an expert in emotional communication and subtext analysis. Deeply analyze this message.
-
-Message: "${f.message}"
-Relationship to sender: ${f.relationship || 'Colleague'}
-Prior tension: ${f.history || 'No history'}
-
-Return ONLY valid JSON:
-{
-  "primary_tone": "<main tone in 2-3 words>",
-  "secondary_tone": "<underlying tone in 2-3 words>",
-  "intent": "<what the sender actually wants>",
-  "subtext": "<what they are NOT saying but implying>",
-  "risk_level": "<Low / Medium / High>",
-  "risk_reason": "<why this risk level>",
-  "emotional_signals": ["<signal 1>", "<signal 2>", "<signal 3>"],
-  "what_not_to_do": "<biggest mistake to avoid when replying>",
-  "recommended_approach": "<how to approach the reply>",
-  "urgency": "<Low / Medium / High>",
-  "urgency_reason": "<why>"
-}`,
+    buildPrompt: (f) => `You are an expert in emotional communication and subtext analysis. Deeply analyze this message.\n\nMessage: "${f.message}"\nRelationship to sender: ${f.relationship || 'Colleague'}\nPrior tension: ${f.history || 'No history'}\n${f.context ? `Context: ${f.context}` : ''}\n\nReturn ONLY valid JSON:\n{\n  "primary_tone": "<main tone in 2-3 words>",\n  "secondary_tone": "<underlying tone in 2-3 words>",\n  "intent": "<what the sender actually wants>",\n  "subtext": "<what they are NOT saying but implying>",\n  "risk_level": "<Low / Medium / High>",\n  "risk_reason": "<why this risk level>",\n  "emotional_signals": ["<signal 1>", "<signal 2>", "<signal 3>"],\n  "what_not_to_do": "<biggest mistake to avoid when replying>",\n  "recommended_approach": "<how to approach the reply>",\n  "urgency": "<Low / Medium / High>",\n  "urgency_reason": "<why>"\n}`,
   },
 
   'improve-reply': {
@@ -99,32 +155,56 @@ Return ONLY valid JSON:
     color: 'var(--blue)',
     bg: 'rgba(56,189,248,0.08)',
     border: 'rgba(56,189,248,0.2)',
+    backendRoute: 'improve',
     fields: [
-      { id: 'original',    label: 'Original message received', type: 'textarea', placeholder: 'Paste the message you received…', required: true, rows: 4 },
-      { id: 'draft',       label: 'Your draft reply',          type: 'textarea', placeholder: 'Paste the reply you\'ve written…', required: true, rows: 4 },
-      { id: 'goal',        label: 'What do you want to achieve?', type: 'select', options: ['Sound more professional', 'Sound more confident', 'Sound friendlier', 'Be more concise', 'Set a boundary clearly', 'De-escalate tension'], default: 'Sound more professional' },
-      { id: 'keep',        label: 'What to keep from your draft', type: 'select', options: ['Keep the overall message', 'Keep the opening', 'Keep specific phrases', 'Total rewrite is fine'], default: 'Keep the overall message' },
+      {
+        id: 'original',
+        label: 'Original message received',
+        type: 'textarea',
+        placeholder: 'Paste the message you received…',
+        required: true,
+        rows: 4,
+      },
+      {
+        id: 'draft',
+        label: 'Your draft reply',
+        type: 'textarea',
+        placeholder: "Paste the reply you've written…",
+        required: true,
+        rows: 4,
+      },
+      {
+        id: 'goal',
+        label: 'What do you want to achieve?',
+        type: 'select',
+        options: ['Sound more professional', 'Sound more confident', 'Sound friendlier', 'Be more concise', 'Set a boundary clearly', 'De-escalate tension'],
+        default: 'Sound more professional',
+      },
+      {
+        id: 'keep',
+        label: 'What to keep from your draft',
+        type: 'select',
+        options: ['Keep the overall message', 'Keep the opening', 'Keep specific phrases', 'Total rewrite is fine'],
+        default: 'Keep the overall message',
+      },
+      {
+        id: 'medium',
+        label: 'Medium',
+        type: 'select',
+        options: ['Email', 'SMS / Text', 'WhatsApp', 'LinkedIn', 'Slack'],
+        default: 'Email',
+      },
+      {
+        id: 'context',
+        label: 'Extra context',
+        type: 'textarea',
+        placeholder: 'Any background that helps… (optional)',
+        required: false,
+        rows: 2,
+      },
     ],
     outputVariants: ['Improved', 'Concise', 'Confident', 'Original+'],
-    buildPrompt: (f) => `You are an expert communication editor. Improve the user's draft reply.
-
-Original message they received: "${f.original}"
-Their draft reply: "${f.draft}"
-Goal: ${f.goal || 'Sound more professional'}
-What to keep: ${f.keep || 'Keep the overall message'}
-
-Return ONLY valid JSON:
-{
-  "diagnosis": "<what's weak or off about the draft in 2 sentences>",
-  "key_improvements": ["<improvement 1>", "<improvement 2>", "<improvement 3>"],
-  "replies": {
-    "Improved": "<best improved version>",
-    "Concise": "<shorter, punchy version>",
-    "Confident": "<more assertive, confident version>",
-    "Original+": "<their original with minimal but important edits>"
-  },
-  "tip": "<one sentence on what made this draft weak and how to avoid it next time>"
-}`,
+    buildPrompt: (f) => `You are an expert communication editor. Improve the user's draft reply.\n\nOriginal message they received: "${f.original}"\nTheir draft reply: "${f.draft}"\nGoal: ${f.goal || 'Sound more professional'}\nWhat to keep: ${f.keep || 'Keep the overall message'}\n${f.context ? `Context: ${f.context}` : ''}\n\nReturn ONLY valid JSON:\n{\n  "diagnosis": "<what's weak or off about the draft in 2 sentences>",\n  "key_improvements": ["<improvement 1>", "<improvement 2>", "<improvement 3>"],\n  "replies": {\n    "Improved": "<best improved version>",\n    "Concise": "<shorter, punchy version>",\n    "Confident": "<more assertive, confident version>",\n    "Original+": "<their original with minimal but important edits>"\n  },\n  "tip": "<one sentence on what made this draft weak and how to avoid it next time>"\n}`,
   },
 
   'boundary-builder': {
@@ -136,35 +216,14 @@ Return ONLY valid JSON:
     bg: 'rgba(34,197,94,0.08)',
     border: 'rgba(34,197,94,0.2)',
     fields: [
-      { id: 'situation',   label: 'What is happening?',        type: 'textarea', placeholder: 'Describe the situation or paste the message…', required: true, rows: 4 },
-      { id: 'boundary',    label: 'What boundary do you need?', type: 'textarea', placeholder: 'e.g. I need them to stop contacting me after hours…', required: true, rows: 3 },
-      { id: 'relationship',label: 'Your relationship',          type: 'select',   options: ['Boss', 'Colleague', 'Client', 'Family', 'Friend', 'Partner', 'Acquaintance'], default: 'Colleague' },
-      { id: 'stakes',      label: 'Relationship stakes',        type: 'select',   options: ['High — I need to preserve this relationship', 'Medium — I prefer to keep it civil', 'Low — I just need to be clear'], default: 'Medium — I prefer to keep it civil' },
-      { id: 'history',     label: 'Have you said this before?', type: 'select',   options: ['First time', 'Said it once before', 'Said it multiple times'], default: 'First time' },
+      { id: 'situation',    label: 'What is happening?',         type: 'textarea', placeholder: 'Describe the situation or paste the message…', required: true, rows: 4 },
+      { id: 'boundary',     label: 'What boundary do you need?', type: 'textarea', placeholder: 'e.g. I need them to stop contacting me after hours…', required: true, rows: 3 },
+      { id: 'relationship', label: 'Your relationship',          type: 'select',   options: ['Boss', 'Colleague', 'Client', 'Family', 'Friend', 'Partner', 'Acquaintance'], default: 'Colleague' },
+      { id: 'stakes',       label: 'Relationship stakes',        type: 'select',   options: ['High — I need to preserve this relationship', 'Medium — I prefer to keep it civil', 'Low — I just need to be clear'], default: 'Medium — I prefer to keep it civil' },
+      { id: 'history',      label: 'Have you said this before?', type: 'select',   options: ['First time', 'Said it once before', 'Said it multiple times'], default: 'First time' },
     ],
     outputVariants: ['Diplomatic', 'Direct', 'Firm', 'Final'],
-    buildPrompt: (f) => `You are an expert in assertive communication and boundary setting.
-
-Situation: "${f.situation}"
-Boundary needed: "${f.boundary}"
-Relationship: ${f.relationship || 'Colleague'}
-Relationship stakes: ${f.stakes || 'Medium'}
-History: ${f.history || 'First time'}
-
-Return ONLY valid JSON:
-{
-  "boundary_assessment": "<why this boundary is valid and important in 2 sentences>",
-  "risk_of_not_setting": "<what happens if this boundary isn't set>",
-  "replies": {
-    "Diplomatic": "<gentle but clear boundary>",
-    "Direct": "<clear and matter-of-fact>",
-    "Firm": "<strong, unambiguous>",
-    "Final": "<used when previous attempts failed — clear consequence>"
-  },
-  "do": "<one thing to do when delivering this boundary>",
-  "dont": "<one thing to avoid>",
-  "follow_up": "<suggested follow-up if they push back>"
-}`,
+    buildPrompt: (f) => `You are an expert in assertive communication and boundary setting.\n\nSituation: "${f.situation}"\nBoundary needed: "${f.boundary}"\nRelationship: ${f.relationship || 'Colleague'}\nRelationship stakes: ${f.stakes || 'Medium'}\nHistory: ${f.history || 'First time'}\n\nReturn ONLY valid JSON:\n{\n  "boundary_assessment": "<why this boundary is valid and important in 2 sentences>",\n  "risk_of_not_setting": "<what happens if this boundary isn't set>",\n  "replies": {\n    "Diplomatic": "<gentle but clear boundary>",\n    "Direct": "<clear and matter-of-fact>",\n    "Firm": "<strong, unambiguous>",\n    "Final": "<used when previous attempts failed — clear consequence>"\n  },\n  "do": "<one thing to do when delivering this boundary>",\n  "dont": "<one thing to avoid>",\n  "follow_up": "<suggested follow-up if they push back>"\n}`,
   },
 
   'negotiation-reply': {
@@ -176,35 +235,14 @@ Return ONLY valid JSON:
     bg: 'rgba(45,212,191,0.08)',
     border: 'rgba(45,212,191,0.2)',
     fields: [
-      { id: 'message',      label: 'Their message / offer',       type: 'textarea', placeholder: 'Paste what they said or offered…', required: true, rows: 4 },
-      { id: 'context',      label: 'Negotiation context',          type: 'select',   options: ['Salary negotiation', 'Pricing / vendor deal', 'Contract terms', 'Raise request', 'Partnership deal', 'Freelance rate', 'Other'], default: 'Pricing / vendor deal' },
-      { id: 'your_position',label: 'Your position / counter-offer',type: 'textarea', placeholder: 'What do you actually want? e.g. $85k, not $75k…', rows: 2 },
-      { id: 'leverage',     label: 'Your leverage',                type: 'select',   options: ['Strong — I have alternatives', 'Moderate — I can walk away if needed', 'Weak — I really need this deal', 'Unknown'], default: 'Moderate — I can walk away if needed' },
-      { id: 'style',        label: 'Negotiation style',            type: 'select',   options: ['Collaborative win-win', 'Competitive — protect my position', 'Principled — logic and fairness', 'Relationship-first'], default: 'Collaborative win-win' },
+      { id: 'message',       label: 'Their message / offer',        type: 'textarea', placeholder: 'Paste what they said or offered…', required: true, rows: 4 },
+      { id: 'context',       label: 'Negotiation context',          type: 'select',   options: ['Salary negotiation', 'Pricing / vendor deal', 'Contract terms', 'Raise request', 'Partnership deal', 'Freelance rate', 'Other'], default: 'Pricing / vendor deal' },
+      { id: 'your_position', label: 'Your position / counter-offer',type: 'textarea', placeholder: 'What do you actually want? e.g. $85k, not $75k…', rows: 2 },
+      { id: 'leverage',      label: 'Your leverage',                type: 'select',   options: ['Strong — I have alternatives', 'Moderate — I can walk away if needed', 'Weak — I really need this deal', 'Unknown'], default: 'Moderate — I can walk away if needed' },
+      { id: 'style',         label: 'Negotiation style',            type: 'select',   options: ['Collaborative win-win', 'Competitive — protect my position', 'Principled — logic and fairness', 'Relationship-first'], default: 'Collaborative win-win' },
     ],
     outputVariants: ['Strategic', 'Hold Firm', 'Counter', 'Walk Away'],
-    buildPrompt: (f) => `You are a master negotiator and communication strategist.
-
-Their message/offer: "${f.message}"
-Negotiation type: ${f.context || 'Pricing deal'}
-Your position: "${f.your_position || 'Not specified'}"
-Your leverage: ${f.leverage || 'Moderate'}
-Negotiation style: ${f.style || 'Collaborative'}
-
-Return ONLY valid JSON:
-{
-  "power_analysis": "<who has more leverage and why in 2 sentences>",
-  "their_tactic": "<negotiation tactic they are using>",
-  "your_best_move": "<recommended strategic approach>",
-  "replies": {
-    "Strategic": "<smart, well-positioned reply>",
-    "Hold Firm": "<maintaining your position without conceding>",
-    "Counter": "<clear counter-offer or counter-proposal>",
-    "Walk Away": "<graceful exit that keeps the door open>"
-  },
-  "anchoring_tip": "<one sentence on how to anchor the negotiation in your favor>",
-  "red_flags": "<any red flags in their approach to watch out for>"
-}`,
+    buildPrompt: (f) => `You are a master negotiator and communication strategist.\n\nTheir message/offer: "${f.message}"\nNegotiation type: ${f.context || 'Pricing deal'}\nYour position: "${f.your_position || 'Not specified'}"\nYour leverage: ${f.leverage || 'Moderate'}\nNegotiation style: ${f.style || 'Collaborative'}\n\nReturn ONLY valid JSON:\n{\n  "power_analysis": "<who has more leverage and why in 2 sentences>",\n  "their_tactic": "<negotiation tactic they are using>",\n  "your_best_move": "<recommended strategic approach>",\n  "replies": {\n    "Strategic": "<smart, well-positioned reply>",\n    "Hold Firm": "<maintaining your position without conceding>",\n    "Counter": "<clear counter-offer or counter-proposal>",\n    "Walk Away": "<graceful exit that keeps the door open>"\n  },\n  "anchoring_tip": "<one sentence on how to anchor the negotiation in your favor>",\n  "red_flags": "<any red flags in their approach to watch out for>"\n}`,
   },
 
   'follow-up-writer': {
@@ -216,35 +254,14 @@ Return ONLY valid JSON:
     bg: 'rgba(56,189,248,0.08)',
     border: 'rgba(56,189,248,0.2)',
     fields: [
-      { id: 'situation',    label: 'What are you following up on?', type: 'textarea', placeholder: 'e.g. I sent a proposal 1 week ago and haven\'t heard back…', required: true, rows: 3 },
+      { id: 'situation',    label: "What are you following up on?", type: 'textarea', placeholder: "e.g. I sent a proposal 1 week ago and haven't heard back…", required: true, rows: 3 },
       { id: 'last_contact', label: 'Last contact',                  type: 'select',   options: ['1-2 days ago', '3-5 days ago', '1 week ago', '2 weeks ago', '1 month ago', 'Longer than a month'], default: '1 week ago' },
       { id: 'type',         label: 'Follow-up type',                type: 'select',   options: ['Job application', 'Sales / proposal', 'Invoice / payment', 'Meeting request', 'Project update', 'Personal / relationship', 'Other'], default: 'Sales / proposal' },
       { id: 'attempt',      label: 'Which follow-up is this?',      type: 'select',   options: ['First follow-up', 'Second follow-up', 'Third (final) follow-up', 'Checking in after a meeting'], default: 'First follow-up' },
       { id: 'tone_pref',    label: 'Preferred tone',                type: 'select',   options: ['Friendly & casual', 'Professional', 'Urgent but respectful', 'Brief & direct'], default: 'Professional' },
     ],
     outputVariants: ['Standard', 'Friendly', 'Urgent', 'Brief'],
-    buildPrompt: (f) => `You are an expert at writing follow-up messages that get responses.
-
-Situation: "${f.situation}"
-Time since last contact: ${f.last_contact || '1 week ago'}
-Follow-up type: ${f.type || 'Sales / proposal'}
-Which follow-up: ${f.attempt || 'First follow-up'}
-Preferred tone: ${f.tone_pref || 'Professional'}
-
-Return ONLY valid JSON:
-{
-  "why_no_response": "<likely reason they haven't responded — 1 sentence>",
-  "subject_line": "<suggested email subject line>",
-  "opening_hook": "<a compelling opening line to grab attention>",
-  "replies": {
-    "Standard": "<balanced, professional follow-up>",
-    "Friendly": "<warm, low-pressure version>",
-    "Urgent": "<creates appropriate urgency without desperation>",
-    "Brief": "<very short, easy to respond to>"
-  },
-  "timing_tip": "<when to send this and when to give up>",
-  "call_to_action": "<the best CTA to include>"
-}`,
+    buildPrompt: (f) => `You are an expert at writing follow-up messages that get responses.\n\nSituation: "${f.situation}"\nTime since last contact: ${f.last_contact || '1 week ago'}\nFollow-up type: ${f.type || 'Sales / proposal'}\nWhich follow-up: ${f.attempt || 'First follow-up'}\nPreferred tone: ${f.tone_pref || 'Professional'}\n\nReturn ONLY valid JSON:\n{\n  "why_no_response": "<likely reason they haven't responded — 1 sentence>",\n  "subject_line": "<suggested email subject line>",\n  "opening_hook": "<a compelling opening line to grab attention>",\n  "replies": {\n    "Standard": "<balanced, professional follow-up>",\n    "Friendly": "<warm, low-pressure version>",\n    "Urgent": "<creates appropriate urgency without desperation>",\n    "Brief": "<very short, easy to respond to>"\n  },\n  "timing_tip": "<when to send this and when to give up>",\n  "call_to_action": "<the best CTA to include>"\n}`,
   },
 }
 
