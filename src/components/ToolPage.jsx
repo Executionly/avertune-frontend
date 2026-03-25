@@ -408,7 +408,6 @@ function PackModal({ value, onChange, onClose, userPlan }) {
                   onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'var(--surface2)'; e.currentTarget.style.color = 'var(--ink)'; }}}
                   onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink-2)'; }}}
                 >
-                  <span style={{ fontSize: 17, lineHeight: 1, flexShrink: 0 }}>{pack.icon}</span>
                   <span style={{ lineHeight: 1.3 }}>{pack.label}</span>
                   {isActive && (
                     <div style={{ marginLeft: 'auto', width: 5, height: 5, borderRadius: '50%', background: pack.color, flexShrink: 0 }} />
@@ -431,11 +430,10 @@ function PackModal({ value, onChange, onClose, userPlan }) {
                   border: `1px solid ${activePack.border}`,
                   borderRadius: 12,
                 }}>
-                  <span style={{ fontSize: 20 }}>{activePack.icon}</span>
                   <div>
                     <p style={{ fontSize: 13.5, fontWeight: 700, color: activePack.color }}>{activePack.label}</p>
                     <p style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 1 }}>
-                      {activePack.scenarios.length} scenarios
+                      {activePack.scenarios.length} scenarios available
                     </p>
                   </div>
                 </div>
@@ -503,9 +501,6 @@ function PackModal({ value, onChange, onClose, userPlan }) {
                 border: '1px solid var(--border2)',
                 borderRadius: 20, maxWidth: 300,
               }}>
-                <span style={{ fontSize: 12 }}>
-                  {PACKS.find(p => p.id === selected.packId)?.icon}
-                </span>
                 <span style={{
                   fontSize: 12.5, fontWeight: 600, color: 'var(--ink)',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -2267,7 +2262,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                   <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                     {ps && pack ? (
                       <>
-                        <span style={{ fontSize: 18, flexShrink: 0 }}>{pack.icon}</span>
                         <div style={{ minWidth: 0 }}>
                           <p style={{ fontSize: 11, fontWeight: 700, color: pack.color, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 2 }}>
                             {ps.packLabel}
