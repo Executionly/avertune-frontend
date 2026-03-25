@@ -29,10 +29,10 @@ import { PACKS } from "../lib/packData.js";
 import { useToast } from "../lib/Toast.jsx";
 
 /* ─────────────────────────────── Custom Select ─────────────────────────── */
-function CustomSelect({ label, options, value, onChange }) {
+function CustomSelect({ label, options, value, onChange, placeholder }) {
   const [open, setOpen] = useState(false);
   const ref = useRef();
-  const selected = value || options[0];
+  const selected = value || "";
 
   useEffect(() => {
     const h = (e) => {
@@ -82,13 +82,13 @@ function CustomSelect({ label, options, value, onChange }) {
       >
         <span
           style={{
-            color: "var(--ink)",
+            color: selected ? "var(--ink)" : "var(--ink-4)",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
           }}
         >
-          {selected}
+          {selected || placeholder || "Select…"}
         </span>
         <ChevronDown
           size={14}
@@ -132,8 +132,8 @@ function CustomSelect({ label, options, value, onChange }) {
                 padding: "10px 12px",
                 borderRadius: 8,
                 background:
-                  opt === selected ? "var(--surface2)" : "transparent",
-                color: opt === selected ? "var(--green)" : "var(--ink)",
+                  selected && opt === selected ? "var(--surface2)" : "transparent",
+                color: selected && opt === selected ? "var(--green)" : "var(--ink)",
                 fontSize: 13.5,
                 fontFamily: "inherit",
                 fontWeight: opt === selected ? 600 : 400,
@@ -155,7 +155,7 @@ function CustomSelect({ label, options, value, onChange }) {
               }}
             >
               {opt}
-              {opt === selected && <Check size={12} color="var(--green)" />}
+              {selected && opt === selected && <Check size={12} color="var(--green)" />}
             </button>
           ))}
         </div>
@@ -347,7 +347,7 @@ function PackModal({ value, onChange, onClose, userPlan }) {
         borderRadius: 24,
         width: '100%',
         maxWidth: 760,
-        maxHeight: '88vh',
+        maxHeight: '92vh',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -379,10 +379,17 @@ function PackModal({ value, onChange, onClose, userPlan }) {
         </div>
 
         {/* Body */}
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+        <div className="pack-modal-body" style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+          <style>{`
+            @media (max-width: 560px) {
+              .pack-modal-body { flex-direction: column !important; }
+              .pack-modal-left { width: 100% !important; borderRight: none !important; borderBottom: 1px solid var(--border) !important; flexDirection: row !important; flexWrap: wrap !important; overflowX: auto !important; overflowY: visible !important; padding: 8px !important; gap: 6px !important; maxHeight: 110px !important; }
+              .pack-modal-right { flex: 1 !important; minHeight: 200px !important; }
+            }
+          `}</style>
 
           {/* Left: Pack list */}
-          <div style={{
+          <div className="pack-modal-left" style={{
             width: 190, flexShrink: 0,
             borderRight: '1px solid var(--border)',
             overflowY: 'auto',
@@ -395,15 +402,15 @@ function PackModal({ value, onChange, onClose, userPlan }) {
                   key={pack.id}
                   onClick={() => setActivePack(pack)}
                   style={{
-                    width: '100%', padding: '10px 12px',
+                    width: '100%', padding: '9px 12px',
                     borderRadius: 11, marginBottom: 2,
                     background: isActive ? pack.bg : 'transparent',
                     border: `1px solid ${isActive ? pack.border : 'transparent'}`,
                     color: isActive ? pack.color : 'var(--ink-2)',
-                    display: 'flex', alignItems: 'center', gap: 10,
+                    display: 'flex', alignItems: 'center', gap: 8,
                     fontFamily: 'inherit', fontWeight: isActive ? 700 : 500,
-                    fontSize: 13.5, cursor: 'pointer', textAlign: 'left',
-                    transition: 'all .15s',
+                    fontSize: 13, cursor: 'pointer', textAlign: 'left',
+                    transition: 'all .15s', whiteSpace: 'nowrap',
                   }}
                   onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'var(--surface2)'; e.currentTarget.style.color = 'var(--ink)'; }}}
                   onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink-2)'; }}}
@@ -418,7 +425,7 @@ function PackModal({ value, onChange, onClose, userPlan }) {
           </div>
 
           {/* Right: Scenarios */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>
+          <div className="pack-modal-right" style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>
             {activePack && (
               <>
                 {/* Pack header */}
@@ -1306,193 +1313,6 @@ function VariantPanel({ variants, replies, activeTab, setActiveTab, onShare, ins
   );
 }
 
-/* ─────────────────────────────── Decision Briefing ────────────────────── */
-function DecisionBriefing({ result, toolColor }) {
-  const briefing = result._briefing || {};
-  const receipt  = result._receipt  || {};
-
-  const riskLevel = (briefing.risk_level || "").toLowerCase();
-  const riskColor =
-    riskLevel === "high"                      ? "#ef4444" :
-    riskLevel === "moderate" || riskLevel === "medium" ? "#f59e0b" :
-    riskLevel === "low"                       ? "var(--green)" :
-    "var(--ink-3)";
-
-  // Build tone scores directly from the individual values
-  const toneScores = [
-    receipt.respect    != null ? { l: "Respect",    v: receipt.respect,    c: "var(--green)" } : null,
-    receipt.warmth     != null ? { l: "Warmth",     v: receipt.warmth,     c: "var(--blue)"  } : null,
-    receipt.confidence != null ? { l: "Confidence", v: receipt.confidence, c: "var(--teal)"  } : null,
-  ].filter(Boolean);
-
-  const whatHappening = briefing.what_is_happening || result.intent || "";
-  const strategy = briefing.recommended_strategy || result.strategy || "";
-  const riskNote = receipt.risk_note || result.tip || "";
-
-  if (!whatHappening && !strategy) return null;
-
-  return (
-    <div style={{
-      borderRadius: 20,
-      border: "1px solid var(--border2)",
-      background: "var(--surface)",
-      overflow: "hidden",
-      marginBottom: 16,
-      position: "relative",
-    }}>
-      {/* Glow backdrop */}
-      <div style={{
-        position: "absolute", top: 0, left: 0, right: 0, height: 140,
-        background: `radial-gradient(ellipse at 30% 0%, ${toolColor}12 0%, transparent 70%)`,
-        pointerEvents: "none",
-      }} />
-
-      {/* Header */}
-      <div style={{
-        padding: "16px 20px 12px",
-        borderBottom: "1px solid var(--border)",
-        display: "flex", alignItems: "center", gap: 8, position: "relative",
-      }}>
-        <div style={{
-          width: 6, height: 6, borderRadius: "50%",
-          background: toolColor,
-          boxShadow: `0 0 8px ${toolColor}`,
-          animation: "glow-pulse 2s ease infinite",
-        }} />
-        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-4)", textTransform: "uppercase", letterSpacing: "0.09em" }}>
-          Decision Briefing
-        </span>
-        {briefing.risk_level && (
-          <span style={{
-            marginLeft: "auto", fontSize: 11, fontWeight: 700,
-            color: riskColor, background: `${riskColor}15`,
-            padding: "3px 10px", borderRadius: 20,
-            border: `1px solid ${riskColor}30`,
-          }}>
-            {briefing.risk_level} risk
-          </span>
-        )}
-      </div>
-
-      {/* What is happening */}
-      {whatHappening && (
-        <div style={{
-          padding: "14px 20px",
-          borderBottom: "1px solid var(--border)",
-          animation: "fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both",
-        }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-4)", textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 6 }}>
-            What is happening
-          </p>
-          <p style={{ fontSize: 14.5, color: "var(--ink)", lineHeight: 1.65, fontWeight: 500 }}>
-            {whatHappening}
-          </p>
-        </div>
-      )}
-
-      {/* Tone receipt scores */}
-      {toneScores.length > 0 && (
-        <div style={{
-          display: "flex", gap: 0,
-          borderBottom: "1px solid var(--border)",
-          overflowX: "auto",
-        }}>
-          {toneScores.map((s, i, arr) => (
-            <div key={s.l} style={{
-              flex: 1, padding: "12px 16px", minWidth: 90,
-              borderRight: i < arr.length - 1 ? "1px solid var(--border)" : "none",
-              animation: `fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) ${i * 0.07}s both`,
-            }}>
-              <p style={{ fontSize: 9.5, fontWeight: 700, color: "var(--ink-4)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
-                {s.l}
-              </p>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <p style={{ fontSize: 18, fontWeight: 800, color: s.c, lineHeight: 1 }}>
-                  {s.v}<span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-4)" }}>%</span>
-                </p>
-              </div>
-              {/* mini bar */}
-              <div style={{ height: 3, background: "var(--surface3)", borderRadius: 2, marginTop: 6, overflow: "hidden" }}>
-                <div style={{
-                  height: "100%", width: `${s.v}%`,
-                  background: s.c, borderRadius: 2,
-                  transition: "width 0.8s cubic-bezier(0.16,1,0.3,1)",
-                }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Recommended strategy */}
-      {strategy && (
-        <div style={{
-          padding: "14px 20px",
-          borderBottom: riskNote ? "1px solid var(--border)" : "none",
-          animation: "fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.1s both",
-        }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-4)", textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 6 }}>
-            Recommended Strategy
-          </p>
-          <p style={{ fontSize: 14.5, color: "var(--ink)", lineHeight: 1.65, fontWeight: 500 }}>
-            {strategy}
-          </p>
-        </div>
-      )}
-
-      {/* Risk note */}
-      {riskNote && (
-        <div style={{
-          padding: "12px 20px",
-          background: `${riskColor}08`,
-          borderTop: `1px solid ${riskColor}18`,
-          display: "flex", gap: 8, alignItems: "flex-start",
-          animation: "fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.15s both",
-        }}>
-          <span style={{ fontSize: 13, flexShrink: 0 }}>⚑</span>
-          <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.6 }}>
-            {riskNote}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─────────────────────────────── Insight card ─────────────────────────── */
-function InsightRow({ label, value, color }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "baseline",
-        gap: 16,
-        padding: "13px 0",
-        borderBottom: "1px solid var(--border)",
-      }}
-    >
-      <span
-        style={{
-          minWidth: 80,
-          fontSize: 11,
-          fontWeight: 700,
-          color: "var(--ink-4)",
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-          flexShrink: 0,
-        }}
-      >
-        {label}
-      </span>
-      <span
-        style={{ fontSize: 14.5, fontWeight: 600, color, lineHeight: 1.35 }}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
 /* ─────────────────────────────── Sidebar nav ─────────────────────────── */
 const TOOL_NAV = [
   {
@@ -1622,61 +1442,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
       }
     }
   }
-
-  // Build insight rows per tool
-  const insightRows = result
-    ? (() => {
-        if (tool.id === "reply-generator")
-          return [
-            { l: "Tone", v: result.tone, c: "var(--blue)" },
-            { l: "Risk", v: result.risk, c: "var(--teal)" },
-            { l: "Intent", v: result.intent, c: "var(--green)" },
-            { l: "Strategy", v: result.strategy, c: "var(--ink)" },
-          ];
-        if (tool.id === "tone-checker")
-          return [
-            { l: "Primary Tone", v: result.primary_tone, c: "var(--blue)" },
-            { l: "Hidden Tone", v: result.secondary_tone, c: "var(--teal)" },
-            { l: "True Intent", v: result.intent, c: "var(--green)" },
-            { l: "Subtext", v: result.subtext, c: "var(--ink)" },
-            {
-              l: "Risk Level",
-              v: result.risk_level,
-              c:
-                result.risk_level === "High"
-                  ? "#ef4444"
-                  : result.risk_level === "Medium"
-                    ? "#f59e0b"
-                    : "var(--green)",
-            },
-            { l: "Urgency", v: result.urgency, c: "var(--ink-2)" },
-          ];
-        if (tool.id === "improve-reply")
-          return [{ l: "Diagnosis", v: result.diagnosis, c: "var(--blue)" }];
-        if (tool.id === "boundary-builder")
-          return [
-            {
-              l: "Assessment",
-              v: result.boundary_assessment,
-              c: "var(--green)",
-            },
-            { l: "Risk", v: result.risk_of_not_setting, c: "#ef4444" },
-          ];
-        if (tool.id === "negotiation-reply")
-          return [
-            { l: "Power dynamic", v: result.power_analysis, c: "var(--teal)" },
-            { l: "Their tactic", v: result.their_tactic, c: "var(--blue)" },
-            { l: "Best move", v: result.your_best_move, c: "var(--green)" },
-          ];
-        if (tool.id === "follow-up-writer")
-          return [
-            { l: "Why no reply", v: result.why_no_response, c: "var(--blue)" },
-            { l: "Subject line", v: result.subject_line, c: "var(--green)" },
-            { l: "Opening hook", v: result.opening_hook, c: "var(--teal)" },
-          ];
-        return [];
-      })()
-    : [];
 
   const SidebarContent = () => (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -2328,7 +2093,8 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     key={f.id}
                     label={f.label}
                     options={f.options}
-                    value={fields[f.id] || f.default || f.options[0]}
+                    value={fields[f.id] || ""}
+                    placeholder={`Choose ${f.label.toLowerCase()}…`}
                     onChange={(v) => setField(f.id, v)}
                   />
                 ))}
@@ -2523,71 +2289,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                 animation: "fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both",
               }}
             >
-              {/* Decision Briefing — shown for backend-powered tools */}
-              {tool.backendRoute && (result._briefing || result._receipt) && (
-                <DecisionBriefing result={result} toolColor={tool.color} />
-              )}
 
-              {/* Insight rows */}
-              {insightRows.length > 0 && (
-                <div
-                  style={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border2)",
-                    borderRadius: 18,
-                    padding: "clamp(16px,2.5vw,28px)",
-                    marginBottom: 16,
-                  }}
-                >
-                  <p
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: "var(--ink-4)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.09em",
-                      marginBottom: 4,
-                    }}
-                  >
-                    Reply Radar
-                  </p>
-                  <div style={{ marginTop: 4 }}>
-                    {insightRows.map((r) => (
-                      <InsightRow
-                        key={r.l}
-                        label={r.l}
-                        value={r.v}
-                        color={r.c}
-                      />
-                    ))}
-                  </div>
-                  <div
-                    style={{
-                      paddingTop: 12,
-                      display: "flex",
-                      justifyContent: "flex-end",
-                    }}
-                  >
-                    <button
-                      onClick={() => setShowShare(true)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 5,
-                        color: "var(--green)",
-                        fontSize: 12.5,
-                        fontWeight: 600,
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      <Share2 size={12} /> Share this insight
-                    </button>
-                  </div>
-                </div>
-              )}
 
               {/* Tone-checker deep extras */}
               {tool.id === "tone-checker" && (
