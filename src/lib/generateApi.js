@@ -6,15 +6,16 @@ function buildRepliesRequest(fields) {
   // pack_scenario is { packId, packLabel, scenarioId, scenarioLabel }
   const ps = fields.pack_scenario || {}
   return {
-    message:          fields.message                     || '',
+    message:          fields.message                        || '',
     thread_context:   '',
-    medium:           normalizeMedium(fields.medium      || 'Email'),
+    medium:           normalizeMedium(fields.medium         || 'Email'),
     preferred_length: mapLength(fields.length),
     tone:             (fields.tone_pref || 'Professional').toLowerCase(),
-    goal:             ps.scenarioId                      || '',
-    audience:         fields.audience                    || '',
+    goal:             fields.goal                           || '',
+    audience:         fields.audience                       || '',
     context_chips:    parseChips(fields.context),
-    pack:             ps.packId                          || 'work',
+    pack:             ps.packId                             || '',
+    pack_scenario:    ps.scenarioId                         || '',
   }
 }
 
