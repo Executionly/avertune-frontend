@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../AuthContext.jsx";
 import { generateApi } from "../lib/generateApi.js";
+import { PACKS } from "../lib/packData.js";
 import { useToast } from "../lib/Toast.jsx";
 
 /* ─────────────────────────────── Custom Select ─────────────────────────── */
@@ -297,6 +298,255 @@ function ChipsField({ field, value, onChange }) {
                 </button>
               );
             })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────── Pack Modal ───────────────────────────── */
+function PackModal({ value, onChange, onClose, userPlan }) {
+  const [activePack, setActivePack] = useState(
+    value?.packId ? PACKS.find(p => p.id === value.packId) || PACKS[0] : PACKS[0]
+  );
+  const [selected, setSelected] = useState(value || null);
+  const isPro = userPlan && userPlan.toLowerCase() !== 'free' && userPlan.toLowerCase() !== 'trial';
+
+  function selectScenario(pack, scenario) {
+    if (scenario.pro && !isPro) return;
+    const next = { packId: pack.id, packLabel: pack.label, scenarioId: scenario.id, scenarioLabel: scenario.label };
+    setSelected(next);
+  }
+
+  function apply() {
+    onChange(selected);
+    onClose();
+  }
+
+  function clear() {
+    onChange(null);
+    onClose();
+  }
+
+  return (
+    <div
+      onClick={e => e.target === e.currentTarget && onClose()}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 600,
+        background: 'rgba(0,0,0,0.75)',
+        backdropFilter: 'blur(12px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20,
+        animation: 'fadeIn 0.18s ease both',
+      }}
+    >
+      <div style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border2)',
+        borderRadius: 24,
+        width: '100%',
+        maxWidth: 760,
+        maxHeight: '88vh',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        animation: 'fadeUp 0.28s cubic-bezier(0.16,1,0.3,1) both',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.4)',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '18px 24px',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
+        }}>
+          <div>
+            <h2 style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--ink)', marginBottom: 2 }}>
+              Context Pack
+            </h2>
+            <p style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
+              Pick a pack then choose your scenario
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            color: 'var(--ink-3)', background: 'var(--surface2)',
+            border: '1px solid var(--border)', borderRadius: 9,
+            cursor: 'pointer', padding: 7, display: 'flex', alignItems: 'center',
+          }}>
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+
+          {/* Left: Pack list */}
+          <div style={{
+            width: 190, flexShrink: 0,
+            borderRight: '1px solid var(--border)',
+            overflowY: 'auto',
+            padding: '10px 8px',
+          }}>
+            {PACKS.map(pack => {
+              const isActive = activePack?.id === pack.id;
+              return (
+                <button
+                  key={pack.id}
+                  onClick={() => setActivePack(pack)}
+                  style={{
+                    width: '100%', padding: '10px 12px',
+                    borderRadius: 11, marginBottom: 2,
+                    background: isActive ? pack.bg : 'transparent',
+                    border: `1px solid ${isActive ? pack.border : 'transparent'}`,
+                    color: isActive ? pack.color : 'var(--ink-2)',
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    fontFamily: 'inherit', fontWeight: isActive ? 700 : 500,
+                    fontSize: 13.5, cursor: 'pointer', textAlign: 'left',
+                    transition: 'all .15s',
+                  }}
+                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'var(--surface2)'; e.currentTarget.style.color = 'var(--ink)'; }}}
+                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink-2)'; }}}
+                >
+                  <span style={{ fontSize: 17, lineHeight: 1, flexShrink: 0 }}>{pack.icon}</span>
+                  <span style={{ lineHeight: 1.3 }}>{pack.label}</span>
+                  {isActive && (
+                    <div style={{ marginLeft: 'auto', width: 5, height: 5, borderRadius: '50%', background: pack.color, flexShrink: 0 }} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right: Scenarios */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>
+            {activePack && (
+              <>
+                {/* Pack header */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  marginBottom: 14,
+                  padding: '10px 14px',
+                  background: activePack.bg,
+                  border: `1px solid ${activePack.border}`,
+                  borderRadius: 12,
+                }}>
+                  <span style={{ fontSize: 20 }}>{activePack.icon}</span>
+                  <div>
+                    <p style={{ fontSize: 13.5, fontWeight: 700, color: activePack.color }}>{activePack.label}</p>
+                    <p style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 1 }}>
+                      {activePack.scenarios.length} scenarios
+                    </p>
+                  </div>
+                </div>
+
+                {/* Scenarios grid */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {activePack.scenarios.map(scenario => {
+                    const isSelected = selected?.packId === activePack.id && selected?.scenarioId === scenario.id;
+                    const locked = scenario.pro && !isPro;
+                    return (
+                      <button
+                        key={scenario.id}
+                        onClick={() => selectScenario(activePack, scenario)}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: 20,
+                          fontSize: 13,
+                          fontWeight: isSelected ? 700 : 500,
+                          fontFamily: 'inherit',
+                          cursor: locked ? 'not-allowed' : 'pointer',
+                          border: `1.5px solid ${isSelected ? activePack.color : 'var(--border2)'}`,
+                          background: isSelected ? activePack.bg : 'var(--surface2)',
+                          color: locked ? 'var(--ink-4)' : isSelected ? activePack.color : 'var(--ink-2)',
+                          opacity: locked ? 0.5 : 1,
+                          transition: 'all .15s',
+                          display: 'flex', alignItems: 'center', gap: 6,
+                        }}
+                        onMouseEnter={e => { if (!locked && !isSelected) { e.currentTarget.style.borderColor = activePack.color; e.currentTarget.style.color = activePack.color; }}}
+                        onMouseLeave={e => { if (!locked && !isSelected) { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--ink-2)'; }}}
+                      >
+                        {isSelected && <Check size={11} />}
+                        {scenario.label}
+                        {locked && (
+                          <span style={{
+                            fontSize: 9.5, fontWeight: 700,
+                            color: '#f59e0b', background: 'rgba(245,158,11,0.12)',
+                            border: '1px solid rgba(245,158,11,0.25)',
+                            padding: '1px 5px', borderRadius: 4,
+                          }}>PRO</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding: '14px 20px',
+          borderTop: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
+          background: 'var(--surface2)',
+        }}>
+          {/* Selected preview */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            {selected ? (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '5px 12px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border2)',
+                borderRadius: 20, maxWidth: 300,
+              }}>
+                <span style={{ fontSize: 12 }}>
+                  {PACKS.find(p => p.id === selected.packId)?.icon}
+                </span>
+                <span style={{
+                  fontSize: 12.5, fontWeight: 600, color: 'var(--ink)',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {selected.packLabel} · {selected.scenarioLabel}
+                </span>
+              </div>
+            ) : (
+              <p style={{ fontSize: 12.5, color: 'var(--ink-4)' }}>No scenario selected</p>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+            {value && (
+              <button onClick={clear} style={{
+                padding: '9px 16px', borderRadius: 10,
+                border: '1px solid var(--border2)', background: 'transparent',
+                color: 'var(--ink-3)', fontFamily: 'inherit',
+                fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                transition: 'all .15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink-3)'; e.currentTarget.style.borderColor = 'var(--border2)'; }}
+              >
+                Clear
+              </button>
+            )}
+            <button
+              onClick={apply}
+              disabled={!selected}
+              className="btn-green"
+              style={{
+                padding: '9px 22px', borderRadius: 10,
+                fontWeight: 700, fontSize: 13,
+                opacity: selected ? 1 : 0.4,
+                cursor: selected ? 'pointer' : 'not-allowed',
+              }}
+            >
+              Apply
+            </button>
           </div>
         </div>
       </div>
@@ -1305,6 +1555,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [activeTab, setActiveTab] = useState(tool.outputVariants?.[0] || "");
   const [showShare, setShowShare] = useState(false);
+  const [showPackModal, setShowPackModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   function setField(id, val) {
@@ -1646,6 +1897,14 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
     <div
       style={{ minHeight: "100vh", background: "var(--bg)", display: "flex" }}
     >
+      {showPackModal && (
+        <PackModal
+          value={fields.pack_scenario || null}
+          onChange={v => setField('pack_scenario', v)}
+          onClose={() => setShowPackModal(false)}
+          userPlan={planTier}
+        />
+      )}
       {showShare && result && (
         <ShareModal
           result={result}
@@ -1982,6 +2241,81 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                 onChange={(v) => setField(f.id, v)}
               />
             ))}
+
+          {/* ── Pack modal trigger ── */}
+          {optionFields.filter(f => f.type === "pack-modal").map(f => {
+            const ps = fields.pack_scenario;
+            const pack = ps ? PACKS.find(p => p.id === ps.packId) : null;
+            return (
+              <div key={f.id} style={{ marginBottom: "clamp(14px,2vw,20px)" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowPackModal(true)}
+                  style={{
+                    width: "100%", padding: "13px 16px",
+                    borderRadius: 12,
+                    border: `1.5px solid ${ps ? (pack?.border || "var(--green)") : "var(--border2)"}`,
+                    background: ps ? (pack?.bg || "rgba(34,197,94,0.06)") : "var(--surface2)",
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    gap: 10, cursor: "pointer", fontFamily: "inherit",
+                    transition: "all .2s",
+                    boxShadow: ps ? `0 0 0 3px ${pack?.bg || "rgba(34,197,94,0.08)"}` : "none",
+                  }}
+                  onMouseEnter={e => { if (!ps) { e.currentTarget.style.borderColor = "var(--green)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(34,197,94,0.08)"; }}}
+                  onMouseLeave={e => { if (!ps) { e.currentTarget.style.borderColor = "var(--border2)"; e.currentTarget.style.boxShadow = "none"; }}}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                    {ps && pack ? (
+                      <>
+                        <span style={{ fontSize: 18, flexShrink: 0 }}>{pack.icon}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: pack.color, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 2 }}>
+                            {ps.packLabel}
+                          </p>
+                          <p style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {ps.scenarioLabel}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ width: 32, height: 32, borderRadius: 9, background: "var(--surface3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Zap size={14} color="var(--ink-3)" />
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 1 }}>
+                            Context Pack
+                          </p>
+                          <p style={{ fontSize: 13.5, color: "var(--ink-3)" }}>
+                            Choose a pack and scenario
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    {ps && (
+                      <button
+                        type="button"
+                        onClick={e => { e.stopPropagation(); setField("pack_scenario", null); }}
+                        style={{
+                          width: 22, height: 22, borderRadius: "50%",
+                          background: "var(--surface3)", border: "none",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: "pointer", color: "var(--ink-3)", transition: "all .15s",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; e.currentTarget.style.color = "#ef4444"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "var(--surface3)"; e.currentTarget.style.color = "var(--ink-3)"; }}
+                      >
+                        <X size={11} />
+                      </button>
+                    )}
+                    <ChevronDown size={14} color="var(--ink-3)" />
+                  </div>
+                </button>
+              </div>
+            );
+          })}
 
           {/* ── Options row (selects) ── */}
           {optionFields.filter((f) => f.type === "select").length > 0 && (
