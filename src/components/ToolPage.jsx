@@ -23,6 +23,7 @@ import {
   Home,
 } from "lucide-react";
 import { useAuth } from "../AuthContext.jsx";
+import { useQueryClient } from "@tanstack/react-query";
 import { generateApi } from "../lib/generateApi.js";
 import { PACKS } from "../lib/packData.js";
 import { useToast } from "../lib/Toast.jsx";
@@ -1364,6 +1365,7 @@ const TOOL_NAV = [
 export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const { user } = useAuth();
   const toast = useToast();
+  const qc = useQueryClient();
   const displayName = user?.full_name || user?.email?.split('@')[0] || 'User';
   const displayInitial = displayName[0].toUpperCase();
   const planTier = user?.plan_tier || 'free';
@@ -1419,6 +1421,20 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
       }
       setResult(parsed);
       setPhase("done");
+      // Update user cache with latest remaining/usage from API response
+      if (parsed?._remaining != null || parsed?._raw?.remaining != null) {
+        const remaining = parsed._remaining ?? parsed._raw?.remaining;
+        const limit     = parsed._raw?.limit;
+        qc.setQueryData(['auth', 'me'], (prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            replies_remaining: remaining,
+            usage_today:  limit != null ? limit - remaining : (prev.usage_today ?? 0) + 1,
+            limit_today:  limit ?? prev.limit_today,
+          };
+        });
+      }
     } catch (err) {
       const status = err?.response?.status || err?.status;
       const msg =
@@ -2297,7 +2313,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
 
 
               {/* Tone-checker deep extras */}
-              {tool.id === "tone-checker" && (
+              {(tool.id === "tone-checker" || tool.id === "intent-detector") && (
                 <div
                   style={{
                     display: "flex",
@@ -2400,7 +2416,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                           marginBottom: 6,
                         }}
                       >
-                        Recommended approach
+                        {tool.id === "intent-detector" ? "How to respond" : "Recommended approach"}
                       </p>
                       <p
                         style={{
@@ -2412,6 +2428,36 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                         {result.recommended_approach}
                       </p>
                     </div>
+                  )}
+
+                  {/* Intent detector: primary/secondary tone as analysis cards */}
+                  {tool.id === "intent-detector" && (
+                    <>
+                      {result.primary_tone && (
+                        <div style={{ padding: "14px 18px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14 }}>
+                          <p style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Surface meaning</p>
+                          <p style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.6 }}>{result.primary_tone}</p>
+                        </div>
+                      )}
+                      {result.secondary_tone && (
+                        <div style={{ padding: "14px 18px", background: "rgba(167,139,250,0.05)", border: "1px solid rgba(167,139,250,0.18)", borderRadius: 14 }}>
+                          <p style={{ fontSize: 10.5, fontWeight: 700, color: "#a78bfa", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Real intent</p>
+                          <p style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.6 }}>{result.secondary_tone}</p>
+                        </div>
+                      )}
+                      {result.subtext && (
+                        <div style={{ padding: "14px 18px", background: "var(--surface2)", border: "1px solid var(--border2)", borderRadius: 14 }}>
+                          <p style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Decoded subtext</p>
+                          <p style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.6 }}>{result.subtext}</p>
+                        </div>
+                      )}
+                      {result.urgency && (
+                        <div style={{ padding: "10px 16px", background: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.18)", borderRadius: 12, display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#f59e0b", textTransform: "uppercase", letterSpacing: "0.08em" }}>Emotional state</span>
+                          <span style={{ fontSize: 13.5, color: "var(--ink)", fontWeight: 600 }}>{result.urgency}</span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}

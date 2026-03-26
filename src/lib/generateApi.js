@@ -389,5 +389,9 @@ function normalizeMedium(val) {
 
 function capitalize(str) {
   if (!str) return ''
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+  // Convert snake_case to Title Case: "hold_firm" → "Hold Firm"
+  return str
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
 }

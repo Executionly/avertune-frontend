@@ -4,13 +4,10 @@ import { useTheme } from '../ThemeContext.jsx'
 import { useAuth } from '../AuthContext.jsx'
 
 const TOOLS = [
-  { icon: Activity,      label: 'Tone Checker',     slug: 'tone-checker' },
   { icon: MessageSquare, label: 'Reply Generator',   slug: 'reply-generator' },
+  { icon: Activity,      label: 'Tone Checker',      slug: 'tone-checker' },
   { icon: ShieldCheck,   label: 'Boundaries',        slug: 'boundary-builder' },
   { icon: Swords,        label: 'Negotiation',       slug: 'negotiation-reply' },
-  { icon: Clock,         label: 'Follow-Up',         slug: 'follow-up-writer' },
-  { icon: Clock,         label: 'Difficult Email',   slug: 'difficult-email' },
-  { icon: Clock,         label: 'Intent Detector',   slug: 'intent-detector' },
 ]
 
 const THEME_OPTS = [
