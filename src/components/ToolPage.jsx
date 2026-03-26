@@ -17,7 +17,6 @@ import {
   Download,
   MessageSquare,
   Activity,
-  Pencil,
   ShieldCheck,
   Swords,
   Clock,
@@ -1328,12 +1327,6 @@ const TOOL_NAV = [
     color: "var(--teal)",
   },
   {
-    icon: Pencil,
-    slug: "improve-reply",
-    label: "Improve Reply",
-    color: "var(--blue)",
-  },
-  {
     icon: ShieldCheck,
     slug: "boundary-builder",
     label: "Boundaries",
@@ -1350,6 +1343,18 @@ const TOOL_NAV = [
     slug: "follow-up-writer",
     label: "Follow-Up",
     color: "var(--blue)",
+  },
+  {
+    icon: AlertTriangle,
+    slug: "difficult-email",
+    label: "Difficult Email",
+    color: "#f59e0b",
+  },
+  {
+    icon: Lightbulb,
+    slug: "intent-detector",
+    label: "Intent Detector",
+    color: "#a78bfa",
   },
 ];
 

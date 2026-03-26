@@ -1,7 +1,6 @@
 import {
   Activity,
   MessageSquare,
-  Pencil,
   ShieldCheck,
   Swords,
   Clock,
@@ -21,13 +20,6 @@ const tools = [
     title: "Reply Generator",
     desc: "Paste a message and generate calm, clear reply options instantly.",
     color: "var(--teal)",
-  },
-  {
-    icon: Pencil,
-    slug: "improve-reply",
-    title: "Improve My Reply",
-    desc: "Strengthen a reply you already wrote to sound clearer and more confident.",
-    color: "var(--blue)",
   },
   {
     icon: ShieldCheck,
@@ -52,10 +44,17 @@ const tools = [
   },
   {
     icon: Clock,
-    slug: "difficult-email-helper",
-    title: "Difficult Email Helper",
-    desc: "Paste a message or upload a screenshot to get started.",
-    color: "var(--teal)",
+    slug: "difficult-email",
+    title: "Difficult Email",
+    desc: "Rewrite sensitive workplace emails into safe, polished versions.",
+    color: "#f59e0b",
+  },
+  {
+    icon: Clock,
+    slug: "intent-detector",
+    title: "Intent Detector",
+    desc: "Decode the hidden meaning and real intent behind any message.",
+    color: "#a78bfa",
   },
 ];
 

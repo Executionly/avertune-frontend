@@ -31,16 +31,6 @@ function buildToneRequest(fields) {
   }
 }
 
-function buildImproveRequest(fields) {
-  return {
-    original_message: fields.original  || '',
-    draft:            fields.draft     || '',
-    goal:             mapGoal(fields.goal),
-    keep_from_draft:  mapKeep(fields.keep),
-    medium:           (fields.medium   || 'Email').toLowerCase(),
-    context:          fields.context   || '',
-  }
-}
 
 // ── API calls ─────────────────────────────────────────────────────────────────
 
@@ -53,9 +43,25 @@ export const generateApi = {
     const { data } = await api.post('/generate/tone', buildToneRequest(fields))
     return normalizeToneResponse(data)
   },
-  improve: async (fields) => {
-    const { data } = await api.post('/generate/improve', buildImproveRequest(fields))
-    return normalizeImproveResponse(data)
+  boundary: async (fields) => {
+    const { data } = await api.post('/generate/boundary', buildBoundaryRequest(fields))
+    return normalizeBoundaryResponse(data)
+  },
+  negotiation: async (fields) => {
+    const { data } = await api.post('/generate/negotiation', buildNegotiationRequest(fields))
+    return normalizeNegotiationResponse(data)
+  },
+  followup: async (fields) => {
+    const { data } = await api.post('/generate/followup', buildFollowupRequest(fields))
+    return normalizeFollowupResponse(data)
+  },
+  difficultEmail: async (fields) => {
+    const { data } = await api.post('/generate/difficult-email', buildDifficultEmailRequest(fields))
+    return normalizeDifficultEmailResponse(data)
+  },
+  intent: async (fields) => {
+    const { data } = await api.post('/generate/intent', buildIntentRequest(fields))
+    return normalizeIntentResponse(data)
   },
 }
 
@@ -152,29 +158,177 @@ function normalizeToneResponse(data) {
   }
 }
 
-function normalizeImproveResponse(data) {
-  // Try both array and object shapes for versions
-  const versions = data.versions || data.improved_versions || {}
-  const repliesMap = {}
 
-  if (Array.isArray(data.versions)) {
-    data.versions.forEach(v => {
-      repliesMap[v.label || capitalize(v.variant)] = v.text || ''
-    })
-  } else {
-    repliesMap['Improved']    = versions.improved     || data.improved    || ''
-    repliesMap['Concise']     = versions.shorter      || versions.concise || data.concise    || ''
-    repliesMap['Confident']   = versions.confident    || data.confident   || ''
-    repliesMap['Original+']   = versions.original_plus || data.original_plus || ''
-  }
+// ── Boundary ─────────────────────────────────────────────────────────────────
 
+function buildBoundaryRequest(fields) {
   return {
-    diagnosis:        data.diagnosis        || data.analysis     || '',
-    key_improvements: data.key_improvements || data.improvements || [],
+    what_is_happening:    fields.what_is_happening    || '',
+    what_boundary_needed: fields.what_boundary_needed || '',
+    relationship:         fields.relationship         || '',
+    relationship_stakes:  fields.relationship_stakes  || '',
+    said_before:          fields.said_before          || '',
+    medium:               normalizeMedium(fields.medium || 'Email'),
+  }
+}
+
+function normalizeBoundaryResponse(data) {
+  // Backend returns 3 boundary statements: firm, gentle, final
+  const repliesMap = {}
+  const replyInsights = {}
+  if (Array.isArray(data.replies)) {
+    data.replies.forEach(r => {
+      const key = capitalize(r.variant || r.label || '')
+      repliesMap[key]    = r.text    || ''
+      replyInsights[key] = r.insight || ''
+    })
+  } else if (data.replies && typeof data.replies === 'object') {
+    Object.assign(repliesMap, data.replies)
+  }
+  return {
     replies:          repliesMap,
-    tip:              data.tip              || '',
-    _remaining: data.remaining,
-    _raw:       data,
+    _replyInsights:   replyInsights,
+    _replyDescriptors:{},
+    _recommendedVariant: null,
+    tip:              data.power_note || data.tip || '',
+    _remaining:       data.remaining,
+    _raw:             data,
+  }
+}
+
+// ── Negotiation ───────────────────────────────────────────────────────────────
+
+function buildNegotiationRequest(fields) {
+  return {
+    their_message:        fields.their_message        || '',
+    your_position:        fields.your_position        || '',
+    negotiation_context:  fields.negotiation_context  || '',
+    leverage:             fields.leverage             || '',
+    style:                fields.style                || '',
+    context:              '',
+    medium:               normalizeMedium(fields.medium || 'Email'),
+  }
+}
+
+function normalizeNegotiationResponse(data) {
+  const repliesMap = {}
+  const replyInsights = {}
+  if (Array.isArray(data.replies)) {
+    data.replies.forEach(r => {
+      const key = capitalize(r.variant || r.label || '')
+      repliesMap[key]    = r.text    || ''
+      replyInsights[key] = r.insight || ''
+    })
+  } else if (data.replies && typeof data.replies === 'object') {
+    Object.assign(repliesMap, data.replies)
+  }
+  return {
+    replies:           repliesMap,
+    _replyInsights:    replyInsights,
+    _replyDescriptors: {},
+    _recommendedVariant: null,
+    tip:               data.strategic_insights || data.tip || '',
+    _remaining:        data.remaining,
+    _raw:              data,
+  }
+}
+
+// ── Follow-up ─────────────────────────────────────────────────────────────────
+
+function buildFollowupRequest(fields) {
+  return {
+    context:          fields.context          || '',
+    last_contact:     fields.last_contact     || '',
+    follow_up_type:   fields.follow_up_type   || '',
+    follow_up_number: fields.follow_up_number || '',
+    preferred_tone:   fields.preferred_tone   || '',
+    medium:           normalizeMedium(fields.medium || 'Email'),
+    extra_detail:     '',
+  }
+}
+
+function normalizeFollowupResponse(data) {
+  const repliesMap = {}
+  if (Array.isArray(data.replies)) {
+    data.replies.forEach(r => {
+      const key = capitalize(r.variant || r.label || '')
+      repliesMap[key] = r.text || ''
+    })
+  } else if (data.replies && typeof data.replies === 'object') {
+    Object.assign(repliesMap, data.replies)
+  }
+  return {
+    replies:           repliesMap,
+    _replyInsights:    {},
+    _replyDescriptors: {},
+    _recommendedVariant: null,
+    tip:               data.timing_note || data.tip || '',
+    _remaining:        data.remaining,
+    _raw:              data,
+  }
+}
+
+// ── Difficult Email ───────────────────────────────────────────────────────────
+
+function buildDifficultEmailRequest(fields) {
+  return {
+    what_to_communicate: fields.what_to_communicate || '',
+    draft:               fields.draft               || '',
+    situation:           fields.situation           || '',
+    relationship:        fields.relationship        || '',
+    sensitivity:         fields.sensitivity         || '',
+    context:             '',
+  }
+}
+
+function normalizeDifficultEmailResponse(data) {
+  const repliesMap = {}
+  if (Array.isArray(data.replies)) {
+    data.replies.forEach(r => {
+      const key = capitalize(r.variant || r.label || '')
+      repliesMap[key] = r.text || ''
+    })
+  } else if (data.replies && typeof data.replies === 'object') {
+    Object.assign(repliesMap, data.replies)
+  }
+  return {
+    replies:           repliesMap,
+    _replyInsights:    {},
+    _replyDescriptors: {},
+    _recommendedVariant: null,
+    tip:               data.safety_note || data.tip || '',
+    _remaining:        data.remaining,
+    _raw:              data,
+  }
+}
+
+// ── Intent Detector ───────────────────────────────────────────────────────────
+
+function buildIntentRequest(fields) {
+  return {
+    message:      fields.message      || '',
+    relationship: fields.relationship || '',
+    channel:      (fields.channel || 'email').toLowerCase(),
+    background:   fields.background   || '',
+  }
+}
+
+function normalizeIntentResponse(data) {
+  return {
+    // Map to existing tone-checker style display
+    primary_tone:         data.surface_meaning        || data.primary_tone         || '',
+    secondary_tone:       data.real_intent            || data.secondary_tone       || '',
+    intent:               data.real_intent            || data.intent               || '',
+    subtext:              data.decoded_subtext        || data.subtext              || '',
+    risk_level:           data.warning_level          || data.risk_level           || '',
+    risk_reason:          data.risk_reason            || '',
+    emotional_signals:    data.warning_signals        || data.emotional_signals    || [],
+    what_not_to_do:       data.what_not_to_do         || '',
+    recommended_approach: data.recommended_approach   || '',
+    urgency:              data.emotional_state        || data.urgency              || '',
+    urgency_reason:       data.urgency_reason         || '',
+    _remaining:           data.remaining,
+    _raw:                 data,
   }
 }
 
@@ -214,27 +368,7 @@ function mapTension(val) {
   return map[val] || 'no_history'
 }
 
-function mapGoal(val) {
-  const map = {
-    'Sound more professional': 'more_professional',
-    'Sound more confident':    'more_confident',
-    'Sound friendlier':        'friendlier',
-    'Be more concise':         'more_concise',
-    'Set a boundary clearly':  'set_boundary',
-    'De-escalate tension':     'de_escalate',
-  }
-  return map[val] || 'more_professional'
-}
 
-function mapKeep(val) {
-  const map = {
-    'Keep the overall message': 'keep_overall_message',
-    'Keep the opening':         'keep_opening',
-    'Keep specific phrases':    'keep_phrases',
-    'Total rewrite is fine':    'total_rewrite',
-  }
-  return map[val] || 'keep_overall_message'
-}
 
 function parseChips(val) {
   if (!val) return []

@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   MessageSquare,
   Activity,
-  Pencil,
   ShieldCheck,
   Swords,
   Clock,
@@ -40,15 +39,6 @@ const TOOLS = [
     border: "rgba(45,212,191,0.2)",
   },
   {
-    icon: Pencil,
-    slug: "improve-reply",
-    label: "Improve My Reply",
-    desc: "Strengthen any draft you wrote",
-    color: "var(--blue)",
-    bg: "rgba(56,189,248,0.08)",
-    border: "rgba(56,189,248,0.2)",
-  },
-  {
     icon: ShieldCheck,
     slug: "boundary-builder",
     label: "Boundary Builder",
@@ -77,12 +67,21 @@ const TOOLS = [
   },
   {
     icon: Clock,
-    slug: "difficul-email",
-    label: "Difficult Email helper",
-    desc: "Paste a message or upload a screenshot to get started.",
-    color: "var(--teal)",
-    bg: "rgba(56,189,248,0.08)",
-    border: "rgba(56,189,248,0.2)",
+    slug: "difficult-email",
+    label: "Difficult Email",
+    desc: "Rewrite sensitive emails safely",
+    color: "#f59e0b",
+    bg: "rgba(245,158,11,0.08)",
+    border: "rgba(245,158,11,0.2)",
+  },
+  {
+    icon: Clock,
+    slug: "intent-detector",
+    label: "Intent Detector",
+    desc: "Decode hidden meaning in messages",
+    color: "#a78bfa",
+    bg: "rgba(167,139,250,0.08)",
+    border: "rgba(167,139,250,0.2)",
   },
 ];
 

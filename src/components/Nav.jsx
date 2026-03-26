@@ -1,15 +1,16 @@
 import { useState, useRef, useEffect } from 'react'
-import { Menu, X, Sun, Moon, Monitor, Activity, MessageSquare, Pencil, ShieldCheck, Swords, Clock, User, LogOut } from 'lucide-react'
+import { Menu, X, Sun, Moon, Monitor, Activity, MessageSquare, ShieldCheck, Swords, Clock, User, LogOut } from 'lucide-react'
 import { useTheme } from '../ThemeContext.jsx'
 import { useAuth } from '../AuthContext.jsx'
 
 const TOOLS = [
   { icon: Activity,      label: 'Tone Checker',     slug: 'tone-checker' },
   { icon: MessageSquare, label: 'Reply Generator',   slug: 'reply-generator' },
-  { icon: Pencil,        label: 'Improve Reply',     slug: 'improve-reply' },
   { icon: ShieldCheck,   label: 'Boundaries',        slug: 'boundary-builder' },
   { icon: Swords,        label: 'Negotiation',       slug: 'negotiation-reply' },
   { icon: Clock,         label: 'Follow-Up',         slug: 'follow-up-writer' },
+  { icon: Clock,         label: 'Difficult Email',   slug: 'difficult-email' },
+  { icon: Clock,         label: 'Intent Detector',   slug: 'intent-detector' },
 ]
 
 const THEME_OPTS = [
