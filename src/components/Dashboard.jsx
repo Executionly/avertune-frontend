@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   MessageSquare,
   Activity,
@@ -111,12 +112,13 @@ const RECENT = [
   },
 ];
 
-export default function Dashboard({ onBack, onTool, onPricing }) {
+export default function Dashboard() {
   const { user, authLoading, logout } = useAuth();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (authLoading) return null;
-  if (!user) { onBack?.(); return null; }
+  if (!user) { navigate('/'); return null; }
 
   const displayName = user.full_name || user.email?.split('@')[0] || 'User';
   const displayInitial = displayName[0].toUpperCase();
@@ -331,7 +333,7 @@ export default function Dashboard({ onBack, onTool, onPricing }) {
       >
         {/* Pricing */}
         <button
-          onClick={() => { onPricing?.(); setSidebarOpen(false); }}
+          onClick={() => { navigate('/pricing'); setSidebarOpen(false); }}
           style={{
             width: "100%", display: "flex", alignItems: "center", gap: 9,
             padding: "9px 10px", borderRadius: 9, background: "transparent",
@@ -516,7 +518,7 @@ export default function Dashboard({ onBack, onTool, onPricing }) {
               </div>
             </div>
             <button
-              onClick={() => onTool?.("reply-generator")}
+              onClick={() => navigate("/tool/reply-generator")}
               className="btn-green"
               style={{
                 padding: "8px 18px",
@@ -657,7 +659,7 @@ export default function Dashboard({ onBack, onTool, onPricing }) {
                   return (
                     <button
                       key={t.slug}
-                      onClick={() => onTool?.(t.slug)}
+                      onClick={() => navigate(`/tool/${t.slug}`)}
                       style={{
                         padding: "16px",
                         borderRadius: 14,

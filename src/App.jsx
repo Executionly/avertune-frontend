@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext.jsx'
 import { TOOL_CONFIGS } from './toolConfigs.js'
 import Nav from './components/Nav.jsx'
@@ -22,163 +22,123 @@ import {
 import Dashboard from './components/Dashboard.jsx'
 import ToolPage from './components/ToolPage.jsx'
 import PricingPage from './components/PricingPage.jsx'
+import { useState } from 'react'
 
-export default function App() {
-  const { user } = useAuth()
+// ── Protected route ───────────────────────────────────────────────────────────
+function Protected({ children }) {
+  const { user, authLoading } = useAuth()
+  const location = useLocation()
+  if (authLoading) return null
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />
+  return children
+}
 
-  // Detect ?auth=link-expired redirect from /auth/reset-password
-  const searchParams = new URLSearchParams(window.location.search)
-  const authParam = searchParams.get('auth')
-
-  const [view, setView] = useState(
-    authParam === 'link-expired' ? 'link-already-used' : 'landing'
+// ── Tool page wrapper ─────────────────────────────────────────────────────────
+function ToolPageWrapper() {
+  const navigate = useNavigate()
+  const { slug } = useParams()
+  const tool = TOOL_CONFIGS[slug]
+  if (!tool) return <Navigate to="/dashboard" replace />
+  return (
+    <ToolPage
+      tool={tool}
+      onBack={() => navigate('/dashboard')}
+      onLogin={() => navigate('/login')}
+      onTool={s => { window.scrollTo(0, 0); navigate(`/tool/${s}`) }}
+    />
   )
-  const [emailSentMeta, setEmailSentMeta] = useState({ email: '', kind: 'confirmation', message: null })
+}
 
-  const path = window.location.pathname
-
-  // ── URL-based routes (email callback, password reset) ─────────────────────
-  if (path === '/auth/callback' || path === '/api/auth/google/callback') return <AuthCallbackPage />
-
-  if (path === '/auth/reset-password')
-    return (
-      <ResetPasswordPage
-        onSuccess={() => (window.location.href = '/')}
-        onLinkInvalid={() => (window.location.href = '/?auth=link-expired')}
-      />
-    )
-
-  // ── Navigation helpers ────────────────────────────────────────────────────
-  function goTool(slug) {
-    window.scrollTo(0, 0)
-    setView({ type: 'tool', slug })
-  }
-
-  function goBack() {
-    window.scrollTo(0, 0)
-    setView(user ? 'dashboard' : 'landing')
-  }
-
-  // ── Auth views ────────────────────────────────────────────────────────────
-  if (view === 'login')
-    return (
-      <LoginPage
-        onBack={() => setView('landing')}
-        onSwitchToSignup={() => setView('signup')}
-        onForgotPassword={() => setView('forgot-password')}
-        onSuccess={() => {
-          window.scrollTo(0, 0)
-          setView('dashboard')
-        }}
-      />
-    )
-
-  if (view === 'signup')
-    return (
-      <SignupPage
-        onBack={() => setView('landing')}
-        onSwitchToLogin={() => setView('login')}
-        onSuccess={({ email, message } = {}) => {
-          setEmailSentMeta({ email, kind: 'confirmation', message: message || null })
-          setView('email-sent')
-        }}
-      />
-    )
-
-  if (view === 'forgot-password')
-    return (
-      <ForgotPasswordPage
-        onBack={() => setView('login')}
-        onSuccess={({ email, message } = {}) => {
-          setEmailSentMeta({ email, kind: 'reset', message: message || null })
-          setView('email-sent')
-        }}
-      />
-    )
-
-  if (view === 'email-sent')
-    return (
-      <EmailSentPage
-        email={emailSentMeta.email}
-        kind={emailSentMeta.kind}
-        backendMessage={emailSentMeta.message}
-        onBack={() => setView('login')}
-      />
-    )
-
-  if (view === 'link-already-used')
-    return (
-      <LinkAlreadyUsedPage
-        onBack={() => setView('forgot-password')}
-      />
-    )
-
-  if (view === 'account-confirmed')
-    return (
-      <AccountConfirmedPage
-        onLogin={() => setView('login')}
-      />
-    )
-
-  // ── Dashboard ─────────────────────────────────────────────────────────────
-  if (view === 'dashboard')
-    return (
-      <Dashboard
-        onBack={() => { window.scrollTo(0, 0); setView('landing') }}
-        onTool={goTool}
-        onPricing={() => { window.scrollTo(0, 0); setView('pricing') }}
-      />
-    )
-
-  // ── Tool pages ────────────────────────────────────────────────────────────
-  if (view?.type === 'tool') {
-    const tool = TOOL_CONFIGS[view.slug]
-    if (!tool) { setView('landing'); return null }
-    return (
-      <ToolPage
-        tool={tool}
-        onBack={goBack}
-        onLogin={() => setView('login')}
-        onTool={goTool}
-      />
-    )
-  }
-
-  // ── Pricing ───────────────────────────────────────────────────────────────
-  if (view === 'pricing')
-    return (
-      <PricingPage
-        onBack={() => { window.scrollTo(0, 0); setView('landing') }}
-        onSignup={() => setView('signup')}
-      />
-    )
-
-  // ── Landing ───────────────────────────────────────────────────────────────
+// ── Landing ───────────────────────────────────────────────────────────────────
+function Landing() {
+  const navigate = useNavigate()
+  const { user } = useAuth()
   return (
     <div style={{ minHeight: '100vh' }}>
-      <Nav
-        onLogin={() => setView('login')}
-        onSignup={() => setView('signup')}
-        onDashboard={() => { window.scrollTo(0, 0); setView(user ? 'dashboard' : 'login') }}
-        onTool={goTool}
-        onPricing={() => { window.scrollTo(0, 0); setView('pricing') }}
-      />
-      <HeroDemo onSignup={() => setView('signup')} />
+      <Nav />
+      <HeroDemo onSignup={() => navigate('/signup')} />
       <div className="hr" />
       <HowItWorks />
       <div className="hr" />
       <UseCases />
       <div className="hr" />
-      <Tools onTool={goTool} onSignup={() => setView('signup')} />
+      <Tools
+        onTool={slug => { window.scrollTo(0, 0); navigate(user ? `/tool/${slug}` : '/login') }}
+        onSignup={() => navigate('/signup')}
+      />
       <div className="hr" />
       <Testimonials />
       <div className="hr" />
       <FAQ />
       <div className="hr" />
-      <CTA onSignup={() => setView('signup')} />
-      <Footer
-        onPricing={() => { window.scrollTo(0, 0); setView('pricing') }}
-      />
+      <CTA onSignup={() => navigate('/signup')} />
+      <Footer onPricing={() => { window.scrollTo(0, 0); navigate('/pricing') }} />
     </div>
+  )
+}
+
+// ── Email sent state — lives here since it's transient between pages ──────────
+let _emailSentMeta = { email: '', kind: 'confirmation', message: null }
+
+function SignupWrapper() {
+  const navigate = useNavigate()
+  return (
+    <SignupPage
+      onSuccess={({ email, message } = {}) => {
+        _emailSentMeta = { email, kind: 'confirmation', message: message || null }
+        navigate('/email-sent')
+      }}
+    />
+  )
+}
+
+function ForgotWrapper() {
+  const navigate = useNavigate()
+  return (
+    <ForgotPasswordPage
+      onSuccess={({ email, message } = {}) => {
+        _emailSentMeta = { email, kind: 'reset', message: message || null }
+        navigate('/email-sent')
+      }}
+    />
+  )
+}
+
+function EmailSentWrapper() {
+  return (
+    <EmailSentPage
+      email={_emailSentMeta.email}
+      kind={_emailSentMeta.kind}
+      backendMessage={_emailSentMeta.message}
+    />
+  )
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+export default function App() {
+  return (
+    <Routes>
+      {/* Public */}
+      <Route path="/" element={<Landing />} />
+      <Route path="/pricing" element={<PricingPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupWrapper />} />
+      <Route path="/forgot-password" element={<ForgotWrapper />} />
+      <Route path="/email-sent" element={<EmailSentWrapper />} />
+      <Route path="/link-expired" element={<LinkAlreadyUsedPage />} />
+      <Route path="/account-confirmed" element={<AccountConfirmedPage />} />
+
+      {/* Auth callbacks */}
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      <Route path="/api/auth/google/callback" element={<AuthCallbackPage />} />
+      <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+
+      {/* Protected */}
+      <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
+      <Route path="/tool/:slug" element={<Protected><ToolPageWrapper /></Protected>} />
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Menu, X, Sun, Moon, Monitor, Activity, MessageSquare, ShieldCheck, Swords, Clock, User, LogOut } from 'lucide-react'
 import { useTheme } from '../ThemeContext.jsx'
 import { useAuth } from '../AuthContext.jsx'
@@ -73,8 +74,9 @@ function ThemePicker() {
   )
 }
 
-function UserMenu({ onDashboard }) {
+function UserMenu() {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const ref = useRef()
   useClickOutside(ref, () => setOpen(false))
@@ -124,7 +126,7 @@ function UserMenu({ onDashboard }) {
               <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>· {repliesRemaining} replies left today</span>
             </div>
           </div>
-          <button onClick={() => { onDashboard(); setOpen(false) }} style={{
+          <button onClick={() => { navigate('/dashboard'); setOpen(false) }} style={{
             display: 'flex', alignItems: 'center', gap: 9, width: '100%',
             padding: '9px 12px', borderRadius: 9,
             background: 'transparent', color: 'var(--ink-2)',
@@ -152,13 +154,15 @@ function UserMenu({ onDashboard }) {
   )
 }
 
-export default function Nav({ onLogin, onSignup, onDashboard, onTool, onPricing }) {
+export default function Nav() {
   const [menuOpen, setMenuOpen] = useState(false)
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
 
   function handleTool(slug) {
     setMenuOpen(false)
-    if (user) { onTool(slug) } else { onLogin() }
+    window.scrollTo(0, 0)
+    if (user) { navigate(`/tool/${slug}`) } else { navigate('/login') }
   }
 
   return (
@@ -172,7 +176,7 @@ export default function Nav({ onLogin, onSignup, onDashboard, onTool, onPricing 
         justifyContent: 'space-between', gap: 12,
       }}>
         {/* Logo */}
-        <button onClick={() => { setMenuOpen(false); window.scrollTo(0,0) }} style={{ display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer' }}>
+        <button onClick={() => { setMenuOpen(false); window.scrollTo(0,0); navigate('/') }} style={{ display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer' }}>
           <div style={{
             width: 30, height: 30, borderRadius: 9,
             background: 'linear-gradient(135deg,var(--green) 0%,var(--teal) 100%)',
@@ -205,7 +209,7 @@ export default function Nav({ onLogin, onSignup, onDashboard, onTool, onPricing 
               </button>
             )
           })}
-          <button onClick={onPricing} style={{
+          <button onClick={() => navigate('/pricing')} style={{
             display: 'flex', alignItems: 'center', gap: 5,
             padding: '6px 11px', borderRadius: 8,
             background: 'transparent', color: 'var(--ink-3)',
@@ -223,11 +227,11 @@ export default function Nav({ onLogin, onSignup, onDashboard, onTool, onPricing 
         <div className="hide-md" style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
           <ThemePicker />
           {user ? (
-            <UserMenu onDashboard={onDashboard} />
+            <UserMenu />
           ) : (
             <>
-              <button onClick={onLogin} className="btn-ghost" style={{ padding: '7px 15px', borderRadius: 8, fontSize: 13.5 }}>Log in</button>
-              <button onClick={onSignup} className="btn-green" style={{ padding: '7px 17px', borderRadius: 8, fontSize: 13.5 }}>Start Free Trial</button>
+              <button onClick={() => navigate('/login')} className="btn-ghost" style={{ padding: '7px 15px', borderRadius: 8, fontSize: 13.5 }}>Log in</button>
+              <button onClick={() => navigate('/signup')} className="btn-green" style={{ padding: '7px 17px', borderRadius: 8, fontSize: 13.5 }}>Start Free Trial</button>
             </>
           )}
         </div>
@@ -264,19 +268,19 @@ export default function Nav({ onLogin, onSignup, onDashboard, onTool, onPricing 
               )
             })}
           </div>
-          <button onClick={() => { onPricing(); setMenuOpen(false) }} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13.5, fontWeight: 600, color: 'var(--ink-2)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 12, textAlign: 'left' }}>
+          <button onClick={() => { navigate('/pricing'); setMenuOpen(false) }} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13.5, fontWeight: 600, color: 'var(--ink-2)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 12, textAlign: 'left' }}>
             Pricing
           </button>
           <div style={{ display: 'flex', gap: 10 }}>
             {user ? (
               <>
-                <button onClick={() => { onDashboard(); setMenuOpen(false) }} className="btn-ghost" style={{ flex: 1, padding: '11px', borderRadius: 9, fontSize: 14 }}>Dashboard</button>
+                <button onClick={() => { navigate('/dashboard'); setMenuOpen(false) }} className="btn-ghost" style={{ flex: 1, padding: '11px', borderRadius: 9, fontSize: 14 }}>Dashboard</button>
                 <button onClick={() => { logout(); setMenuOpen(false) }} className="btn-ghost" style={{ flex: 1, padding: '11px', borderRadius: 9, fontSize: 14 }}>Sign out</button>
               </>
             ) : (
               <>
-                <button onClick={() => { onLogin(); setMenuOpen(false) }} className="btn-ghost" style={{ flex: 1, padding: '11px', borderRadius: 9, fontSize: 14 }}>Log in</button>
-                <button onClick={() => { onSignup(); setMenuOpen(false) }} className="btn-green" style={{ flex: 1, padding: '11px', borderRadius: 9, fontSize: 14 }}>Sign up</button>
+                <button onClick={() => { navigate('/login'); setMenuOpen(false) }} className="btn-ghost" style={{ flex: 1, padding: '11px', borderRadius: 9, fontSize: 14 }}>Log in</button>
+                <button onClick={() => { navigate('/signup'); setMenuOpen(false) }} className="btn-green" style={{ flex: 1, padding: '11px', borderRadius: 9, fontSize: 14 }}>Sign up</button>
               </>
             )}
           </div>
