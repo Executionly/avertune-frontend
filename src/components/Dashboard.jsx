@@ -126,7 +126,6 @@ export default function Dashboard({ onBack, onTool, onPricing }) {
   const usageToday = user.usage_today ?? 0;
   const limitToday = user.limit_today ?? 5;
   const repliesRemaining = user.replies_remaining ?? limitToday - usageToday;
-  const trialDaysLeft = user.trial_days_left ?? null;
   const usagePct = limitToday > 0 ? Math.min((usageToday / limitToday) * 100, 100) : 0;
 
   const STATS = [
@@ -151,13 +150,7 @@ export default function Dashboard({ onBack, onTool, onPricing }) {
       color: "var(--teal)",
       delta: null,
     },
-    {
-      label: trialDaysLeft !== null ? "Trial days left" : "Plan",
-      value: trialDaysLeft !== null ? String(trialDaysLeft) : displayPlan,
-      icon: TrendingUp,
-      color: "var(--blue)",
-      delta: trialDaysLeft !== null ? "trial" : null,
-    },
+
   ];
 
   const Logo = () => (
@@ -248,9 +241,7 @@ export default function Dashboard({ onBack, onTool, onPricing }) {
           >
             {displayName}
           </p>
-          <p style={{ fontSize: 11.5, color: "var(--green)", fontWeight: 600 }}>
-            {displayPlan} plan
-          </p>
+
         </div>
       </div>
 
@@ -331,143 +322,54 @@ export default function Dashboard({ onBack, onTool, onPricing }) {
         })}
       </div>
 
-      {/* Tools */}
-      <div style={{ padding: "0 10px 12px", flex: 1, overflowY: "auto" }}>
-        <p
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            color: "var(--ink-4)",
-            textTransform: "uppercase",
-            letterSpacing: "0.09em",
-            marginBottom: 6,
-            paddingLeft: 8,
-          }}
-        >
-          Tools
-        </p>
-        {TOOLS.map((t) => {
-          const Icon = t.icon;
-          return (
-            <button
-              key={t.slug}
-              onClick={() => {
-                onTool?.(t.slug);
-                setSidebarOpen(false);
-              }}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: 9,
-                padding: "9px 10px",
-                borderRadius: 9,
-                marginBottom: 2,
-                background: "transparent",
-                color: "var(--ink-3)",
-                fontFamily: "inherit",
-                fontWeight: 500,
-                fontSize: 13,
-                cursor: "pointer",
-                textAlign: "left",
-                border: "none",
-                transition: "all .15s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = t.bg;
-                e.currentTarget.style.color = t.color;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "var(--ink-3)";
-              }}
-            >
-              <div
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 6,
-                  background: t.bg,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Icon size={12} color={t.color} strokeWidth={1.8} />
-              </div>
-              {t.label}
-              <ArrowUpRight
-                size={11}
-                style={{ marginLeft: "auto", opacity: 0.4 }}
-              />
-            </button>
-          );
-        })}
-      </div>
+      {/* Spacer */}
+      <div style={{ flex: 1 }} />
 
-      {/* Bottom actions */}
+      {/* Bottom actions — always visible */}
       <div
-        style={{ padding: "12px 10px", borderTop: "1px solid var(--border)" }}
+        style={{ padding: "12px 10px", borderTop: "1px solid var(--border)", flexShrink: 0 }}
       >
+        {/* Pricing */}
         <button
-          onClick={onBack}
+          onClick={() => { onPricing?.(); setSidebarOpen(false); }}
           style={{
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            gap: 9,
-            padding: "9px 10px",
-            borderRadius: 9,
-            background: "transparent",
-            color: "var(--ink-3)",
-            fontFamily: "inherit",
-            fontWeight: 500,
-            fontSize: 13,
-            cursor: "pointer",
-            textAlign: "left",
-            border: "none",
-            marginBottom: 2,
-            transition: "all .15s",
+            width: "100%", display: "flex", alignItems: "center", gap: 9,
+            padding: "9px 10px", borderRadius: 9, background: "transparent",
+            color: "var(--green)", fontFamily: "inherit", fontWeight: 600,
+            fontSize: 13, cursor: "pointer", textAlign: "left", border: "none",
+            marginBottom: 2, transition: "all .15s",
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--surface2)";
-            e.currentTarget.style.color = "var(--ink)";
+          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(34,197,94,0.08)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+        >
+          <Zap size={14} /> Upgrade plan
+        </button>
+        {/* Settings */}
+        <button
+          style={{
+            width: "100%", display: "flex", alignItems: "center", gap: 9,
+            padding: "9px 10px", borderRadius: 9, background: "transparent",
+            color: "var(--ink-3)", fontFamily: "inherit", fontWeight: 500,
+            fontSize: 13, cursor: "pointer", textAlign: "left", border: "none",
+            marginBottom: 2, transition: "all .15s",
           }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--ink-3)";
-          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface2)"; e.currentTarget.style.color = "var(--ink)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--ink-3)"; }}
         >
           <Settings size={14} /> Settings
         </button>
+        {/* Sign out */}
         <button
           onClick={logout}
           style={{
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            gap: 9,
-            padding: "9px 10px",
-            borderRadius: 9,
-            background: "transparent",
-            color: "var(--ink-3)",
-            fontFamily: "inherit",
-            fontWeight: 500,
-            fontSize: 13,
-            cursor: "pointer",
-            textAlign: "left",
-            border: "none",
+            width: "100%", display: "flex", alignItems: "center", gap: 9,
+            padding: "9px 10px", borderRadius: 9, background: "transparent",
+            color: "var(--ink-3)", fontFamily: "inherit", fontWeight: 500,
+            fontSize: 13, cursor: "pointer", textAlign: "left", border: "none",
             transition: "all .15s",
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(239,68,68,0.07)";
-            e.currentTarget.style.color = "#ef4444";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--ink-3)";
-          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.07)"; e.currentTarget.style.color = "#ef4444"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--ink-3)"; }}
         >
           <LogOut size={14} /> Sign out
         </button>

@@ -202,6 +202,13 @@ function ChipsField({ field, value, onChange }) {
   const maxSelect = field.maxSelect || Infinity;
   const atLimit = selected.size >= maxSelect;
 
+  // Reset internal state when parent clears value (tool switch)
+  useEffect(() => {
+    if (!value) {
+      setSelected(new Set());
+    }
+  }, [value]);
+
   function toggleChip(chip) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -1380,6 +1387,17 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const [showPackModal, setShowPackModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Reset all field values, results and phase whenever the tool changes
+  useEffect(() => {
+    setFields({});
+    setResult(null);
+    setPhase("idle");
+    setErrorMessage("");
+    setActiveTab(tool.outputVariants?.[0] || "");
+    setShowShare(false);
+    setShowPackModal(false);
+  }, [tool.id]);
+
   function setField(id, val) {
     setFields((prev) => ({ ...prev, [id]: val }));
   }
@@ -1655,11 +1673,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
               >
                 {displayName}
               </p>
-              <p
-                style={{ fontSize: 11, color: "var(--green)", fontWeight: 600 }}
-              >
-                {displayPlan}
-              </p>
+
             </div>
           </div>
         </div>
