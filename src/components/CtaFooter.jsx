@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom'
+
 export function CTA({ onSignup }) {
   return (
     <section style={{ padding: 'clamp(64px,8vw,96px) 0', background: 'var(--bg)', textAlign: 'center' }}>
@@ -20,10 +22,11 @@ export function CTA({ onSignup }) {
 }
 
 export function Footer({ onPricing }) {
+  const navigate = useNavigate()
   const cols = [
     { label: 'Product', links: [
       { label: 'How it works', onClick: null },
-      { label: 'Pricing',      onClick: onPricing },
+      { label: 'Pricing',      onClick: () => (onPricing ? onPricing() : navigate('/pricing')) },
       { label: 'FAQ',          onClick: null },
     ]},
     { label: 'Tools', links: [

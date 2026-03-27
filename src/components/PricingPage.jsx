@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Check, Zap, Star, ChevronDown, ChevronUp, MessageSquare, Briefcase, Battery } from 'lucide-react'
 
 const PLANS = [
@@ -231,7 +232,10 @@ function FAQItem({ item }) {
   )
 }
 
-export default function PricingPage({ onBack, onSignup }) {
+export default function PricingPage() {
+  const navigate = useNavigate()
+  const onBack = () => navigate(-1)
+  const onSignup = () => navigate('/signup')
   const [billing, setBilling] = useState('monthly')
 
   return (

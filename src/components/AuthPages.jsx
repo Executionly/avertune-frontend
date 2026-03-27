@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, ArrowLeft, Loader2, Mail, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react'
 import { useAuth } from '../AuthContext.jsx'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useApiMessage, ApiMessage } from '../lib/useApiMessage.jsx'
 import { STORAGE } from '../lib/apiClient.js'
 import {
@@ -146,9 +147,12 @@ function PageShell({ onBack, children }) {
 
 // ─── Login page ───────────────────────────────────────────────────────────────
 
-export function LoginPage({ onBack, onSwitchToSignup, onSuccess, onForgotPassword }) {
+export function LoginPage() {
   const { login, googleSignIn } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
   const msg = useApiMessage()
+  const from = location.state?.from?.pathname || '/dashboard'
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(signInSchema),
@@ -158,14 +162,14 @@ export function LoginPage({ onBack, onSwitchToSignup, onSuccess, onForgotPasswor
     msg.clear()
     try {
       await login(values)
-      onSuccess?.()
+      navigate(from, { replace: true })
     } catch (err) {
       msg.setFromError(err)
     }
   }
 
   return (
-    <PageShell onBack={onBack}>
+    <PageShell onBack={() => navigate('/')}>
       <Card>
         <Logo />
         <h1 style={{ fontSize: 26, marginBottom: 6, textAlign: 'center' }}>Welcome back</h1>
@@ -194,7 +198,7 @@ export function LoginPage({ onBack, onSwitchToSignup, onSuccess, onForgotPasswor
           <ApiMessage state={msg.state} />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-            <button type="button" onClick={onForgotPassword} style={{ border: 'none', background: 'none', color: 'var(--green)', fontWeight: 600, cursor: 'pointer', fontSize: 13.5 }}>
+            <button type="button" onClick={() => navigate('/forgot-password')} style={{ border: 'none', background: 'none', color: 'var(--green)', fontWeight: 600, cursor: 'pointer', fontSize: 13.5 }}>
               Forgot password?
             </button>
           </div>
@@ -204,7 +208,7 @@ export function LoginPage({ onBack, onSwitchToSignup, onSuccess, onForgotPasswor
 
         <p style={{ textAlign: 'center', marginTop: 18, color: 'var(--ink-3)', fontSize: 14 }}>
           No account?{' '}
-          <button onClick={onSwitchToSignup} style={{ border: 'none', background: 'transparent', color: 'var(--green)', fontWeight: 700, cursor: 'pointer' }}>Sign up free</button>
+          <button onClick={() => navigate('/signup')} style={{ border: 'none', background: 'transparent', color: 'var(--green)', fontWeight: 700, cursor: 'pointer' }}>Sign up free</button>
         </p>
       </Card>
     </PageShell>
@@ -213,8 +217,9 @@ export function LoginPage({ onBack, onSwitchToSignup, onSuccess, onForgotPasswor
 
 // ─── Signup page ──────────────────────────────────────────────────────────────
 
-export function SignupPage({ onBack, onSwitchToLogin, onSuccess }) {
+export function SignupPage({ onSuccess }) {
   const { signup, googleSignIn } = useAuth()
+  const navigate = useNavigate()
   const msg = useApiMessage()
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
@@ -232,7 +237,7 @@ export function SignupPage({ onBack, onSwitchToLogin, onSuccess }) {
   }
 
   return (
-    <PageShell onBack={onBack}>
+    <PageShell onBack={() => navigate('/')}>
       <Card>
         <Logo />
         <h1 style={{ fontSize: 26, marginBottom: 6, textAlign: 'center' }}>Start for free</h1>
@@ -271,7 +276,7 @@ export function SignupPage({ onBack, onSwitchToLogin, onSuccess }) {
 
         <p style={{ textAlign: 'center', marginTop: 18, color: 'var(--ink-3)', fontSize: 14 }}>
           Already have an account?{' '}
-          <button onClick={onSwitchToLogin} style={{ border: 'none', background: 'transparent', color: 'var(--green)', fontWeight: 700, cursor: 'pointer' }}>Log in</button>
+          <button onClick={() => navigate('/login')} style={{ border: 'none', background: 'transparent', color: 'var(--green)', fontWeight: 700, cursor: 'pointer' }}>Log in</button>
         </p>
       </Card>
     </PageShell>
@@ -280,8 +285,9 @@ export function SignupPage({ onBack, onSwitchToLogin, onSuccess }) {
 
 // ─── Forgot password page ─────────────────────────────────────────────────────
 
-export function ForgotPasswordPage({ onBack, onSuccess }) {
+export function ForgotPasswordPage({ onSuccess }) {
   const { forgotPassword } = useAuth()
+  const navigate = useNavigate()
   const msg = useApiMessage()
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
@@ -299,7 +305,7 @@ export function ForgotPasswordPage({ onBack, onSuccess }) {
   }
 
   return (
-    <PageShell onBack={onBack}>
+    <PageShell onBack={() => navigate('/login')}>
       <Card>
         <Logo />
         <h1 style={{ fontSize: 24, marginBottom: 8, textAlign: 'center' }}>Forgot password?</h1>
@@ -323,7 +329,7 @@ export function ForgotPasswordPage({ onBack, onSuccess }) {
         </form>
 
         <p style={{ textAlign: 'center', marginTop: 16, color: 'var(--ink-3)', fontSize: 14 }}>
-          <button onClick={onBack} style={{ border: 'none', background: 'transparent', color: 'var(--green)', fontWeight: 600, cursor: 'pointer' }}>← Back to login</button>
+          <button onClick={() => navigate('/login')} style={{ border: 'none', background: 'transparent', color: 'var(--green)', fontWeight: 600, cursor: 'pointer' }}>← Back to login</button>
         </p>
       </Card>
     </PageShell>
@@ -332,7 +338,8 @@ export function ForgotPasswordPage({ onBack, onSuccess }) {
 
 // ─── Email sent confirmation page ─────────────────────────────────────────────
 
-export function EmailSentPage({ email, kind = 'confirmation', backendMessage, onBack }) {
+export function EmailSentPage({ email, kind = 'confirmation', backendMessage }) {
+  const navigate = useNavigate()
   // kind: 'confirmation' | 'reset'
   const title = kind === 'reset' ? 'Check your email' : 'Confirm your email'
   const desc =
@@ -384,7 +391,7 @@ export function EmailSentPage({ email, kind = 'confirmation', backendMessage, on
           <p style={{ color: 'var(--ink-3)', fontSize: 13.5, lineHeight: 1.7, marginBottom: 28 }}>{tip}</p>
 
           {onBack && (
-            <button onClick={onBack} style={{ border: 'none', background: 'transparent', color: 'var(--green)', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>
+            <button onClick={() => navigate('/login')} style={{ border: 'none', background: 'transparent', color: 'var(--green)', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>
               ← Back to login
             </button>
           )}
@@ -407,11 +414,11 @@ export function AuthCallbackPage() {
         const hash = window.location.hash
         const result = await handleAuthCallback(hash)
         if (result?.type === 'recovery') {
-          window.location.href = '/auth/reset-password'
+          navigate('/auth/reset-password', { replace: true })
           return
         }
         // signup or google → go to app
-        window.location.href = '/'
+        navigate('/dashboard', { replace: true })
       } catch (err) {
         setErrorMsg(err.message || 'Authentication failed. Please try again.')
         setStatus('error')
@@ -450,7 +457,7 @@ export function AuthCallbackPage() {
               </div>
               <h2 style={{ fontSize: 22, marginBottom: 10 }}>Something went wrong</h2>
               <p style={{ color: 'var(--ink-3)', marginBottom: 24, lineHeight: 1.6 }}>{errorMsg}</p>
-              <button onClick={() => window.location.href = '/'} style={{ border: 'none', background: 'transparent', color: 'var(--green)', fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => navigate('/')} style={{ border: 'none', background: 'transparent', color: 'var(--green)', fontWeight: 600, cursor: 'pointer' }}>
                 Back to home
               </button>
             </>
@@ -463,7 +470,8 @@ export function AuthCallbackPage() {
 
 // ─── Link already used page ───────────────────────────────────────────────────
 
-export function LinkAlreadyUsedPage({ onBack }) {
+export function LinkAlreadyUsedPage() {
+  const navigate = useNavigate()
   return (
     <PageShell>
       <Card>
@@ -482,7 +490,7 @@ export function LinkAlreadyUsedPage({ onBack }) {
             This link has already been used or has expired. Each link can only be used once.
             {' '}If you need to reset your password again, start a new request below.
           </p>
-          <button onClick={onBack} className="btn-green" style={{ padding: '11px 28px', borderRadius: 11, fontWeight: 700, fontSize: 14 }}>
+          <button onClick={() => navigate('/forgot-password')} className="btn-green" style={{ padding: '11px 28px', borderRadius: 11, fontWeight: 700, fontSize: 14 }}>
             Request new link
           </button>
         </div>
@@ -493,7 +501,8 @@ export function LinkAlreadyUsedPage({ onBack }) {
 
 // ─── Account confirmed page ───────────────────────────────────────────────────
 
-export function AccountConfirmedPage({ onLogin }) {
+export function AccountConfirmedPage() {
+  const navigate = useNavigate()
   return (
     <PageShell>
       <Card>
@@ -511,7 +520,7 @@ export function AccountConfirmedPage({ onLogin }) {
           <p style={{ color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 28 }}>
             Your account has been confirmed. You can now log in and start using Avertune.
           </p>
-          <button onClick={onLogin} className="btn-green" style={{ padding: '12px 32px', borderRadius: 12, fontWeight: 700, fontSize: 15 }}>
+          <button onClick={() => navigate('/login')} className="btn-green" style={{ padding: '12px 32px', borderRadius: 12, fontWeight: 700, fontSize: 15 }}>
             Log in to your account
           </button>
         </div>
@@ -522,7 +531,8 @@ export function AccountConfirmedPage({ onLogin }) {
 
 // ─── Reset password page ──────────────────────────────────────────────────────
 
-export function ResetPasswordPage({ onSuccess, onLinkInvalid }) {
+export function ResetPasswordPage() {
+  const navigate = useNavigate()
   const { resetPassword } = useAuth()
   const msg = useApiMessage()
   const [done, setDone] = useState(false)
@@ -535,7 +545,7 @@ export function ResetPasswordPage({ onSuccess, onLinkInvalid }) {
 
   // No recovery token — link is stale/invalid
   useEffect(() => {
-    if (!recoveryToken) onLinkInvalid?.()
+    if (!recoveryToken) navigate('/link-expired', { replace: true })
   }, [recoveryToken, onLinkInvalid])
 
   async function onSubmit(values) {
@@ -548,7 +558,7 @@ export function ResetPasswordPage({ onSuccess, onLinkInvalid }) {
     } catch (err) {
       const errMsg = err.message || 'Reset failed. Please try again.'
       if (errMsg.toLowerCase().includes('expired') || errMsg.toLowerCase().includes('invalid')) {
-        onLinkInvalid?.()
+        navigate('/link-expired', { replace: true })
         return
       }
       msg.setFromError(err)
@@ -573,7 +583,7 @@ export function ResetPasswordPage({ onSuccess, onLinkInvalid }) {
             <p style={{ color: 'var(--ink-3)', marginBottom: 28, lineHeight: 1.6 }}>
               Your password has been reset successfully. You can now log in with your new password.
             </p>
-            <button onClick={onSuccess} className="btn-green" style={{ padding: '12px 32px', borderRadius: 12, fontWeight: 700, fontSize: 15 }}>
+            <button onClick={() => navigate('/login')} className="btn-green" style={{ padding: '12px 32px', borderRadius: 12, fontWeight: 700, fontSize: 15 }}>
               Log in
             </button>
           </div>
