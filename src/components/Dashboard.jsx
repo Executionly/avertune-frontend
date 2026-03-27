@@ -961,7 +961,7 @@ export default function Dashboard() {
                   Unlimited replies, all tools, reply history, and share cards.
                 </p>
                 <button
-                  onClick={onPricing}
+                  onClick={() => navigate("/pricing")}
                   className="btn-green"
                   style={{
                     padding: "9px 20px",
