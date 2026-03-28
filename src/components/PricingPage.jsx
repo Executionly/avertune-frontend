@@ -45,7 +45,7 @@ const PLANS = [
     ctaStyle: 'teal',
     repliesNote: '900 replies/month (~30/day typical use)',
     tagline: 'Built for high-stakes conversations where tone, clarity, and outcome matter.',
-    weeklyNote: 'Weekly Pass · billed every 7 days',
+    weeklyNote: 'Weekly Pass · billed every 7 days · 210 replies/week',
     features: [
       { text: '900 replies/month (~30/day)', included: true },
       { text: 'All conversation packs', included: true },
@@ -53,7 +53,7 @@ const PLANS = [
       { text: 'Share receipts (watermarked)', included: true },
       { text: 'Regional tone selector', included: true },
       { text: 'Saved replies', included: true },
-      { text: 'All 6 packs: Core Professional, Sales, Customer Support, Work / Corporate, Negotiation, Dating', included: true },
+      { text: 'All 6 packs: Core Professional, Sales, Customer Support, Work / Corporate, Personal, Dating', included: true },
     ],
   },
   {
@@ -93,7 +93,7 @@ const TOPUPS = [
 
 const FAQS = [
   { q: 'Is the free trial really free?', a: 'Yes — no credit card required. You get 7 full days of access. After the trial, you\'re automatically moved to the free plan unless you choose to upgrade.' },
-  { q: 'What is the Weekly Pass?', a: 'The Weekly Pass is available on the Daily plan only. At $5.99/week billed every 7 days, it\'s great for trying the Daily plan. Most weekly users switch to monthly once they feel the difference.' },
+  { q: 'What is the Weekly Pass?', a: 'The Weekly Pass is available on the Daily plan only. At $5.99/week billed every 7 days (210 replies/week), it\'s great for trying the Daily plan. Most weekly users switch to monthly once they feel the difference.' },
   { q: 'Can I cancel anytime?', a: 'Absolutely. Cancel from your account settings at any time. You keep access until the end of your billing period — no questions asked.' },
   { q: 'What are reply top-ups?', a: 'If you run out of replies before the month ends, you can buy extra reply packs — 200, 500, or 1,000 replies. They\'re one-time purchases that don\'t expire within your billing cycle.' },
   { q: 'Do unused replies carry over?', a: 'Reply limits reset each month. Unused replies don\'t carry over, but top-up packs are valid for the rest of your billing cycle.' },
@@ -154,6 +154,9 @@ function PlanCard({ plan, billing, onSignup }) {
         </div>
         {showWeekly && plan.weeklyNote && (
           <p style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>{plan.weeklyNote}</p>
+        )}
+        {showWeekly && (
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#2dd4bf', marginTop: 6 }}>210 replies / week</p>
         )}
         {!showWeekly && !isYearly && plan.yearlyNote && (
           <p style={{ fontSize: 12, color: isPopular ? plan.color : 'var(--ink-4)', marginTop: 3 }}>{plan.yearlyNote}</p>

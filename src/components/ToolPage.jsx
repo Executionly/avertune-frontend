@@ -1659,7 +1659,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
               <Zap size={13} /> Upgrade plan
             </button>
-            <button onClick={logout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 9, background: "transparent", color: "var(--ink-3)", fontFamily: "inherit", fontWeight: 500, fontSize: 13, cursor: "pointer", textAlign: "left", border: "none", transition: "all .15s" }}
+            <button onClick={() => logout().then(() => navigate('/')).catch(() => navigate('/'))} style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 9, background: "transparent", color: "var(--ink-3)", fontFamily: "inherit", fontWeight: 500, fontSize: 13, cursor: "pointer", textAlign: "left", border: "none", transition: "all .15s" }}
               onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.07)"; e.currentTarget.style.color = "#ef4444"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--ink-3)"; }}>
               <LogOut size={13} /> Sign out

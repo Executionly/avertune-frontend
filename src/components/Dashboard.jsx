@@ -349,7 +349,7 @@ export default function Dashboard() {
 
         {/* Sign out */}
         <button
-          onClick={logout}
+          onClick={() => logout().then(() => navigate("/")).catch(() => navigate("/"))}
           style={{
             width: "100%", display: "flex", alignItems: "center", gap: 9,
             padding: "9px 10px", borderRadius: 9, background: "transparent",
