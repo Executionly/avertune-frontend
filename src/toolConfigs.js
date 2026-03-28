@@ -136,6 +136,12 @@ export const TOOL_CONFIGS = {
     backendRoute: 'boundary',
     fields: [
       { id: 'what_is_happening',    label: 'What is happening?',         type: 'textarea', placeholder: 'Describe the situation or paste the message…', required: true, rows: 4 },
+      {
+        id: 'pack_scenario',
+        label: 'Context Pack & Scenario',
+        type: 'pack-modal',
+        placeholder: 'Choose a pack and scenario…',
+      },
       { id: 'what_boundary_needed', label: 'What boundary do you need?', type: 'textarea', placeholder: 'e.g. I need them to stop contacting me after hours…', required: true, rows: 3 },
       { id: 'relationship',         label: 'Your relationship',          type: 'select',   options: ['colleague', 'boss', 'client', 'family', 'friend', 'partner', 'acquaintance'] },
       { id: 'relationship_stakes',  label: 'Relationship stakes',        type: 'select',   options: ['high', 'medium', 'low'] },
@@ -148,7 +154,7 @@ export const TOOL_CONFIGS = {
 
   'negotiation-reply': {
     id: 'negotiation-reply',
-    label: 'Negotiation Reply',
+    label: 'Sales & Negotiation',
     tagline: 'Hold your position under pressure.',
     description: 'Get strategically crafted replies for salary negotiations, pricing pushback, contract terms, and high-stakes deals.',
     color: 'var(--teal)',
@@ -157,6 +163,12 @@ export const TOOL_CONFIGS = {
     backendRoute: 'negotiation',
     fields: [
       { id: 'their_message',         label: 'Their message / offer',        type: 'textarea', placeholder: 'Paste what they said or offered…', required: true, rows: 4 },
+      {
+        id: 'pack_scenario',
+        label: 'Context Pack & Scenario',
+        type: 'pack-modal',
+        placeholder: 'Choose a pack and scenario…',
+      },
       { id: 'your_position',         label: 'Your position / counter-offer', type: 'textarea', placeholder: 'What do you actually want? e.g. $95k, not $85k…', rows: 2 },
       { id: 'negotiation_context',   label: 'Negotiation context',          type: 'select',   options: ['salary_negotiation', 'pricing_deal', 'contract_terms', 'raise_request', 'partnership_deal', 'freelance_rate', 'other'] },
       { id: 'leverage',              label: 'Your leverage',                type: 'select',   options: ['strong', 'moderate', 'weak', 'unknown'] },
@@ -178,6 +190,12 @@ export const TOOL_CONFIGS = {
     backendRoute: 'followup',
     fields: [
       { id: 'context',          label: 'What are you following up on?', type: 'textarea', placeholder: "e.g. I applied for a senior developer role at Acme Corp two weeks ago.", required: true, rows: 3 },
+      {
+        id: 'pack_scenario',
+        label: 'Context Pack & Scenario',
+        type: 'pack-modal',
+        placeholder: 'Choose a pack and scenario…',
+      },
       { id: 'last_contact',     label: 'Last contact',                  type: 'select',   options: ['1_2_days', '3_5_days', '1_week', '2_weeks', '1_month', 'over_a_month'] },
       { id: 'follow_up_type',   label: 'Follow-up type',                type: 'select',   options: ['job_application', 'sales_proposal', 'invoice_payment', 'meeting_request', 'project_update', 'personal', 'other'] },
       { id: 'follow_up_number', label: 'Which follow-up is this?',      type: 'select',   options: ['first_follow_up', 'second_follow_up', 'third_follow_up', 'post_meeting'] },
@@ -199,6 +217,12 @@ export const TOOL_CONFIGS = {
     backendRoute: 'difficultEmail',
     fields: [
       { id: 'what_to_communicate', label: 'What do you need to communicate?', type: 'textarea', placeholder: 'e.g. I need to tell my client we cannot deliver the project on the agreed date.', required: true, rows: 4 },
+      {
+        id: 'pack_scenario',
+        label: 'Context Pack & Scenario',
+        type: 'pack-modal',
+        placeholder: 'Choose a pack and scenario…',
+      },
       { id: 'draft',               label: 'Your draft (optional)',             type: 'textarea', placeholder: 'Paste your draft if you have one…', required: false, rows: 3 },
       { id: 'situation',           label: 'Situation type',                    type: 'select',   options: ['giving_bad_news', 'declining_request', 'addressing_conflict', 'delivering_feedback', 'apologizing', 'setting_expectations', 'other'] },
       { id: 'relationship',        label: 'Recipient relationship',            type: 'select',   options: ['client', 'boss', 'colleague', 'direct_report', 'partner', 'vendor', 'other'] },
@@ -219,6 +243,12 @@ export const TOOL_CONFIGS = {
     backendRoute: 'intent',
     fields: [
       { id: 'message',      label: 'Message to decode',  type: 'textarea', placeholder: 'Paste the message…', required: true, rows: 5 },
+      {
+        id: 'pack_scenario',
+        label: 'Context Pack & Scenario',
+        type: 'pack-modal',
+        placeholder: 'Choose a pack and scenario…',
+      },
       { id: 'relationship', label: 'Your relationship',  type: 'select',   options: ['colleague', 'boss', 'client', 'partner', 'friend', 'stranger', 'direct_report'] },
       { id: 'channel',      label: 'Channel',            type: 'select',   options: ['email', 'slack', 'whatsapp', 'sms', 'linkedin', 'in_person'] },
       { id: 'background',   label: 'Background context', type: 'textarea', placeholder: 'Any context that might affect the intent… (optional)', required: false, rows: 2 },

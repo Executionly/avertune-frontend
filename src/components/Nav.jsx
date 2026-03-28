@@ -8,7 +8,7 @@ const TOOLS = [
   { icon: MessageSquare, label: 'Reply Generator',   slug: 'reply-generator' },
   { icon: Activity,      label: 'Tone Checker',      slug: 'tone-checker' },
   { icon: ShieldCheck,   label: 'Boundaries',        slug: 'boundary-builder' },
-  { icon: Swords,        label: 'Negotiation',       slug: 'negotiation-reply' },
+  { icon: Swords,        label: 'Sales & Negotiation',       slug: 'negotiation-reply' },
 ]
 
 const THEME_OPTS = [

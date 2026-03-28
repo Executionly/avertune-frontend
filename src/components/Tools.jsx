@@ -31,7 +31,7 @@ const tools = [
   {
     icon: Swords,
     slug: "negotiation-reply",
-    title: "Negotiation Reply",
+    title: "Sales & Negotiation",
     desc: "Respond strategically when someone pressures you in a negotiation.",
     color: "var(--teal)",
   },
