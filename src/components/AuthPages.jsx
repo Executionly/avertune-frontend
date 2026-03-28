@@ -405,6 +405,7 @@ export function EmailSentPage({ email, kind = 'confirmation', backendMessage }) 
 
 export function AuthCallbackPage() {
   const { handleAuthCallback } = useAuth()
+  const navigate = useNavigate()
   const [status, setStatus] = useState('loading') // 'loading' | 'error'
   const [errorMsg, setErrorMsg] = useState('')
 

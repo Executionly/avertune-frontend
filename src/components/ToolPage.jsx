@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../AuthContext.jsx";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { generateApi } from "../lib/generateApi.js";
 import { PACKS } from "../lib/packData.js";
 import { useToast } from "../lib/Toast.jsx";
@@ -124,7 +125,7 @@ function CustomSelect({ label, options, value, onChange, placeholder }) {
               key={opt}
               type="button"
               onClick={() => {
-                onChange(opt);
+                onChange(selected && opt === selected ? "" : opt);
                 setOpen(false);
               }}
               style={{
@@ -132,11 +133,8 @@ function CustomSelect({ label, options, value, onChange, placeholder }) {
                 padding: "10px 12px",
                 borderRadius: 8,
                 background:
-                  selected && opt === selected
-                    ? "var(--surface2)"
-                    : "transparent",
-                color:
-                  selected && opt === selected ? "var(--green)" : "var(--ink)",
+                  selected && opt === selected ? "var(--surface2)" : "transparent",
+                color: selected && opt === selected ? "var(--green)" : "var(--ink)",
                 fontSize: 13.5,
                 fontFamily: "inherit",
                 fontWeight: opt === selected ? 600 : 400,
@@ -158,9 +156,7 @@ function CustomSelect({ label, options, value, onChange, placeholder }) {
               }}
             >
               {opt}
-              {selected && opt === selected && (
-                <Check size={12} color="var(--green)" />
-              )}
+              {selected && opt === selected && <Check size={12} color="var(--green)" />}
             </button>
           ))}
         </div>
@@ -235,42 +231,27 @@ function ChipsField({ field, value, onChange }) {
 
   return (
     <div style={{ marginBottom: "clamp(14px,2vw,20px)" }}>
-      <div
-        style={{
-          background: "var(--surface)",
-          border: "1.5px solid var(--border2)",
-          borderRadius: 16,
-          overflow: "hidden",
-          transition: "border-color .2s",
-        }}
-      >
+      <div style={{
+        background: "var(--surface)",
+        border: "1.5px solid var(--border2)",
+        borderRadius: 16,
+        overflow: "hidden",
+        transition: "border-color .2s",
+      }}>
         {/* Header */}
-        <div
-          style={{
-            padding: "12px 18px 10px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <span
-            style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-3)" }}
-          >
+        <div style={{
+          padding: "12px 18px 10px",
+          borderBottom: "1px solid var(--border)",
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-3)" }}>
             {field.label}
           </span>
-          <span
-            style={{
-              fontSize: 10.5,
-              color: "var(--ink-4)",
-              background: "var(--surface2)",
-              padding: "1px 7px",
-              borderRadius: 4,
-            }}
-          >
-            {field.maxSelect
-              ? `pick up to ${field.maxSelect}`
-              : "optional · pick any"}
+          <span style={{
+            fontSize: 10.5, color: "var(--ink-4)",
+            background: "var(--surface2)", padding: "1px 7px", borderRadius: 4,
+          }}>
+            {field.maxSelect ? `pick up to ${field.maxSelect}` : "optional · pick any"}
           </span>
           {/* Clear button — only shown when something is selected */}
           {selected.size > 0 && (
@@ -278,23 +259,14 @@ function ChipsField({ field, value, onChange }) {
               type="button"
               onClick={clearAll}
               style={{
-                marginLeft: "auto",
-                fontSize: 11.5,
-                fontWeight: 600,
-                color: "var(--ink-3)",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontFamily: "inherit",
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
+                marginLeft: "auto", fontSize: 11.5, fontWeight: 600,
+                color: "var(--ink-3)", background: "none", border: "none",
+                cursor: "pointer", fontFamily: "inherit",
+                display: "flex", alignItems: "center", gap: 4,
                 transition: "color .15s",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--ink)")}
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.color = "var(--ink-3)")
-              }
+              onMouseEnter={e => e.currentTarget.style.color = "var(--ink)"}
+              onMouseLeave={e => e.currentTarget.style.color = "var(--ink-3)"}
             >
               <X size={11} /> Clear
             </button>
@@ -322,15 +294,11 @@ function ChipsField({ field, value, onChange }) {
                     fontFamily: "inherit",
                     cursor: dimmed ? "not-allowed" : "pointer",
                     border: `1.5px solid ${active ? "var(--green)" : "var(--border2)"}`,
-                    background: active
-                      ? "rgba(34,197,94,0.1)"
-                      : "var(--surface2)",
+                    background: active ? "rgba(34,197,94,0.1)" : "var(--surface2)",
                     color: active ? "var(--green)" : "var(--ink-2)",
                     opacity: dimmed ? 0.3 : 1,
                     transition: "all .15s",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
+                    display: "flex", alignItems: "center", gap: 5,
                   }}
                 >
                   {active && <Check size={10} />}
@@ -348,24 +316,14 @@ function ChipsField({ field, value, onChange }) {
 /* ─────────────────────────────── Pack Modal ───────────────────────────── */
 function PackModal({ value, onChange, onClose, userPlan }) {
   const [activePack, setActivePack] = useState(
-    value?.packId
-      ? PACKS.find((p) => p.id === value.packId) || PACKS[0]
-      : PACKS[0],
+    value?.packId ? PACKS.find(p => p.id === value.packId) || PACKS[0] : PACKS[0]
   );
   const [selected, setSelected] = useState(value || null);
-  const isPro =
-    userPlan &&
-    userPlan.toLowerCase() !== "free" &&
-    userPlan.toLowerCase() !== "trial";
+  const isPro = userPlan && userPlan.toLowerCase() !== 'free' && userPlan.toLowerCase() !== 'trial';
 
   function selectScenario(pack, scenario) {
     if (scenario.pro && !isPro) return;
-    const next = {
-      packId: pack.id,
-      packLabel: pack.label,
-      scenarioId: scenario.id,
-      scenarioLabel: scenario.label,
-    };
+    const next = { packId: pack.id, packLabel: pack.label, scenarioId: scenario.id, scenarioLabel: scenario.label };
     setSelected(next);
   }
 
@@ -381,84 +339,55 @@ function PackModal({ value, onChange, onClose, userPlan }) {
 
   return (
     <div
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={e => e.target === e.currentTarget && onClose()}
       style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 600,
-        background: "rgba(0,0,0,0.75)",
-        backdropFilter: "blur(12px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        position: 'fixed', inset: 0, zIndex: 600,
+        background: 'rgba(0,0,0,0.75)',
+        backdropFilter: 'blur(12px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 20,
-        animation: "fadeIn 0.18s ease both",
+        animation: 'fadeIn 0.18s ease both',
       }}
     >
-      <div
-        style={{
-          background: "var(--surface)",
-          border: "1px solid var(--border2)",
-          borderRadius: 24,
-          width: "100%",
-          maxWidth: 760,
-          maxHeight: "92vh",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          animation: "fadeUp 0.28s cubic-bezier(0.16,1,0.3,1) both",
-          boxShadow: "0 32px 80px rgba(0,0,0,0.4)",
-        }}
-      >
+      <div style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border2)',
+        borderRadius: 24,
+        width: '100%',
+        maxWidth: 760,
+        maxHeight: '92vh',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        animation: 'fadeUp 0.28s cubic-bezier(0.16,1,0.3,1) both',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.4)',
+      }}>
         {/* Header */}
-        <div
-          style={{
-            padding: "18px 24px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexShrink: 0,
-          }}
-        >
+        <div style={{
+          padding: '18px 24px',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
+        }}>
           <div>
-            <h2
-              style={{
-                fontSize: 16,
-                fontWeight: 800,
-                letterSpacing: "-0.03em",
-                color: "var(--ink)",
-                marginBottom: 2,
-              }}
-            >
+            <h2 style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--ink)', marginBottom: 2 }}>
               Context Pack
             </h2>
-            <p style={{ fontSize: 12.5, color: "var(--ink-3)" }}>
+            <p style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
               Pick a pack then choose your scenario
             </p>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              color: "var(--ink-3)",
-              background: "var(--surface2)",
-              border: "1px solid var(--border)",
-              borderRadius: 9,
-              cursor: "pointer",
-              padding: 7,
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
+          <button onClick={onClose} style={{
+            color: 'var(--ink-3)', background: 'var(--surface2)',
+            border: '1px solid var(--border)', borderRadius: 9,
+            cursor: 'pointer', padding: 7, display: 'flex', alignItems: 'center',
+          }}>
             <X size={15} />
           </button>
         </div>
 
         {/* Body */}
-        <div
-          className="pack-modal-body"
-          style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}
-        >
+        <div className="pack-modal-body" style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
           <style>{`
             @media (max-width: 560px) {
               .pack-modal-body { flex-direction: column !important; }
@@ -468,66 +397,35 @@ function PackModal({ value, onChange, onClose, userPlan }) {
           `}</style>
 
           {/* Left: Pack list */}
-          <div
-            className="pack-modal-left"
-            style={{
-              width: 190,
-              flexShrink: 0,
-              borderRight: "1px solid var(--border)",
-              overflowY: "auto",
-              padding: "10px 8px",
-            }}
-          >
-            {PACKS.map((pack) => {
+          <div className="pack-modal-left" style={{
+            width: 190, flexShrink: 0,
+            borderRight: '1px solid var(--border)',
+            overflowY: 'auto',
+            padding: '10px 8px',
+          }}>
+            {PACKS.map(pack => {
               const isActive = activePack?.id === pack.id;
               return (
                 <button
                   key={pack.id}
                   onClick={() => setActivePack(pack)}
                   style={{
-                    width: "100%",
-                    padding: "9px 12px",
-                    borderRadius: 11,
-                    marginBottom: 2,
-                    background: isActive ? pack.bg : "transparent",
-                    border: `1px solid ${isActive ? pack.border : "transparent"}`,
-                    color: isActive ? pack.color : "var(--ink-2)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    fontFamily: "inherit",
-                    fontWeight: isActive ? 700 : 500,
-                    fontSize: 13,
-                    cursor: "pointer",
-                    textAlign: "left",
-                    transition: "all .15s",
-                    whiteSpace: "nowrap",
+                    width: '100%', padding: '9px 12px',
+                    borderRadius: 11, marginBottom: 2,
+                    background: isActive ? pack.bg : 'transparent',
+                    border: `1px solid ${isActive ? pack.border : 'transparent'}`,
+                    color: isActive ? pack.color : 'var(--ink-2)',
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    fontFamily: 'inherit', fontWeight: isActive ? 700 : 500,
+                    fontSize: 13, cursor: 'pointer', textAlign: 'left',
+                    transition: 'all .15s', whiteSpace: 'nowrap',
                   }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.background = "var(--surface2)";
-                      e.currentTarget.style.color = "var(--ink)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.color = "var(--ink-2)";
-                    }
-                  }}
+                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'var(--surface2)'; e.currentTarget.style.color = 'var(--ink)'; }}}
+                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink-2)'; }}}
                 >
                   <span style={{ lineHeight: 1.3 }}>{pack.label}</span>
                   {isActive && (
-                    <div
-                      style={{
-                        marginLeft: "auto",
-                        width: 5,
-                        height: 5,
-                        borderRadius: "50%",
-                        background: pack.color,
-                        flexShrink: 0,
-                      }}
-                    />
+                    <div style={{ marginLeft: 'auto', width: 5, height: 5, borderRadius: '50%', background: pack.color, flexShrink: 0 }} />
                   )}
                 </button>
               );
@@ -535,111 +433,61 @@ function PackModal({ value, onChange, onClose, userPlan }) {
           </div>
 
           {/* Right: Scenarios */}
-          <div
-            className="pack-modal-right"
-            style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}
-          >
+          <div className="pack-modal-right" style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>
             {activePack && (
               <>
                 {/* Pack header */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    marginBottom: 14,
-                    padding: "10px 14px",
-                    background: activePack.bg,
-                    border: `1px solid ${activePack.border}`,
-                    borderRadius: 12,
-                  }}
-                >
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  marginBottom: 14,
+                  padding: '10px 14px',
+                  background: activePack.bg,
+                  border: `1px solid ${activePack.border}`,
+                  borderRadius: 12,
+                }}>
                   <div>
-                    <p
-                      style={{
-                        fontSize: 13.5,
-                        fontWeight: 700,
-                        color: activePack.color,
-                      }}
-                    >
-                      {activePack.label}
-                    </p>
-                    <p
-                      style={{
-                        fontSize: 11.5,
-                        color: "var(--ink-3)",
-                        marginTop: 1,
-                      }}
-                    >
+                    <p style={{ fontSize: 13.5, fontWeight: 700, color: activePack.color }}>{activePack.label}</p>
+                    <p style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 1 }}>
                       {activePack.scenarios.length} scenarios available
                     </p>
                   </div>
                 </div>
 
                 {/* Scenarios grid */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {activePack.scenarios.map((scenario) => {
-                    const isSelected =
-                      selected?.packId === activePack.id &&
-                      selected?.scenarioId === scenario.id;
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {activePack.scenarios.map(scenario => {
+                    const isSelected = selected?.packId === activePack.id && selected?.scenarioId === scenario.id;
                     const locked = scenario.pro && !isPro;
                     return (
                       <button
                         key={scenario.id}
                         onClick={() => selectScenario(activePack, scenario)}
                         style={{
-                          padding: "8px 14px",
+                          padding: '8px 14px',
                           borderRadius: 20,
                           fontSize: 13,
                           fontWeight: isSelected ? 700 : 500,
-                          fontFamily: "inherit",
-                          cursor: locked ? "not-allowed" : "pointer",
-                          border: `1.5px solid ${isSelected ? activePack.color : "var(--border2)"}`,
-                          background: isSelected
-                            ? activePack.bg
-                            : "var(--surface2)",
-                          color: locked
-                            ? "var(--ink-4)"
-                            : isSelected
-                              ? activePack.color
-                              : "var(--ink-2)",
+                          fontFamily: 'inherit',
+                          cursor: locked ? 'not-allowed' : 'pointer',
+                          border: `1.5px solid ${isSelected ? activePack.color : 'var(--border2)'}`,
+                          background: isSelected ? activePack.bg : 'var(--surface2)',
+                          color: locked ? 'var(--ink-4)' : isSelected ? activePack.color : 'var(--ink-2)',
                           opacity: locked ? 0.5 : 1,
-                          transition: "all .15s",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
+                          transition: 'all .15s',
+                          display: 'flex', alignItems: 'center', gap: 6,
                         }}
-                        onMouseEnter={(e) => {
-                          if (!locked && !isSelected) {
-                            e.currentTarget.style.borderColor =
-                              activePack.color;
-                            e.currentTarget.style.color = activePack.color;
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!locked && !isSelected) {
-                            e.currentTarget.style.borderColor =
-                              "var(--border2)";
-                            e.currentTarget.style.color = "var(--ink-2)";
-                          }
-                        }}
+                        onMouseEnter={e => { if (!locked && !isSelected) { e.currentTarget.style.borderColor = activePack.color; e.currentTarget.style.color = activePack.color; }}}
+                        onMouseLeave={e => { if (!locked && !isSelected) { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--ink-2)'; }}}
                       >
                         {isSelected && <Check size={11} />}
                         {scenario.label}
                         {locked && (
-                          <span
-                            style={{
-                              fontSize: 9.5,
-                              fontWeight: 700,
-                              color: "#f59e0b",
-                              background: "rgba(245,158,11,0.12)",
-                              border: "1px solid rgba(245,158,11,0.25)",
-                              padding: "1px 5px",
-                              borderRadius: 4,
-                            }}
-                          >
-                            PRO
-                          </span>
+                          <span style={{
+                            fontSize: 9.5, fontWeight: 700,
+                            color: '#f59e0b', background: 'rgba(245,158,11,0.12)',
+                            border: '1px solid rgba(245,158,11,0.25)',
+                            padding: '1px 5px', borderRadius: 4,
+                          }}>PRO</span>
                         )}
                       </button>
                     );
@@ -651,84 +499,47 @@ function PackModal({ value, onChange, onClose, userPlan }) {
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "14px 20px",
-            borderTop: "1px solid var(--border)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexShrink: 0,
-            background: "var(--surface2)",
-          }}
-        >
+        <div style={{
+          padding: '14px 20px',
+          borderTop: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
+          background: 'var(--surface2)',
+        }}>
           {/* Selected preview */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              minWidth: 0,
-            }}
-          >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
             {selected ? (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "5px 12px",
-                  background: "var(--surface)",
-                  border: "1px solid var(--border2)",
-                  borderRadius: 20,
-                  maxWidth: 300,
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    color: "var(--ink)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '5px 12px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border2)',
+                borderRadius: 20, maxWidth: 300,
+              }}>
+                <span style={{
+                  fontSize: 12.5, fontWeight: 600, color: 'var(--ink)',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
                   {selected.packLabel} · {selected.scenarioLabel}
                 </span>
               </div>
             ) : (
-              <p style={{ fontSize: 12.5, color: "var(--ink-4)" }}>
-                No scenario selected
-              </p>
+              <p style={{ fontSize: 12.5, color: 'var(--ink-4)' }}>No scenario selected</p>
             )}
           </div>
 
           {/* Actions */}
-          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
             {value && (
-              <button
-                onClick={clear}
-                style={{
-                  padding: "9px 16px",
-                  borderRadius: 10,
-                  border: "1px solid var(--border2)",
-                  background: "transparent",
-                  color: "var(--ink-3)",
-                  fontFamily: "inherit",
-                  fontWeight: 600,
-                  fontSize: 13,
-                  cursor: "pointer",
-                  transition: "all .15s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#ef4444";
-                  e.currentTarget.style.borderColor = "rgba(239,68,68,0.3)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--ink-3)";
-                  e.currentTarget.style.borderColor = "var(--border2)";
-                }}
+              <button onClick={clear} style={{
+                padding: '9px 16px', borderRadius: 10,
+                border: '1px solid var(--border2)', background: 'transparent',
+                color: 'var(--ink-3)', fontFamily: 'inherit',
+                fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                transition: 'all .15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink-3)'; e.currentTarget.style.borderColor = 'var(--border2)'; }}
               >
                 Clear
               </button>
@@ -738,12 +549,10 @@ function PackModal({ value, onChange, onClose, userPlan }) {
               disabled={!selected}
               className="btn-green"
               style={{
-                padding: "9px 22px",
-                borderRadius: 10,
-                fontWeight: 700,
-                fontSize: 13,
+                padding: '9px 22px', borderRadius: 10,
+                fontWeight: 700, fontSize: 13,
                 opacity: selected ? 1 : 0.4,
-                cursor: selected ? "pointer" : "not-allowed",
+                cursor: selected ? 'pointer' : 'not-allowed',
               }}
             >
               Apply
@@ -1342,16 +1151,7 @@ const VARIANT_COLORS = {
   Brief: "var(--blue)",
 };
 
-function VariantPanel({
-  variants,
-  replies,
-  activeTab,
-  setActiveTab,
-  onShare,
-  insights,
-  descriptors,
-  recommendedVariant,
-}) {
+function VariantPanel({ variants, replies, activeTab, setActiveTab, onShare, insights, descriptors, recommendedVariant }) {
   return (
     <div
       style={{
@@ -1395,27 +1195,16 @@ function VariantPanel({
                   : "2px solid transparent",
                 transition: "all .15s",
                 flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
+                display: "flex", alignItems: "center", gap: 5,
               }}
             >
               {v}
               {recommendedVariant === v && (
-                <span
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 700,
-                    color: c,
-                    background: `${c}18`,
-                    border: `1px solid ${c}30`,
-                    padding: "1px 6px",
-                    borderRadius: 10,
-                    lineHeight: 1.4,
-                  }}
-                >
-                  ★
-                </span>
+                <span style={{
+                  fontSize: 9, fontWeight: 700, color: c,
+                  background: `${c}18`, border: `1px solid ${c}30`,
+                  padding: "1px 6px", borderRadius: 10, lineHeight: 1.4,
+                }}>★</span>
               )}
             </button>
           );
@@ -1439,27 +1228,16 @@ function VariantPanel({
                 <>
                   {/* Descriptor tag */}
                   {descriptors?.[v] && (
-                    <p
-                      style={{
-                        fontSize: 11.5,
-                        fontWeight: 600,
-                        color: "var(--ink-3)",
-                        marginBottom: 10,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      <span
-                        style={{
-                          display: "inline-block",
-                          width: 5,
-                          height: 5,
-                          borderRadius: "50%",
-                          background: c,
-                          flexShrink: 0,
-                        }}
-                      />
+                    <p style={{
+                      fontSize: 11.5, fontWeight: 600,
+                      color: "var(--ink-3)",
+                      marginBottom: 10,
+                      display: "flex", alignItems: "center", gap: 6,
+                    }}>
+                      <span style={{
+                        display: "inline-block", width: 5, height: 5,
+                        borderRadius: "50%", background: c, flexShrink: 0,
+                      }} />
                       {descriptors[v]}
                     </p>
                   )}
@@ -1475,29 +1253,16 @@ function VariantPanel({
                   </p>
                   {/* Per-reply insight */}
                   {insights?.[v] && (
-                    <div
-                      style={{
-                        padding: "10px 14px",
-                        background: `${c}0D`,
-                        border: `1px solid ${c}25`,
-                        borderRadius: 10,
-                        marginBottom: 14,
-                        display: "flex",
-                        gap: 8,
-                        alignItems: "flex-start",
-                      }}
-                    >
-                      <Lightbulb
-                        size={13}
-                        style={{ color: c, flexShrink: 0, marginTop: 1 }}
-                      />
-                      <p
-                        style={{
-                          fontSize: 13,
-                          color: "var(--ink-2)",
-                          lineHeight: 1.55,
-                        }}
-                      >
+                    <div style={{
+                      padding: "10px 14px",
+                      background: `${c}0D`,
+                      border: `1px solid ${c}25`,
+                      borderRadius: 10,
+                      marginBottom: 14,
+                      display: "flex", gap: 8, alignItems: "flex-start",
+                    }}>
+                      <Lightbulb size={13} style={{ color: c, flexShrink: 0, marginTop: 1 }} />
+                      <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.55 }}>
                         {insights[v]}
                       </p>
                     </div>
@@ -1579,7 +1344,7 @@ const TOOL_NAV = [
   {
     icon: Swords,
     slug: "negotiation-reply",
-    label: "Negotiation",
+    label: "Sales & Negotiation",
     color: "var(--teal)",
   },
   {
@@ -1606,12 +1371,13 @@ const TOOL_NAV = [
    MAIN TOOL PAGE
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ToolPage({ tool, onBack, onLogin, onTool }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const toast = useToast();
   const qc = useQueryClient();
-  const displayName = user?.full_name || user?.email?.split("@")[0] || "User";
+  const navigate = useNavigate();
+  const displayName = user?.full_name || user?.email?.split('@')[0] || 'User';
   const displayInitial = displayName[0].toUpperCase();
-  const planTier = user?.plan_tier || "free";
+  const planTier = user?.plan_tier || 'free';
   const displayPlan = planTier.charAt(0).toUpperCase() + planTier.slice(1);
   const repliesRemaining = user?.replies_remaining ?? user?.limit_today ?? 5;
   const [fields, setFields] = useState({});
@@ -1678,15 +1444,14 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
       // Update user cache with latest remaining/usage from API response
       if (parsed?._remaining != null || parsed?._raw?.remaining != null) {
         const remaining = parsed._remaining ?? parsed._raw?.remaining;
-        const limit = parsed._raw?.limit;
-        qc.setQueryData(["auth", "me"], (prev) => {
+        const limit     = parsed._raw?.limit;
+        qc.setQueryData(['auth', 'me'], (prev) => {
           if (!prev) return prev;
           return {
             ...prev,
             replies_remaining: remaining,
-            usage_today:
-              limit != null ? limit - remaining : (prev.usage_today ?? 0) + 1,
-            limit_today: limit ?? prev.limit_today,
+            usage_today:  limit != null ? limit - remaining : (prev.usage_today ?? 0) + 1,
+            limit_today:  limit ?? prev.limit_today,
           };
         });
       }
@@ -1704,20 +1469,13 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
         setErrorMessage("Your session has expired. Please sign in again.");
         toast.error("Session expired — please sign in again.");
       } else if (status === 403) {
-        setErrorMessage(
-          msg ||
-            "Your trial has expired or your plan doesn't include this tool.",
-        );
+        setErrorMessage(msg || "Your trial has expired or your plan doesn't include this tool.");
         toast.warning(msg || "Plan access denied.");
       } else if (status === 429) {
-        setErrorMessage(
-          msg || "You've reached your daily limit. Upgrade to continue.",
-        );
+        setErrorMessage(msg || "You've reached your daily limit. Upgrade to continue.");
         toast.warning(msg || "Daily limit reached.");
       } else if (status === 504) {
-        setErrorMessage(
-          "The AI took too long to respond. Your usage was not affected — please try again.",
-        );
+        setErrorMessage("The AI took too long to respond. Your usage was not affected — please try again.");
         toast.error("AI timeout — try again.");
       } else {
         setErrorMessage(msg);
@@ -1884,40 +1642,28 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
       </div>
 
       {user && (
-        <div
-          style={{ padding: "12px 16px", borderTop: "1px solid var(--border)" }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                background: "linear-gradient(135deg,var(--green),var(--teal))",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <span style={{ fontSize: 11, fontWeight: 800, color: "#000" }}>
-                {displayInitial}
-              </span>
+        <div style={{ borderTop: "1px solid var(--border)", flexShrink: 0 }}>
+          {/* User card */}
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,var(--green),var(--teal))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: "#000" }}>{displayInitial}</span>
             </div>
             <div style={{ minWidth: 0 }}>
-              <p
-                style={{
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  color: "var(--ink)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {displayName}
-              </p>
+              <p style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</p>
             </div>
+          </div>
+          {/* Bottom actions */}
+          <div style={{ padding: "8px 10px" }}>
+            <button onClick={() => navigate('/pricing')} style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 9, background: "transparent", color: "var(--green)", fontFamily: "inherit", fontWeight: 600, fontSize: 13, cursor: "pointer", textAlign: "left", border: "none", marginBottom: 2, transition: "all .15s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(34,197,94,0.08)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              <Zap size={13} /> Upgrade plan
+            </button>
+            <button onClick={logout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 9, background: "transparent", color: "var(--ink-3)", fontFamily: "inherit", fontWeight: 500, fontSize: 13, cursor: "pointer", textAlign: "left", border: "none", transition: "all .15s" }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.07)"; e.currentTarget.style.color = "#ef4444"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--ink-3)"; }}>
+              <LogOut size={13} /> Sign out
+            </button>
           </div>
         </div>
       )}
@@ -1938,7 +1684,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
       {showPackModal && (
         <PackModal
           value={fields.pack_scenario || null}
-          onChange={(v) => setField("pack_scenario", v)}
+          onChange={v => setField('pack_scenario', v)}
           onClose={() => setShowPackModal(false)}
           userPlan={planTier}
         />
@@ -2281,182 +2027,85 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
             ))}
 
           {/* ── Pack modal trigger ── */}
-          {optionFields
-            .filter((f) => f.type === "pack-modal")
-            .map((f) => {
-              const ps = fields.pack_scenario;
-              const pack = ps ? PACKS.find((p) => p.id === ps.packId) : null;
-              return (
-                <div
-                  key={f.id}
-                  style={{ marginBottom: "clamp(14px,2vw,20px)" }}
+          {optionFields.filter(f => f.type === "pack-modal").map(f => {
+            const ps = fields.pack_scenario;
+            const pack = ps ? PACKS.find(p => p.id === ps.packId) : null;
+            return (
+              <div key={f.id} style={{ marginBottom: "clamp(14px,2vw,20px)" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowPackModal(true)}
+                  style={{
+                    width: "100%", padding: "13px 16px",
+                    borderRadius: 12,
+                    border: `1.5px solid ${ps ? (pack?.border || "var(--green)") : "var(--border2)"}`,
+                    background: ps ? (pack?.bg || "rgba(34,197,94,0.06)") : "var(--surface2)",
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    gap: 10, cursor: "pointer", fontFamily: "inherit",
+                    transition: "all .2s",
+                    boxShadow: ps ? `0 0 0 3px ${pack?.bg || "rgba(34,197,94,0.08)"}` : "none",
+                  }}
+                  onMouseEnter={e => { if (!ps) { e.currentTarget.style.borderColor = "var(--green)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(34,197,94,0.08)"; }}}
+                  onMouseLeave={e => { if (!ps) { e.currentTarget.style.borderColor = "var(--border2)"; e.currentTarget.style.boxShadow = "none"; }}}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setShowPackModal(true)}
-                    style={{
-                      width: "100%",
-                      padding: "13px 16px",
-                      borderRadius: 12,
-                      border: `1.5px solid ${ps ? pack?.border || "var(--green)" : "var(--border2)"}`,
-                      background: ps
-                        ? pack?.bg || "rgba(34,197,94,0.06)"
-                        : "var(--surface2)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 10,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                      transition: "all .2s",
-                      boxShadow: ps
-                        ? `0 0 0 3px ${pack?.bg || "rgba(34,197,94,0.08)"}`
-                        : "none",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!ps) {
-                        e.currentTarget.style.borderColor = "var(--green)";
-                        e.currentTarget.style.boxShadow =
-                          "0 0 0 3px rgba(34,197,94,0.08)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!ps) {
-                        e.currentTarget.style.borderColor = "var(--border2)";
-                        e.currentTarget.style.boxShadow = "none";
-                      }
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        minWidth: 0,
-                      }}
-                    >
-                      {ps && pack ? (
-                        <>
-                          <div style={{ minWidth: 0 }}>
-                            <p
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                color: pack.color,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.07em",
-                                marginBottom: 2,
-                              }}
-                            >
-                              {ps.packLabel}
-                            </p>
-                            <p
-                              style={{
-                                fontSize: 13.5,
-                                fontWeight: 600,
-                                color: "var(--ink)",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {ps.scenarioLabel}
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div
-                            style={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: 9,
-                              background: "var(--surface3)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <Zap size={14} color="var(--ink-3)" />
-                          </div>
-                          <div>
-                            <p
-                              style={{
-                                fontSize: 12,
-                                fontWeight: 700,
-                                color: "var(--ink-3)",
-                                textTransform: "uppercase",
-                                letterSpacing: "0.07em",
-                                marginBottom: 1,
-                              }}
-                            >
-                              Context Pack
-                            </p>
-                            <p
-                              style={{ fontSize: 13.5, color: "var(--ink-3)" }}
-                            >
-                              Choose a pack and scenario
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {ps && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setField("pack_scenario", null);
-                          }}
-                          style={{
-                            width: 22,
-                            height: 22,
-                            borderRadius: "50%",
-                            background: "var(--surface3)",
-                            border: "none",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            cursor: "pointer",
-                            color: "var(--ink-3)",
-                            transition: "all .15s",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background =
-                              "rgba(239,68,68,0.12)";
-                            e.currentTarget.style.color = "#ef4444";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background =
-                              "var(--surface3)";
-                            e.currentTarget.style.color = "var(--ink-3)";
-                          }}
-                        >
-                          <X size={11} />
-                        </button>
-                      )}
-                      <ChevronDown size={14} color="var(--ink-3)" />
-                    </div>
-                  </button>
-                </div>
-              );
-            })}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                    {ps && pack ? (
+                      <>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: pack.color, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 2 }}>
+                            {ps.packLabel}
+                          </p>
+                          <p style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {ps.scenarioLabel}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ width: 32, height: 32, borderRadius: 9, background: "var(--surface3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Zap size={14} color="var(--ink-3)" />
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 1 }}>
+                            Context Pack
+                          </p>
+                          <p style={{ fontSize: 13.5, color: "var(--ink-3)" }}>
+                            Choose a pack and scenario
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    {ps && (
+                      <button
+                        type="button"
+                        onClick={e => { e.stopPropagation(); setField("pack_scenario", null); }}
+                        style={{
+                          width: 22, height: 22, borderRadius: "50%",
+                          background: "var(--surface3)", border: "none",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: "pointer", color: "var(--ink-3)", transition: "all .15s",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; e.currentTarget.style.color = "#ef4444"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "var(--surface3)"; e.currentTarget.style.color = "var(--ink-3)"; }}
+                      >
+                        <X size={11} />
+                      </button>
+                    )}
+                    <ChevronDown size={14} color="var(--ink-3)" />
+                  </div>
+                </button>
+              </div>
+            );
+          })}
 
           {/* ── Options row (selects) ── */}
           {optionFields.filter((f) => f.type === "select").length > 0 && (
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(min(100%, 200px), 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))",
                 gap: 12,
                 marginBottom: "clamp(18px,2.5vw,28px)",
               }}
@@ -2632,45 +2281,23 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                 gap: 12,
               }}
             >
-              <div
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 10,
-                  flexShrink: 0,
-                  background: "rgba(239,68,68,0.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
+              <div style={{
+                width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                background: "rgba(239,68,68,0.1)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
                 <AlertTriangle size={16} color="#ef4444" />
               </div>
               <div style={{ flex: 1 }}>
-                <p
-                  style={{
-                    color: "#ef4444",
-                    fontWeight: 600,
-                    marginBottom: 4,
-                    fontSize: 14,
-                  }}
-                >
+                <p style={{ color: "#ef4444", fontWeight: 600, marginBottom: 4, fontSize: 14 }}>
                   {errorMessage || "Something went wrong. Please try again."}
                 </p>
                 <button
-                  onClick={() => {
-                    setPhase("idle");
-                    setErrorMessage("");
-                  }}
+                  onClick={() => { setPhase("idle"); setErrorMessage(""); }}
                   style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "var(--ink-3)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 0,
-                    fontFamily: "inherit",
+                    fontSize: 13, fontWeight: 600, color: "var(--ink-3)",
+                    background: "none", border: "none", cursor: "pointer",
+                    padding: 0, fontFamily: "inherit",
                   }}
                 >
                   Try again →
@@ -2686,9 +2313,10 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                 animation: "fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both",
               }}
             >
+
+
               {/* Tone-checker deep extras */}
-              {(tool.id === "tone-checker" ||
-                tool.id === "intent-detector") && (
+              {(tool.id === "tone-checker" || tool.id === "intent-detector") && (
                 <div
                   style={{
                     display: "flex",
@@ -2791,9 +2419,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                           marginBottom: 6,
                         }}
                       >
-                        {tool.id === "intent-detector"
-                          ? "How to respond"
-                          : "Recommended approach"}
+                        {tool.id === "intent-detector" ? "How to respond" : "Recommended approach"}
                       </p>
                       <p
                         style={{
@@ -2811,133 +2437,27 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                   {tool.id === "intent-detector" && (
                     <>
                       {result.primary_tone && (
-                        <div
-                          style={{
-                            padding: "14px 18px",
-                            background: "var(--surface)",
-                            border: "1px solid var(--border)",
-                            borderRadius: 14,
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              color: "var(--ink-3)",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.08em",
-                              marginBottom: 6,
-                            }}
-                          >
-                            Surface meaning
-                          </p>
-                          <p
-                            style={{
-                              fontSize: 14,
-                              color: "var(--ink)",
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            {result.primary_tone}
-                          </p>
+                        <div style={{ padding: "14px 18px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14 }}>
+                          <p style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Surface meaning</p>
+                          <p style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.6 }}>{result.primary_tone}</p>
                         </div>
                       )}
                       {result.secondary_tone && (
-                        <div
-                          style={{
-                            padding: "14px 18px",
-                            background: "rgba(167,139,250,0.05)",
-                            border: "1px solid rgba(167,139,250,0.18)",
-                            borderRadius: 14,
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              color: "#a78bfa",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.08em",
-                              marginBottom: 6,
-                            }}
-                          >
-                            Real intent
-                          </p>
-                          <p
-                            style={{
-                              fontSize: 14,
-                              color: "var(--ink)",
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            {result.secondary_tone}
-                          </p>
+                        <div style={{ padding: "14px 18px", background: "rgba(167,139,250,0.05)", border: "1px solid rgba(167,139,250,0.18)", borderRadius: 14 }}>
+                          <p style={{ fontSize: 10.5, fontWeight: 700, color: "#a78bfa", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Real intent</p>
+                          <p style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.6 }}>{result.secondary_tone}</p>
                         </div>
                       )}
                       {result.subtext && (
-                        <div
-                          style={{
-                            padding: "14px 18px",
-                            background: "var(--surface2)",
-                            border: "1px solid var(--border2)",
-                            borderRadius: 14,
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              color: "var(--ink-3)",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.08em",
-                              marginBottom: 6,
-                            }}
-                          >
-                            Decoded subtext
-                          </p>
-                          <p
-                            style={{
-                              fontSize: 14,
-                              color: "var(--ink)",
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            {result.subtext}
-                          </p>
+                        <div style={{ padding: "14px 18px", background: "var(--surface2)", border: "1px solid var(--border2)", borderRadius: 14 }}>
+                          <p style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Decoded subtext</p>
+                          <p style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.6 }}>{result.subtext}</p>
                         </div>
                       )}
                       {result.urgency && (
-                        <div
-                          style={{
-                            padding: "10px 16px",
-                            background: "rgba(245,158,11,0.05)",
-                            border: "1px solid rgba(245,158,11,0.18)",
-                            borderRadius: 12,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: "#f59e0b",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.08em",
-                            }}
-                          >
-                            Emotional state
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 13.5,
-                              color: "var(--ink)",
-                              fontWeight: 600,
-                            }}
-                          >
-                            {result.urgency}
-                          </span>
+                        <div style={{ padding: "10px 16px", background: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.18)", borderRadius: 12, display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#f59e0b", textTransform: "uppercase", letterSpacing: "0.08em" }}>Emotional state</span>
+                          <span style={{ fontSize: 13.5, color: "var(--ink)", fontWeight: 600 }}>{result.urgency}</span>
                         </div>
                       )}
                     </>

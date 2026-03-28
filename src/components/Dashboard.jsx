@@ -51,7 +51,7 @@ const TOOLS = [
   {
     icon: Swords,
     slug: "negotiation-reply",
-    label: "Negotiation Reply",
+    label: "Sales & Negotiation",
     desc: "Hold position under pressure",
     color: "var(--teal)",
     bg: "rgba(45,212,191,0.08)",
@@ -346,20 +346,7 @@ export default function Dashboard() {
         >
           <Zap size={14} /> Upgrade plan
         </button>
-        {/* Settings */}
-        <button
-          style={{
-            width: "100%", display: "flex", alignItems: "center", gap: 9,
-            padding: "9px 10px", borderRadius: 9, background: "transparent",
-            color: "var(--ink-3)", fontFamily: "inherit", fontWeight: 500,
-            fontSize: 13, cursor: "pointer", textAlign: "left", border: "none",
-            marginBottom: 2, transition: "all .15s",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface2)"; e.currentTarget.style.color = "var(--ink)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--ink-3)"; }}
-        >
-          <Settings size={14} /> Settings
-        </button>
+
         {/* Sign out */}
         <button
           onClick={logout}
