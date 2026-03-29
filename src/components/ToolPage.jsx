@@ -21,6 +21,7 @@ import {
   Swords,
   Clock,
   Home,
+  LogOut,
 } from "lucide-react";
 import { useAuth } from "../AuthContext.jsx";
 import { useQueryClient } from "@tanstack/react-query";
