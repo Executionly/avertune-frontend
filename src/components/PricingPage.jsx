@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../AuthContext.jsx'
+import { useCheckout } from '../lib/useSubscription.js'
+import { useToast } from '../lib/Toast.jsx'
 import { ArrowLeft, Check, Zap, Star, ChevronDown, ChevronUp, MessageSquare, Briefcase, Battery } from 'lucide-react'
 
 const PLANS = [
@@ -100,7 +103,7 @@ const FAQS = [
   { q: 'What payment methods do you accept?', a: 'All major credit and debit cards via Stripe. Annual plans are also available for a discounted rate.' },
 ]
 
-function PlanCard({ plan, billing, onSignup }) {
+function PlanCard({ plan, billing, onCheckout, checkingOut }) {
   const Icon = plan.icon
   const isPopular = plan.badge === 'Most Popular'
   const isWeekly = billing === 'weekly'
@@ -196,10 +199,12 @@ function PlanCard({ plan, billing, onSignup }) {
 
       {/* CTA */}
       <button
-        onClick={onSignup}
+        onClick={() => onCheckout(plan, billing)}
+        disabled={checkingOut}
         style={{
           width: '100%', padding: '12px', borderRadius: 11, fontSize: 14.5, fontWeight: 700,
-          fontFamily: 'inherit', cursor: 'pointer', transition: 'opacity .15s, transform .12s',
+          fontFamily: 'inherit', cursor: checkingOut ? 'wait' : 'pointer', transition: 'opacity .15s, transform .12s',
+          opacity: checkingOut ? 0.7 : 1,
           ...(plan.ctaStyle === 'teal' ? {
             background: plan.color, color: '#000', border: 'none',
           } : {
@@ -210,7 +215,7 @@ function PlanCard({ plan, billing, onSignup }) {
         onMouseEnter={e => { e.currentTarget.style.opacity = '0.85'; e.currentTarget.style.transform = 'translateY(-1px)' }}
         onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)' }}
       >
-        {plan.cta}
+        {checkingOut ? 'Redirecting…' : plan.cta}
       </button>
     </div>
   )
@@ -237,8 +242,33 @@ function FAQItem({ item }) {
 
 export default function PricingPage() {
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
+  const toast = useToast()
+  const checkoutMutation = useCheckout()
   const onBack = () => navigate(-1)
-  const onSignup = () => navigate('/signup')
+
+  async function handleCheckout(plan, billing) {
+    // Not logged in — go to signup first
+    if (!isAuthenticated) {
+      navigate('/signup')
+      return
+    }
+    // Free plan — nothing to checkout
+    if (plan.id === 'free') {
+      navigate('/dashboard')
+      return
+    }
+    try {
+      await checkoutMutation.mutateAsync({
+        plan: plan.id,
+        billing_period: billing === 'annual' ? 'annual' : billing === 'weekly' ? 'weekly' : 'monthly',
+      })
+      // onSuccess in useCheckout redirects to checkout_url automatically
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Could not start checkout. Please try again.'
+      toast.error(msg)
+    }
+  }
   const [billing, setBilling] = useState('monthly')
 
   return (
@@ -303,7 +333,7 @@ export default function PricingPage() {
         {/* Plan cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,280px),1fr))', gap: 16, marginBottom: 'clamp(56px,8vw,88px)', alignItems: 'start' }}>
           {PLANS.map(plan => (
-            <PlanCard key={plan.id} plan={plan} billing={billing} onSignup={onSignup} />
+            <PlanCard key={plan.id} plan={plan} billing={billing} onCheckout={handleCheckout} checkingOut={checkoutMutation.isPending} />
           ))}
         </div>
 
@@ -321,7 +351,7 @@ export default function PricingPage() {
                 <p style={{ fontSize: 13, fontWeight: 600, color: '#2dd4bf', marginBottom: 4 }}>+ {t.replies.toLocaleString()}</p>
                 <p style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 14 }}>replies</p>
                 <p style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--ink)', marginBottom: 16 }}>${t.price}</p>
-                <button onClick={onSignup} style={{
+                <button onClick={() => !isAuthenticated ? navigate('/signup') : toast.info('Top-up packs coming soon — complete your plan upgrade first.')} style={{
                   width: '100%', padding: '10px', borderRadius: 10, fontSize: 13.5, fontWeight: 600,
                   background: 'transparent', color: 'var(--ink-2)', border: '1.5px solid var(--border2)',
                   fontFamily: 'inherit', cursor: 'pointer', transition: 'all .15s',

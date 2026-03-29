@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useMySubscription, usePortal, useCancel, getPlanLabel } from "../lib/useSubscription.js";
+import { useToast } from "../lib/Toast.jsx";
 import {
   MessageSquare,
   Activity,
@@ -115,16 +117,24 @@ const RECENT = [
 export default function Dashboard() {
   const { user, authLoading, logout } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
+  const { data: subscription } = useMySubscription();
+  const portalMutation = usePortal();
+  const cancelMutation = useCancel();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   if (authLoading) return null;
   if (!user) { navigate('/'); return null; }
 
   const displayName = user.full_name || user.email?.split('@')[0] || 'User';
   const displayInitial = displayName[0].toUpperCase();
-  const displayPlan = user.plan_tier
-    ? user.plan_tier.charAt(0).toUpperCase() + user.plan_tier.slice(1)
-    : 'Free';
+  const subPlanTier = subscription?.plan_tier || user.plan_tier
+  const displayPlan = getPlanLabel(subPlanTier)
+  const subStatus = subscription?.status || ''
+  const subRenewsAt = subscription?.current_period_end || subscription?.renews_at || null
+  const subCancelAt = subscription?.cancel_at || subscription?.cancels_at || null
+  const isOnPaidPlan = subPlanTier && !['free', 'trial'].includes(subPlanTier.toLowerCase())
   const usageToday = user.usage_today ?? 0;
   const limitToday = user.limit_today ?? 5;
   const repliesRemaining = user.replies_remaining ?? limitToday - usageToday;
@@ -331,21 +341,46 @@ export default function Dashboard() {
       <div
         style={{ padding: "12px 10px", borderTop: "1px solid var(--border)", flexShrink: 0 }}
       >
-        {/* Pricing */}
-        <button
-          onClick={() => { navigate('/pricing'); setSidebarOpen(false); }}
-          style={{
-            width: "100%", display: "flex", alignItems: "center", gap: 9,
-            padding: "9px 10px", borderRadius: 9, background: "transparent",
-            color: "var(--green)", fontFamily: "inherit", fontWeight: 600,
-            fontSize: 13, cursor: "pointer", textAlign: "left", border: "none",
-            marginBottom: 2, transition: "all .15s",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(34,197,94,0.08)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-        >
-          <Zap size={14} /> Upgrade plan
-        </button>
+        {/* Plan management */}
+        {isOnPaidPlan ? (
+          <button
+            onClick={async () => {
+              setSidebarOpen(false);
+              try {
+                await portalMutation.mutateAsync();
+              } catch (err) {
+                toast.error(err?.message || 'Could not open billing portal.');
+              }
+            }}
+            disabled={portalMutation.isPending}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", gap: 9,
+              padding: "9px 10px", borderRadius: 9, background: "transparent",
+              color: "var(--green)", fontFamily: "inherit", fontWeight: 600,
+              fontSize: 13, cursor: "pointer", textAlign: "left", border: "none",
+              marginBottom: 2, transition: "all .15s", opacity: portalMutation.isPending ? 0.7 : 1,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(34,197,94,0.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <Zap size={14} /> {portalMutation.isPending ? "Opening…" : "Manage billing"}
+          </button>
+        ) : (
+          <button
+            onClick={() => { navigate('/pricing'); setSidebarOpen(false); }}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", gap: 9,
+              padding: "9px 10px", borderRadius: 9, background: "transparent",
+              color: "var(--green)", fontFamily: "inherit", fontWeight: 600,
+              fontSize: 13, cursor: "pointer", textAlign: "left", border: "none",
+              marginBottom: 2, transition: "all .15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(34,197,94,0.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <Zap size={14} /> Upgrade plan
+          </button>
+        )}
 
         {/* Sign out */}
         <button
@@ -908,6 +943,64 @@ export default function Dashboard() {
                 </div>
               </div>
 
+              {/* Subscription status for paid users */}
+              {isOnPaidPlan && subscription && (
+                <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "16px 20px", marginBottom: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 7, height: 7, borderRadius: "50%", background: subCancelAt ? "#f59e0b" : "var(--green)", animation: subCancelAt ? "none" : "glow-pulse 2s ease infinite" }} />
+                      <p style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>{displayPlan} plan</p>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 20, background: subCancelAt ? "rgba(245,158,11,0.1)" : "rgba(34,197,94,0.1)", color: subCancelAt ? "#f59e0b" : "var(--green)", border: `1px solid ${subCancelAt ? "rgba(245,158,11,0.25)" : "rgba(34,197,94,0.25)"}` }}>
+                      {subCancelAt ? "Cancels soon" : "Active"}
+                    </span>
+                  </div>
+                  {subRenewsAt && !subCancelAt && (
+                    <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 10 }}>
+                      Renews {new Date(subRenewsAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                    </p>
+                  )}
+                  {subCancelAt && (
+                    <p style={{ fontSize: 12, color: "#f59e0b", marginBottom: 10 }}>
+                      Access until {new Date(subCancelAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                    </p>
+                  )}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => portalMutation.mutateAsync().catch(() => {})} disabled={portalMutation.isPending}
+                      style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid var(--border2)", background: "transparent", color: "var(--ink-2)", fontFamily: "inherit", fontWeight: 600, fontSize: 12.5, cursor: "pointer", transition: "all .15s" }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--green)"; e.currentTarget.style.color = "var(--green)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border2)"; e.currentTarget.style.color = "var(--ink-2)"; }}>
+                      {portalMutation.isPending ? "Opening…" : "Manage billing"}
+                    </button>
+                    {!subCancelAt && (
+                      <button onClick={() => setShowCancelConfirm(true)}
+                        style={{ padding: "8px 12px", borderRadius: 9, border: "1px solid var(--border2)", background: "transparent", color: "var(--ink-3)", fontFamily: "inherit", fontWeight: 500, fontSize: 12.5, cursor: "pointer", transition: "all .15s" }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(239,68,68,0.3)"; e.currentTarget.style.color = "#ef4444"; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border2)"; e.currentTarget.style.color = "var(--ink-3)"; }}>
+                        Cancel plan
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Cancel confirmation modal */}
+              {showCancelConfirm && (
+                <div style={{ position: "fixed", inset: 0, zIndex: 600, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+                  <div style={{ background: "var(--surface)", border: "1px solid var(--border2)", borderRadius: 20, padding: 28, maxWidth: 400, width: "100%", animation: "fadeUp 0.25s cubic-bezier(0.16,1,0.3,1) both" }}>
+                    <h3 style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 10 }}>Cancel subscription?</h3>
+                    <p style={{ fontSize: 14, color: "var(--ink-3)", lineHeight: 1.65, marginBottom: 24 }}>Your access continues until the end of your billing period. You can resubscribe anytime.</p>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <button onClick={() => setShowCancelConfirm(false)} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "1px solid var(--border2)", background: "transparent", color: "var(--ink-2)", fontFamily: "inherit", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Keep plan</button>
+                      <button onClick={async () => { try { await cancelMutation.mutateAsync({}); setShowCancelConfirm(false); toast.success("Cancelled. Access continues until end of period."); } catch (err) { toast.error(err?.message || "Could not cancel. Try billing portal instead."); setShowCancelConfirm(false); } }} disabled={cancelMutation.isPending}
+                        style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "rgba(239,68,68,0.9)", color: "#fff", fontFamily: "inherit", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: cancelMutation.isPending ? 0.7 : 1 }}>
+                        {cancelMutation.isPending ? "Cancelling…" : "Yes, cancel"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Upgrade */}
               <div
                 style={{
@@ -948,7 +1041,7 @@ export default function Dashboard() {
                   Unlimited replies, all tools, reply history, and share cards.
                 </p>
                 <button
-                  onClick={() => navigate("/pricing")}
+                  onClick={() => isOnPaidPlan ? portalMutation.mutateAsync().catch(() => {}) : navigate("/pricing")}
                   className="btn-green"
                   style={{
                     padding: "9px 20px",
