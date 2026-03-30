@@ -26,7 +26,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { useAuth } from "../AuthContext.jsx";
-import Sidebar from "./components/Sidebar.jsx";
+import Sidebar from "./Sidebar.jsx";
 
 const TOOLS = [
   {
