@@ -1620,6 +1620,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const displayPlan = planTier.charAt(0).toUpperCase() + planTier.slice(1);
   const repliesRemaining = user?.replies_remaining ?? user?.limit_today ?? 5;
   const [fields, setFields] = useState({});
+
   const [phase, setPhase] = useState("idle");
   const [result, setResult] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
@@ -1627,6 +1628,11 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const [showShare, setShowShare] = useState(false);
   const [showPackModal, setShowPackModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const mainField = tool.fields.find(
+    (f) => f.type === "textarea" && f.required,
+  );
+  const optionFields = tool.fields.filter((f) => f !== mainField);
 
   // Reset all field values, results and phase whenever the tool changes
   useEffect(() => {
