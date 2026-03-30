@@ -1,101 +1,87 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { subscriptionApi } from './subscriptionApi'
-import { useAuth } from '../AuthContext'
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { subscriptionApi } from "./subscriptionApi";
+import { useAuth } from "../AuthContext";
 
-// ── Query keys ─────────────────────────────────────────────────────────────
 export const SUB_KEYS = {
-  plans: ['subscription', 'plans'],
-  me:    ['subscription', 'me'],
-}
+  plans: ["subscription", "plans"],
+  me: ["subscription", "me"],
+};
 
-// ── Plans (public, no auth needed) ────────────────────────────────────────
 export function usePlans() {
   return useQuery({
     queryKey: SUB_KEYS.plans,
-    queryFn:  subscriptionApi.getPlans,
-    staleTime: 10 * 60 * 1000, // 10 min
+    queryFn: subscriptionApi.getPlans,
+    staleTime: 10 * 60 * 1000,
     retry: false,
-  })
+  });
 }
 
-// ── Current subscription ────────────────────────────────────────────────────
 export function useMySubscription() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated } = useAuth();
   return useQuery({
     queryKey: SUB_KEYS.me,
-    queryFn:  subscriptionApi.getMySubscription,
-    enabled:  isAuthenticated,
+    queryFn: subscriptionApi.getMySubscription,
+    enabled: isAuthenticated,
     staleTime: 2 * 60 * 1000,
     retry: false,
-  })
+  });
 }
 
-// ── Checkout ────────────────────────────────────────────────────────────────
 export function useCheckout() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated } = useAuth();
   return useMutation({
     mutationFn: subscriptionApi.checkout,
     onSuccess: (data) => {
-      // Redirect to payment provider
-      if (data?.checkout_url) {
-        window.location.href = data.checkout_url
+      console.log("Checkout response:", data);
+      const checkoutUrl = data?.url;
+      if (checkoutUrl) {
+        window.location.replace(checkoutUrl); // use replace for immediate redirect
+      } else {
+        throw new Error("No checkout URL returned");
       }
     },
-  })
+  });
 }
 
-// ── Portal ──────────────────────────────────────────────────────────────────
 export function usePortal() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: subscriptionApi.getPortal,
     onSuccess: (data) => {
-      if (data?.url) window.open(data.url, '_blank')
+      const portalUrl = data?.url;
+      if (portalUrl) {
+        window.open(portalUrl, "_blank");
+      } else {
+        throw new Error("No portal URL returned");
+      }
     },
-  })
+    onError: (error) => {
+      if (error.message?.includes("404") || error.response?.status === 404) {
+        throw new Error("No active subscription found. Please upgrade first.");
+      }
+      throw error;
+    },
+  });
 }
 
-// ── Cancel ──────────────────────────────────────────────────────────────────
 export function useCancel() {
-  const qc = useQueryClient()
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: subscriptionApi.cancel,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: SUB_KEYS.me })
-      qc.invalidateQueries({ queryKey: ['auth', 'me'] })
+      qc.invalidateQueries({ queryKey: SUB_KEYS.me });
+      qc.invalidateQueries({ queryKey: ["auth", "me"] });
     },
-  })
+  });
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-// Map plan_tier from backend to display label
 export function getPlanLabel(tier) {
   const map = {
-    free:    'Free',
-    starter: 'Starter',
-    daily:   'Daily',
-    pro:     'Pro',
-    trial:   'Trial',
-  }
-  return map[(tier || '').toLowerCase()] || tier || 'Free'
-}
-
-// Map billing period to request value
-export function mapBillingPeriod(billingUi) {
-  const map = {
-    weekly:  'weekly',
-    monthly: 'monthly',
-    annual:  'annual',
-  }
-  return map[billingUi] || 'monthly'
-}
-
-// Map plan card id to request plan value
-export function mapPlanId(planCardId) {
-  const map = {
-    starter: 'starter',
-    daily:   'daily',
-    pro:     'pro',
-  }
-  return map[planCardId] || planCardId
+    free: "Free",
+    starter: "Starter",
+    daily: "Daily",
+    pro: "Pro",
+    trial: "Trial",
+  };
+  return map[(tier || "").toLowerCase()] || tier || "Free";
 }

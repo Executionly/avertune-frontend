@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMySubscription, usePortal, useCancel, getPlanLabel } from "../lib/useSubscription.js";
+import {
+  useMySubscription,
+  usePortal,
+  useCancel,
+  getPlanLabel,
+} from "../lib/useSubscription.js";
 import { useToast } from "../lib/Toast.jsx";
 import {
   MessageSquare,
@@ -21,6 +26,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { useAuth } from "../AuthContext.jsx";
+import Sidebar from "./Sidebar.jsx";
 
 const TOOLS = [
   {
@@ -88,32 +94,6 @@ const TOOLS = [
   },
 ];
 
-// STATS is now built dynamically inside the component from real user data
-
-const RECENT = [
-  {
-    q: '"You said this would be done by Friday."',
-    tool: "Reply Generator",
-    tone: "Accusatory",
-    time: "2h ago",
-    variant: "Balanced",
-  },
-  {
-    q: '"We need better performance from your team."',
-    tool: "Tone Checker",
-    tone: "Critical",
-    time: "Yesterday",
-    variant: "Firm",
-  },
-  {
-    q: '"Why wasn\'t I included in this decision?"',
-    tool: "Boundary Builder",
-    tone: "Hurt",
-    time: "2d ago",
-    variant: "Warm",
-  },
-];
-
 export default function Dashboard() {
   const { user, authLoading, logout } = useAuth();
   const navigate = useNavigate();
@@ -125,20 +105,27 @@ export default function Dashboard() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   if (authLoading) return null;
-  if (!user) { navigate('/'); return null; }
+  if (!user) {
+    navigate("/");
+    return null;
+  }
 
-  const displayName = user.full_name || user.email?.split('@')[0] || 'User';
+  const displayName = user.full_name || user.email?.split("@")[0] || "User";
   const displayInitial = displayName[0].toUpperCase();
-  const subPlanTier = subscription?.plan_tier || user.plan_tier
-  const displayPlan = getPlanLabel(subPlanTier)
-  const subStatus = subscription?.status || ''
-  const subRenewsAt = subscription?.current_period_end || subscription?.renews_at || null
-  const subCancelAt = subscription?.cancel_at || subscription?.cancels_at || null
-  const isOnPaidPlan = subPlanTier && !['free', 'trial'].includes(subPlanTier.toLowerCase())
+  const subPlanTier = subscription?.plan_tier || user.plan_tier;
+  const displayPlan = getPlanLabel(subPlanTier);
+  const subStatus = subscription?.status || "";
+  const subRenewsAt =
+    subscription?.current_period_end || subscription?.renews_at || null;
+  const subCancelAt =
+    subscription?.cancel_at || subscription?.cancels_at || null;
+  const isOnPaidPlan =
+    subPlanTier && !["free", "trial"].includes(subPlanTier.toLowerCase());
   const usageToday = user.usage_today ?? 0;
   const limitToday = user.limit_today ?? 5;
   const repliesRemaining = user.replies_remaining ?? limitToday - usageToday;
-  const usagePct = limitToday > 0 ? Math.min((usageToday / limitToday) * 100, 100) : 0;
+  const usagePct =
+    limitToday > 0 ? Math.min((usageToday / limitToday) * 100, 100) : 0;
 
   const STATS = [
     {
@@ -162,315 +149,13 @@ export default function Dashboard() {
       color: "var(--teal)",
       delta: null,
     },
-
   ];
-
-  const Logo = () => (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <div
-        style={{
-          width: 30,
-          height: 30,
-          borderRadius: 9,
-          background: "linear-gradient(135deg,var(--green),var(--teal))",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-          <path
-            d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
-            stroke="#000"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-      <span
-        style={{
-          fontWeight: 800,
-          fontSize: 16,
-          letterSpacing: "-0.03em",
-          color: "var(--ink)",
-        }}
-      >
-        Avertune
-      </span>
-    </div>
-  );
-
-  const SidebarContent = () => (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {/* Logo */}
-      <div
-        style={{
-          padding: "20px 20px 16px",
-          borderBottom: "1px solid var(--border)",
-        }}
-      >
-        <Logo />
-      </div>
-
-      {/* User */}
-      <div
-        style={{
-          padding: "14px 16px",
-          borderBottom: "1px solid var(--border)",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-        }}
-      >
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: "linear-gradient(135deg,var(--green),var(--teal))",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <span style={{ fontSize: 14, fontWeight: 800, color: "#000" }}>
-            {displayInitial}
-          </span>
-        </div>
-        <div style={{ minWidth: 0 }}>
-          <p
-            style={{
-              fontSize: 13.5,
-              fontWeight: 700,
-              color: "var(--ink)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {displayName}
-          </p>
-
-        </div>
-      </div>
-
-      {/* Nav */}
-      <div style={{ padding: "12px 10px" }}>
-        <p
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            color: "var(--ink-4)",
-            textTransform: "uppercase",
-            letterSpacing: "0.09em",
-            marginBottom: 6,
-            paddingLeft: 8,
-          }}
-        >
-          Navigation
-        </p>
-        {[
-          {
-            icon: Home,
-            label: "Dashboard",
-            active: true,
-            action: () => setSidebarOpen(false),
-          },
-        ].map((item) => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.label}
-              onClick={item.action}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: 9,
-                padding: "9px 10px",
-                borderRadius: 9,
-                marginBottom: 2,
-                background: item.active ? "var(--surface2)" : "transparent",
-                color: item.active ? "var(--ink)" : "var(--ink-3)",
-                fontFamily: "inherit",
-                fontWeight: item.active ? 600 : 500,
-                fontSize: 13.5,
-                cursor: "pointer",
-                textAlign: "left",
-                border: "none",
-                transition: "all .15s",
-              }}
-              onMouseEnter={(e) => {
-                if (!item.active) {
-                  e.currentTarget.style.background = "var(--surface2)";
-                  e.currentTarget.style.color = "var(--ink)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!item.active) {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "var(--ink-3)";
-                }
-              }}
-            >
-              <Icon size={15} strokeWidth={1.8} />
-              {item.label}
-              {item.active && (
-                <div
-                  style={{
-                    marginLeft: "auto",
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    background: "var(--green)",
-                  }}
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Spacer */}
-      <div style={{ flex: 1 }} />
-
-      {/* Bottom actions — always visible */}
-      <div
-        style={{ padding: "12px 10px", borderTop: "1px solid var(--border)", flexShrink: 0 }}
-      >
-        {/* Plan management */}
-        {isOnPaidPlan ? (
-          <button
-            onClick={async () => {
-              setSidebarOpen(false);
-              try {
-                await portalMutation.mutateAsync();
-              } catch (err) {
-                toast.error(err?.message || 'Could not open billing portal.');
-              }
-            }}
-            disabled={portalMutation.isPending}
-            style={{
-              width: "100%", display: "flex", alignItems: "center", gap: 9,
-              padding: "9px 10px", borderRadius: 9, background: "transparent",
-              color: "var(--green)", fontFamily: "inherit", fontWeight: 600,
-              fontSize: 13, cursor: "pointer", textAlign: "left", border: "none",
-              marginBottom: 2, transition: "all .15s", opacity: portalMutation.isPending ? 0.7 : 1,
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(34,197,94,0.08)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <Zap size={14} /> {portalMutation.isPending ? "Opening…" : "Manage billing"}
-          </button>
-        ) : (
-          <button
-            onClick={() => { navigate('/pricing'); setSidebarOpen(false); }}
-            style={{
-              width: "100%", display: "flex", alignItems: "center", gap: 9,
-              padding: "9px 10px", borderRadius: 9, background: "transparent",
-              color: "var(--green)", fontFamily: "inherit", fontWeight: 600,
-              fontSize: 13, cursor: "pointer", textAlign: "left", border: "none",
-              marginBottom: 2, transition: "all .15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(34,197,94,0.08)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <Zap size={14} /> Upgrade plan
-          </button>
-        )}
-
-        {/* Sign out */}
-        <button
-          onClick={() => logout().then(() => navigate("/")).catch(() => navigate("/"))}
-          style={{
-            width: "100%", display: "flex", alignItems: "center", gap: 9,
-            padding: "9px 10px", borderRadius: 9, background: "transparent",
-            color: "var(--ink-3)", fontFamily: "inherit", fontWeight: 500,
-            fontSize: 13, cursor: "pointer", textAlign: "left", border: "none",
-            transition: "all .15s",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.07)"; e.currentTarget.style.color = "#ef4444"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--ink-3)"; }}
-        >
-          <LogOut size={14} /> Sign out
-        </button>
-      </div>
-    </div>
-  );
 
   return (
     <div
       style={{ minHeight: "100vh", background: "var(--bg)", display: "flex" }}
     >
-      {/* ── Desktop sidebar ── */}
-      <aside
-        style={{
-          width: 240,
-          flexShrink: 0,
-          background: "var(--surface)",
-          borderRight: "1px solid var(--border)",
-          position: "fixed",
-          top: 0,
-          left: 0,
-          bottom: 0,
-          overflowY: "auto",
-          zIndex: 40,
-          display: "none",
-        }}
-        className="dashboard-sidebar"
-      >
-        <style>{`.dashboard-sidebar { display: block !important; } @media (max-width: 900px) { .dashboard-sidebar { display: none !important; } .dashboard-main { margin-left: 0 !important; } }`}</style>
-        <SidebarContent />
-      </aside>
-
-      {/* ── Mobile sidebar overlay ── */}
-      {sidebarOpen && (
-        <div
-          style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex" }}
-        >
-          <div
-            onClick={() => setSidebarOpen(false)}
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "rgba(0,0,0,0.6)",
-              backdropFilter: "blur(4px)",
-            }}
-          />
-          <div
-            style={{
-              position: "relative",
-              width: 260,
-              background: "var(--surface)",
-              borderRight: "1px solid var(--border)",
-              height: "100%",
-              zIndex: 1,
-              animation: "slideDown 0.25s ease both",
-              overflowY: "auto",
-            }}
-          >
-            <button
-              onClick={() => setSidebarOpen(false)}
-              style={{
-                position: "absolute",
-                top: 16,
-                right: 16,
-                color: "var(--ink-3)",
-                zIndex: 2,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              <X size={20} />
-            </button>
-            <SidebarContent />
-          </div>
-        </div>
-      )}
+      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
       {/* ── Main content ── */}
       <main
@@ -761,7 +446,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Right: recent + upgrade */}
+            {/* Right: usage + upgrade */}
             <div
               style={{
                 display: "flex",
@@ -818,165 +503,152 @@ export default function Dashboard() {
                 </p>
               </div>
 
-              {/* Recent activity */}
-              <div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: 12,
-                  }}
-                >
-                  <h2
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 700,
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    Recent activity
-                  </h2>
-                  <span style={{ fontSize: 12, color: "var(--ink-4)" }}>
-                    Last 7 days
-                  </span>
-                </div>
+              {/* Subscription status for paid users */}
+              {isOnPaidPlan && subscription && (
                 <div
                   style={{
                     background: "var(--surface)",
                     border: "1px solid var(--border)",
                     borderRadius: 16,
-                    overflow: "hidden",
+                    padding: "16px 20px",
+                    marginBottom: 16,
                   }}
                 >
-                  {RECENT.map((r, i) => (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: 8,
+                    }}
+                  >
                     <div
-                      key={i}
-                      style={{
-                        padding: "12px 16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        borderBottom:
-                          i < RECENT.length - 1
-                            ? "1px solid var(--border)"
-                            : "none",
-                        cursor: "pointer",
-                        transition: "background .15s",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = "var(--surface2)")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = "transparent")
-                      }
+                      style={{ display: "flex", alignItems: "center", gap: 8 }}
                     >
                       <div
                         style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 9,
-                          background: "var(--surface2)",
-                          flexShrink: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
+                          width: 7,
+                          height: 7,
+                          borderRadius: "50%",
+                          background: subCancelAt ? "#f59e0b" : "var(--green)",
+                          animation: subCancelAt
+                            ? "none"
+                            : "glow-pulse 2s ease infinite",
+                        }}
+                      />
+                      <p
+                        style={{
+                          fontSize: 13.5,
+                          fontWeight: 700,
+                          color: "var(--ink)",
                         }}
                       >
-                        <MessageSquare size={13} color="var(--ink-3)" />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p
-                          style={{
-                            fontSize: 12.5,
-                            color: "var(--ink)",
-                            fontWeight: 500,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            marginBottom: 3,
-                          }}
-                        >
-                          {r.q}
-                        </p>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: 11,
-                              color: "var(--teal)",
-                              fontWeight: 600,
-                            }}
-                          >
-                            {r.tone}
-                          </span>
-                          <span style={{ fontSize: 11, color: "var(--ink-4)" }}>
-                            ·
-                          </span>
-                          <span style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                            {r.tool}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              color: "var(--ink-4)",
-                              marginLeft: "auto",
-                            }}
-                          >
-                            {r.time}
-                          </span>
-                        </div>
-                      </div>
-                      <ChevronRight
-                        size={13}
-                        color="var(--ink-4)"
-                        flexShrink={0}
-                      />
+                        {displayPlan} plan
+                      </p>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Subscription status for paid users */}
-              {isOnPaidPlan && subscription && (
-                <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "16px 20px", marginBottom: 16 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 7, height: 7, borderRadius: "50%", background: subCancelAt ? "#f59e0b" : "var(--green)", animation: subCancelAt ? "none" : "glow-pulse 2s ease infinite" }} />
-                      <p style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>{displayPlan} plan</p>
-                    </div>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 20, background: subCancelAt ? "rgba(245,158,11,0.1)" : "rgba(34,197,94,0.1)", color: subCancelAt ? "#f59e0b" : "var(--green)", border: `1px solid ${subCancelAt ? "rgba(245,158,11,0.25)" : "rgba(34,197,94,0.25)"}` }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: "2px 9px",
+                        borderRadius: 20,
+                        background: subCancelAt
+                          ? "rgba(245,158,11,0.1)"
+                          : "rgba(34,197,94,0.1)",
+                        color: subCancelAt ? "#f59e0b" : "var(--green)",
+                        border: `1px solid ${subCancelAt ? "rgba(245,158,11,0.25)" : "rgba(34,197,94,0.25)"}`,
+                      }}
+                    >
                       {subCancelAt ? "Cancels soon" : "Active"}
                     </span>
                   </div>
                   {subRenewsAt && !subCancelAt && (
-                    <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 10 }}>
-                      Renews {new Date(subRenewsAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                    <p
+                      style={{
+                        fontSize: 12,
+                        color: "var(--ink-3)",
+                        marginBottom: 10,
+                      }}
+                    >
+                      Renews{" "}
+                      {new Date(subRenewsAt).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
                     </p>
                   )}
                   {subCancelAt && (
-                    <p style={{ fontSize: 12, color: "#f59e0b", marginBottom: 10 }}>
-                      Access until {new Date(subCancelAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                    <p
+                      style={{
+                        fontSize: 12,
+                        color: "#f59e0b",
+                        marginBottom: 10,
+                      }}
+                    >
+                      Access until{" "}
+                      {new Date(subCancelAt).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
                     </p>
                   )}
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={() => portalMutation.mutateAsync().catch(() => {})} disabled={portalMutation.isPending}
-                      style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid var(--border2)", background: "transparent", color: "var(--ink-2)", fontFamily: "inherit", fontWeight: 600, fontSize: 12.5, cursor: "pointer", transition: "all .15s" }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--green)"; e.currentTarget.style.color = "var(--green)"; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border2)"; e.currentTarget.style.color = "var(--ink-2)"; }}>
+                    <button
+                      onClick={() =>
+                        portalMutation.mutateAsync().catch(() => {})
+                      }
+                      disabled={portalMutation.isPending}
+                      style={{
+                        flex: 1,
+                        padding: "8px 12px",
+                        borderRadius: 9,
+                        border: "1px solid var(--border2)",
+                        background: "transparent",
+                        color: "var(--ink-2)",
+                        fontFamily: "inherit",
+                        fontWeight: 600,
+                        fontSize: 12.5,
+                        cursor: "pointer",
+                        transition: "all .15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "var(--green)";
+                        e.currentTarget.style.color = "var(--green)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "var(--border2)";
+                        e.currentTarget.style.color = "var(--ink-2)";
+                      }}
+                    >
                       {portalMutation.isPending ? "Opening…" : "Manage billing"}
                     </button>
                     {!subCancelAt && (
-                      <button onClick={() => setShowCancelConfirm(true)}
-                        style={{ padding: "8px 12px", borderRadius: 9, border: "1px solid var(--border2)", background: "transparent", color: "var(--ink-3)", fontFamily: "inherit", fontWeight: 500, fontSize: 12.5, cursor: "pointer", transition: "all .15s" }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(239,68,68,0.3)"; e.currentTarget.style.color = "#ef4444"; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border2)"; e.currentTarget.style.color = "var(--ink-3)"; }}>
+                      <button
+                        onClick={() => setShowCancelConfirm(true)}
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: 9,
+                          border: "1px solid var(--border2)",
+                          background: "transparent",
+                          color: "var(--ink-3)",
+                          fontFamily: "inherit",
+                          fontWeight: 500,
+                          fontSize: 12.5,
+                          cursor: "pointer",
+                          transition: "all .15s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor =
+                            "rgba(239,68,68,0.3)";
+                          e.currentTarget.style.color = "#ef4444";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = "var(--border2)";
+                          e.currentTarget.style.color = "var(--ink-3)";
+                        }}
+                      >
                         Cancel plan
                       </button>
                     )}
@@ -986,15 +658,103 @@ export default function Dashboard() {
 
               {/* Cancel confirmation modal */}
               {showCancelConfirm && (
-                <div style={{ position: "fixed", inset: 0, zIndex: 600, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-                  <div style={{ background: "var(--surface)", border: "1px solid var(--border2)", borderRadius: 20, padding: 28, maxWidth: 400, width: "100%", animation: "fadeUp 0.25s cubic-bezier(0.16,1,0.3,1) both" }}>
-                    <h3 style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 10 }}>Cancel subscription?</h3>
-                    <p style={{ fontSize: 14, color: "var(--ink-3)", lineHeight: 1.65, marginBottom: 24 }}>Your access continues until the end of your billing period. You can resubscribe anytime.</p>
+                <div
+                  style={{
+                    position: "fixed",
+                    inset: 0,
+                    zIndex: 600,
+                    background: "rgba(0,0,0,0.7)",
+                    backdropFilter: "blur(8px)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 20,
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border2)",
+                      borderRadius: 20,
+                      padding: 28,
+                      maxWidth: 400,
+                      width: "100%",
+                      animation: "fadeUp 0.25s cubic-bezier(0.16,1,0.3,1) both",
+                    }}
+                  >
+                    <h3
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 800,
+                        letterSpacing: "-0.03em",
+                        marginBottom: 10,
+                      }}
+                    >
+                      Cancel subscription?
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: 14,
+                        color: "var(--ink-3)",
+                        lineHeight: 1.65,
+                        marginBottom: 24,
+                      }}
+                    >
+                      Your access continues until the end of your billing
+                      period. You can resubscribe anytime.
+                    </p>
                     <div style={{ display: "flex", gap: 10 }}>
-                      <button onClick={() => setShowCancelConfirm(false)} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "1px solid var(--border2)", background: "transparent", color: "var(--ink-2)", fontFamily: "inherit", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Keep plan</button>
-                      <button onClick={async () => { try { await cancelMutation.mutateAsync({}); setShowCancelConfirm(false); toast.success("Cancelled. Access continues until end of period."); } catch (err) { toast.error(err?.message || "Could not cancel. Try billing portal instead."); setShowCancelConfirm(false); } }} disabled={cancelMutation.isPending}
-                        style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "rgba(239,68,68,0.9)", color: "#fff", fontFamily: "inherit", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: cancelMutation.isPending ? 0.7 : 1 }}>
-                        {cancelMutation.isPending ? "Cancelling…" : "Yes, cancel"}
+                      <button
+                        onClick={() => setShowCancelConfirm(false)}
+                        style={{
+                          flex: 1,
+                          padding: "11px",
+                          borderRadius: 10,
+                          border: "1px solid var(--border2)",
+                          background: "transparent",
+                          color: "var(--ink-2)",
+                          fontFamily: "inherit",
+                          fontWeight: 600,
+                          fontSize: 14,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Keep plan
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await cancelMutation.mutateAsync({});
+                            setShowCancelConfirm(false);
+                            toast.success(
+                              "Cancelled. Access continues until end of period.",
+                            );
+                          } catch (err) {
+                            toast.error(
+                              err?.message ||
+                                "Could not cancel. Try billing portal instead.",
+                            );
+                            setShowCancelConfirm(false);
+                          }
+                        }}
+                        disabled={cancelMutation.isPending}
+                        style={{
+                          flex: 1,
+                          padding: "11px",
+                          borderRadius: 10,
+                          border: "none",
+                          background: "rgba(239,68,68,0.9)",
+                          color: "#fff",
+                          fontFamily: "inherit",
+                          fontWeight: 700,
+                          fontSize: 14,
+                          cursor: "pointer",
+                          opacity: cancelMutation.isPending ? 0.7 : 1,
+                        }}
+                      >
+                        {cancelMutation.isPending
+                          ? "Cancelling…"
+                          : "Yes, cancel"}
                       </button>
                     </div>
                   </div>
@@ -1041,7 +801,11 @@ export default function Dashboard() {
                   Unlimited replies, all tools, reply history, and share cards.
                 </p>
                 <button
-                  onClick={() => isOnPaidPlan ? portalMutation.mutateAsync().catch(() => {}) : navigate("/pricing")}
+                  onClick={() =>
+                    isOnPaidPlan
+                      ? portalMutation.mutateAsync().catch(() => {})
+                      : navigate("/pricing")
+                  }
                   className="btn-green"
                   style={{
                     padding: "9px 20px",

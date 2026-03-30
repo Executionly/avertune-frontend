@@ -1,14 +1,21 @@
-import { Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom'
-import { useAuth } from './AuthContext.jsx'
-import { TOOL_CONFIGS } from './toolConfigs.js'
-import Nav from './components/Nav.jsx'
-import HeroDemo from './components/HeroDemo.jsx'
-import HowItWorks from './components/HowItWorks.jsx'
-import UseCases from './components/UseCases.jsx'
-import Tools from './components/Tools.jsx'
-import Testimonials from './components/Testimonials.jsx'
-import FAQ from './components/FAQ.jsx'
-import { CTA, Footer } from './components/CtaFooter.jsx'
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useParams,
+  useLocation,
+} from "react-router-dom";
+import { useAuth } from "./AuthContext.jsx";
+import { TOOL_CONFIGS } from "./toolConfigs.js";
+import Nav from "./components/Nav.jsx";
+import HeroDemo from "./components/HeroDemo.jsx";
+import HowItWorks from "./components/HowItWorks.jsx";
+import UseCases from "./components/UseCases.jsx";
+import Tools from "./components/Tools.jsx";
+import Testimonials from "./components/Testimonials.jsx";
+import FAQ from "./components/FAQ.jsx";
+import { CTA, Footer } from "./components/CtaFooter.jsx";
 import {
   LoginPage,
   SignupPage,
@@ -18,90 +25,106 @@ import {
   ResetPasswordPage,
   LinkAlreadyUsedPage,
   AccountConfirmedPage,
-} from './components/AuthPages.jsx'
-import Dashboard from './components/Dashboard.jsx'
-import ToolPage from './components/ToolPage.jsx'
-import PricingPage from './components/PricingPage.jsx'
-import { useState } from 'react'
+} from "./components/AuthPages.jsx";
+import Dashboard from "./components/Dashboard.jsx";
+import ToolPage from "./components/ToolPage.jsx";
+import PricingPage from "./components/PricingPage.jsx";
+import { useState, useEffect } from "react";
+import { useToast } from "./lib/Toast.jsx";
 
 // ── Protected route ───────────────────────────────────────────────────────────
 function Protected({ children }) {
-  const { user, authLoading } = useAuth()
-  const location = useLocation()
-  if (authLoading) return null
-  if (!user) return <Navigate to="/login" state={{ from: location }} replace />
-  return children
+  const { user, authLoading } = useAuth();
+  const location = useLocation();
+  if (authLoading) return null;
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
+  return children;
 }
 
 // ── Tool page wrapper ─────────────────────────────────────────────────────────
 function ToolPageWrapper() {
-  const navigate = useNavigate()
-  const { slug } = useParams()
-  const tool = TOOL_CONFIGS[slug]
-  if (!tool) return <Navigate to="/dashboard" replace />
+  const navigate = useNavigate();
+  const { slug } = useParams();
+  const tool = TOOL_CONFIGS[slug];
+  if (!tool) return <Navigate to="/dashboard" replace />;
   return (
     <ToolPage
       tool={tool}
-      onBack={() => navigate('/dashboard')}
-      onLogin={() => navigate('/login')}
-      onTool={s => { window.scrollTo(0, 0); navigate(`/tool/${s}`) }}
+      onBack={() => navigate("/dashboard")}
+      onLogin={() => navigate("/login")}
+      onTool={(s) => {
+        window.scrollTo(0, 0);
+        navigate(`/tool/${s}`);
+      }}
     />
-  )
+  );
 }
 
 // ── Landing ───────────────────────────────────────────────────────────────────
 function Landing() {
-  const navigate = useNavigate()
-  const { user } = useAuth()
+  const navigate = useNavigate();
+  const { user } = useAuth();
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ minHeight: "100vh" }}>
       <Nav />
-      <HeroDemo onSignup={() => navigate('/signup')} />
+      <HeroDemo onSignup={() => navigate("/signup")} />
       <div className="hr" />
       <HowItWorks />
       <div className="hr" />
       <UseCases />
       <div className="hr" />
       <Tools
-        onTool={slug => { window.scrollTo(0, 0); navigate(user ? `/tool/${slug}` : '/login') }}
-        onSignup={() => navigate('/signup')}
+        onTool={(slug) => {
+          window.scrollTo(0, 0);
+          navigate(user ? `/tool/${slug}` : "/login");
+        }}
+        onSignup={() => navigate("/signup")}
       />
       <div className="hr" />
       <Testimonials />
       <div className="hr" />
       <FAQ />
       <div className="hr" />
-      <CTA onSignup={() => navigate('/signup')} />
-      <Footer onPricing={() => { window.scrollTo(0, 0); navigate('/pricing') }} />
+      <CTA onSignup={() => navigate("/signup")} />
+      <Footer
+        onPricing={() => {
+          window.scrollTo(0, 0);
+          navigate("/pricing");
+        }}
+      />
     </div>
-  )
+  );
 }
 
 // ── Email sent state — lives here since it's transient between pages ──────────
-let _emailSentMeta = { email: '', kind: 'confirmation', message: null }
+let _emailSentMeta = { email: "", kind: "confirmation", message: null };
 
 function SignupWrapper() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   return (
     <SignupPage
       onSuccess={({ email, message } = {}) => {
-        _emailSentMeta = { email, kind: 'confirmation', message: message || null }
-        navigate('/email-sent')
+        _emailSentMeta = {
+          email,
+          kind: "confirmation",
+          message: message || null,
+        };
+        navigate("/email-sent");
       }}
     />
-  )
+  );
 }
 
 function ForgotWrapper() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   return (
     <ForgotPasswordPage
       onSuccess={({ email, message } = {}) => {
-        _emailSentMeta = { email, kind: 'reset', message: message || null }
-        navigate('/email-sent')
+        _emailSentMeta = { email, kind: "reset", message: message || null };
+        navigate("/email-sent");
       }}
     />
-  )
+  );
 }
 
 function EmailSentWrapper() {
@@ -111,11 +134,25 @@ function EmailSentWrapper() {
       kind={_emailSentMeta.kind}
       backendMessage={_emailSentMeta.message}
     />
-  )
+  );
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
+  const toast = useToast();
+
+  // Handle checkout return
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") === "success") {
+      toast.success("Payment successful! Your plan is now active.");
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (params.get("checkout") === "canceled") {
+      toast.warning("Payment canceled. You can try again.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
   return (
     <Routes>
       {/* Public */}
@@ -134,11 +171,25 @@ export default function App() {
       <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
 
       {/* Protected */}
-      <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
-      <Route path="/tool/:slug" element={<Protected><ToolPageWrapper /></Protected>} />
+      <Route
+        path="/dashboard"
+        element={
+          <Protected>
+            <Dashboard />
+          </Protected>
+        }
+      />
+      <Route
+        path="/tool/:slug"
+        element={
+          <Protected>
+            <ToolPageWrapper />
+          </Protected>
+        }
+      />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
+  );
 }
