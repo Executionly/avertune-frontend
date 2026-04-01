@@ -332,6 +332,7 @@ function DemoCard({ demo, phase, onTypingDone }) {
           "0 28px 80px rgba(0,0,0,0.32), 0 0 0 1px rgba(255,255,255,0.04)",
         pointerEvents: "none",
         userSelect: "none",
+        width: "100%",
       }}
     >
       {/* Title bar */}
@@ -1253,11 +1254,12 @@ export default function HeroDemo({ onSignup }) {
             style={{
               display: "grid",
               gridTemplateColumns:
-                "repeat(auto-fit,minmax(min(100%,360px),1fr))",
+                "repeat(auto-fit, minmax(min(100%,360px), 1fr))",
               gap: "clamp(40px,6vw,80px)",
-              alignItems: "center",
+              alignItems: "flex-start",
             }}
           >
+            {/* left column */}
             <div>
               <div
                 className="anim-up d1"
@@ -1289,7 +1291,7 @@ export default function HeroDemo({ onSignup }) {
                     color: "var(--green)",
                   }}
                 >
-                  AI Communication Intelligence
+                  Communication Intelligence Strategist
                 </span>
               </div>
               <h1
@@ -1404,27 +1406,49 @@ export default function HeroDemo({ onSignup }) {
               </div>
             </div>
 
-            <div className="anim-up d3" style={{ position: "relative" }}>
+            {/* right column – DemoCard container with fixed min-height */}
+            <div
+              style={{
+                position: "relative",
+                minWidth: 0,
+                width: "100%",
+                height: 670, // fixed height – left column never moves
+                background:
+                  "linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)",
+                borderRadius: 28,
+                boxShadow:
+                  "inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 32px rgba(0,0,0,0.1)",
+                padding: 24,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {/* Card container – vertically centered */}
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: 480,
+                  margin: "0 auto",
+                }}
+              >
+                <DemoCard
+                  demo={demo}
+                  phase={phase}
+                  onTypingDone={onTypingDone}
+                />
+              </div>
+
+              {/* Dots always at the same fixed distance from the bottom */}
               <div
                 style={{
                   position: "absolute",
-                  top: "15%",
-                  left: "5%",
-                  right: "5%",
-                  bottom: "5%",
-                  background:
-                    "radial-gradient(ellipse,rgba(34,197,94,0.08) 0%,transparent 70%)",
-                  filter: "blur(32px)",
-                  pointerEvents: "none",
-                }}
-              />
-              <DemoCard demo={demo} phase={phase} onTypingDone={onTypingDone} />
-              <div
-                style={{
+                  bottom: 28, // consistent gap from container bottom
+                  left: 0,
+                  right: 0,
                   display: "flex",
                   justifyContent: "center",
                   gap: 6,
-                  marginTop: 14,
                 }}
               >
                 {DEMOS.map((_, i) => (
