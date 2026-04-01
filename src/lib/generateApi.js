@@ -1,47 +1,6 @@
 import { api } from "./apiClient";
 
-// ── Helper functions ─────────────────────────────────────────────────────
-
-function parseChips(val) {
-  if (!val) return [];
-  return val
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .slice(0, 2);
-}
-
-function normalizeMedium(val) {
-  const map = {
-    Email: "email",
-    "SMS / Text": "sms",
-    WhatsApp: "whatsapp",
-    LinkedIn: "linkedin",
-    Slack: "slack",
-    "In person": "in_person",
-  };
-  return map[val] || val.toLowerCase();
-}
-
-function capitalize(str) {
-  if (!str) return "";
-  return str
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
-}
-
-// Map UI values to backend enums
-function mapLength(val) {
-  const map = {
-    "Very short (1-2 sentences)": "very_short",
-    "Short (3-4 sentences)": "short",
-    "Medium (1 paragraph)": "medium",
-    "Long (detailed)": "long",
-  };
-  return map[val] || "short";
-}
-
+// ── Field mappers (convert frontend values to backend enums) ─────────────────
 function mapRelationship(val) {
   const map = {
     Colleague: "colleague",
@@ -52,7 +11,7 @@ function mapRelationship(val) {
     Friend: "friend",
     Stranger: "stranger",
   };
-  return map[val] || "colleague";
+  return map[val] || val?.toLowerCase() || "colleague";
 }
 
 function mapTension(val) {
@@ -66,113 +25,46 @@ function mapTension(val) {
   return map[val] || "no_history";
 }
 
-function mapSaidBefore(val) {
+function mapLength(val) {
   const map = {
-    first_time: "first_time",
-    said_once: "said_once",
-    said_multiple_times: "said_multiple_times",
+    "Very short (1-2 sentences)": "very_short",
+    "Short (3-4 sentences)": "short",
+    "Medium (1 paragraph)": "medium",
+    "Long (detailed)": "long",
   };
-  return map[val] || val;
+  return map[val] || "short";
 }
 
-function mapStakes(val) {
+function normalizeMedium(val) {
   const map = {
-    high: "high",
-    medium: "medium",
-    low: "low",
+    Email: "email",
+    "SMS / Text": "sms",
+    WhatsApp: "whatsapp",
+    LinkedIn: "linkedin",
+    Slack: "slack",
+    "In person": "in_person",
   };
-  return map[val] || "medium";
+  return map[val] || val?.toLowerCase() || "email";
 }
 
-function mapLeverage(val) {
-  const map = {
-    strong: "strong",
-    moderate: "moderate",
-    weak: "weak",
-    unknown: "unknown",
-  };
-  return map[val] || "moderate";
+function parseChips(val) {
+  if (!val) return [];
+  return val
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 2);
 }
 
-function mapStyle(val) {
-  const map = {
-    collaborative: "collaborative",
-    competitive: "competitive",
-    principled: "principled",
-    relationship_first: "relationship_first",
-  };
-  return map[val] || "collaborative";
+function capitalize(str) {
+  if (!str) return "";
+  return str
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 }
 
-function mapFollowUpType(val) {
-  const map = {
-    job_application: "job_application",
-    sales_proposal: "sales_proposal",
-    invoice_payment: "invoice_payment",
-    meeting_request: "meeting_request",
-    project_update: "project_update",
-    personal: "personal",
-    other: "other",
-  };
-  return map[val] || "other";
-}
-
-function mapFollowUpNumber(val) {
-  const map = {
-    first_follow_up: "first_follow_up",
-    second_follow_up: "second_follow_up",
-    third_follow_up: "third_follow_up",
-    post_meeting: "post_meeting",
-  };
-  return map[val] || "first_follow_up";
-}
-
-function mapTone(val) {
-  const map = {
-    professional: "professional",
-    friendly: "friendly",
-    urgent: "urgent",
-    brief: "brief",
-  };
-  return map[val] || "professional";
-}
-
-function mapSituation(val) {
-  const map = {
-    giving_bad_news: "giving_bad_news",
-    declining_request: "declining_request",
-    addressing_conflict: "addressing_conflict",
-    delivering_feedback: "delivering_feedback",
-    apologizing: "apologizing",
-    setting_expectations: "setting_expectations",
-    other: "other",
-  };
-  return map[val] || "other";
-}
-
-function mapSensitivity(val) {
-  const map = {
-    high: "high",
-    medium: "medium",
-    low: "low",
-  };
-  return map[val] || "medium";
-}
-
-function mapChannel(val) {
-  const map = {
-    email: "email",
-    slack: "slack",
-    whatsapp: "whatsapp",
-    sms: "sms",
-    linkedin: "linkedin",
-    in_person: "in_person",
-  };
-  return map[val] || "email";
-}
-
-// ── Request builders ─────────────────────────────────────────────────────
-
+// ── Request builders ────────────────────────────────────────────────────────
 function buildRepliesRequest(fields) {
   const ps = fields.pack_scenario || {};
   const chips = parseChips(fields.context);
@@ -186,7 +78,7 @@ function buildRepliesRequest(fields) {
     tone: (fields.tone_pref || "Professional").toLowerCase(),
     goal: fields.goal || "",
     audience: fields.audience || "",
-    context_chips: chips.slice(0, 2),
+    context_chips: chips,
     pack: ps.packId || "",
   };
 }
@@ -204,9 +96,9 @@ function buildBoundaryRequest(fields) {
   return {
     what_is_happening: fields.what_is_happening || "",
     what_boundary_needed: fields.what_boundary_needed || "",
-    relationship: fields.relationship || "",
+    relationship: mapRelationship(fields.relationship),
     relationship_stakes: fields.relationship_stakes || "medium",
-    said_before: mapSaidBefore(fields.said_before) || "first_time",
+    said_before: fields.said_before || "first_time",
     medium: normalizeMedium(fields.medium || "Email"),
   };
 }
@@ -216,8 +108,8 @@ function buildNegotiationRequest(fields) {
     their_message: fields.their_message || "",
     your_position: fields.your_position || "",
     negotiation_context: fields.negotiation_context || "",
-    leverage: mapLeverage(fields.leverage),
-    style: mapStyle(fields.style),
+    leverage: fields.leverage || "moderate",
+    style: fields.style || "collaborative",
     context: "",
     medium: normalizeMedium(fields.medium || "Email"),
   };
@@ -227,9 +119,9 @@ function buildFollowupRequest(fields) {
   return {
     context: fields.context || "",
     last_contact: fields.last_contact || "",
-    follow_up_type: mapFollowUpType(fields.follow_up_type),
-    follow_up_number: mapFollowUpNumber(fields.follow_up_number),
-    preferred_tone: mapTone(fields.preferred_tone),
+    follow_up_type: fields.follow_up_type || "",
+    follow_up_number: fields.follow_up_number || "",
+    preferred_tone: fields.preferred_tone || "",
     medium: normalizeMedium(fields.medium || "Email"),
     extra_detail: "",
   };
@@ -239,9 +131,9 @@ function buildDifficultEmailRequest(fields) {
   return {
     what_to_communicate: fields.what_to_communicate || "",
     draft: fields.draft || "",
-    situation: mapSituation(fields.situation),
-    relationship: fields.relationship || "",
-    sensitivity: mapSensitivity(fields.sensitivity),
+    situation: fields.situation || "",
+    relationship: mapRelationship(fields.relationship),
+    sensitivity: fields.sensitivity || "medium",
     context: "",
   };
 }
@@ -249,18 +141,16 @@ function buildDifficultEmailRequest(fields) {
 function buildIntentRequest(fields) {
   return {
     message: fields.message || "",
-    relationship: fields.relationship || "",
-    channel: mapChannel(fields.channel),
+    relationship: mapRelationship(fields.relationship),
+    channel: (fields.channel || "email").toLowerCase(),
     background: fields.background || "",
   };
 }
 
-// ── Response normalizers ─────────────────────────────────────────────────
-
+// ── Response normalizers (convert backend shape to frontend expected shape) ─
 function normalizeRepliesResponse(data) {
   const briefing = data.decision_briefing || {};
   const receipt = data.tone_receipt || {};
-
   const repliesMap = {};
   const replyInsights = {};
   const replyDescriptors = {};
@@ -279,10 +169,9 @@ function normalizeRepliesResponse(data) {
   }
 
   const toneScores = [];
-  if (receipt.respect != null) toneScores.push(`Respect ${receipt.respect}%`);
-  if (receipt.warmth != null) toneScores.push(`Warmth ${receipt.warmth}%`);
-  if (receipt.confidence != null)
-    toneScores.push(`Confidence ${receipt.confidence}%`);
+  if (receipt.respect) toneScores.push(`Respect ${receipt.respect}%`);
+  if (receipt.warmth) toneScores.push(`Warmth ${receipt.warmth}%`);
+  if (receipt.confidence) toneScores.push(`Confidence ${receipt.confidence}%`);
 
   return {
     tone: toneScores[0] || "",
@@ -290,6 +179,7 @@ function normalizeRepliesResponse(data) {
     intent: briefing.what_is_happening || "",
     strategy: briefing.recommended_strategy || "",
     tip: receipt.risk_note || "",
+    risk_detail: "",
     replies: repliesMap,
     _replyInsights: replyInsights,
     _replyDescriptors: replyDescriptors,
@@ -301,29 +191,31 @@ function normalizeRepliesResponse(data) {
 }
 
 function normalizeToneResponse(data) {
+  // Backend returns { tone, emotional_temperature, intent, power_dynamic, risk_level, subtext, what_is_really_being_said, emotional_charge, awareness_points, recommended_action, respond_with_caution }
   return {
-    primary_tone: data.primary_tone || "",
-    secondary_tone: data.secondary_tone || "",
+    primary_tone: data.tone || "",
+    secondary_tone: data.emotional_temperature || "",
     intent: data.intent || "",
     subtext: data.subtext || "",
     risk_level: data.risk_level || "",
-    risk_reason: data.risk_reason || "",
-    emotional_signals: data.emotional_signals || [],
-    what_not_to_do: data.what_not_to_do || "",
-    recommended_approach: data.recommended_approach || "",
-    urgency: data.urgency || "",
-    urgency_reason: data.urgency_reason || "",
+    risk_reason: data.power_dynamic || "",
+    emotional_signals: data.awareness_points || [],
+    what_not_to_do: "", // Not provided
+    recommended_approach: data.recommended_action || "",
+    urgency: data.emotional_charge || "",
+    urgency_reason: "",
     _remaining: data.remaining,
     _raw: data,
   };
 }
 
 function normalizeBoundaryResponse(data) {
+  // Expected: data.replies = [{ variant, label, text, insight }]
   const repliesMap = {};
   const replyInsights = {};
   if (Array.isArray(data.replies)) {
     data.replies.forEach((r) => {
-      const key = capitalize(r.variant || r.label || "");
+      const key = capitalize(r.variant);
       repliesMap[key] = r.text || "";
       replyInsights[key] = r.insight || "";
     });
@@ -346,7 +238,7 @@ function normalizeNegotiationResponse(data) {
   const replyInsights = {};
   if (Array.isArray(data.replies)) {
     data.replies.forEach((r) => {
-      const key = capitalize(r.variant || r.label || "");
+      const key = capitalize(r.variant);
       repliesMap[key] = r.text || "";
       replyInsights[key] = r.insight || "";
     });
@@ -365,67 +257,75 @@ function normalizeNegotiationResponse(data) {
 }
 
 function normalizeFollowupResponse(data) {
+  // Backend returns data.messages.standard and data.messages.shorter
   const repliesMap = {};
-  if (Array.isArray(data.replies)) {
-    data.replies.forEach((r) => {
-      const key = capitalize(r.variant || r.label || "");
-      repliesMap[key] = r.text || "";
-    });
-  } else if (data.replies && typeof data.replies === "object") {
-    Object.assign(repliesMap, data.replies);
+  const replyInsights = {};
+  if (data.messages) {
+    if (data.messages.standard) {
+      repliesMap["Standard"] = data.messages.standard.text || "";
+      replyInsights["Standard"] = data.messages.standard.insight || "";
+    }
+    if (data.messages.shorter) {
+      repliesMap["Shorter"] = data.messages.shorter.text || "";
+      replyInsights["Shorter"] = data.messages.shorter.insight || "";
+    }
   }
   return {
     replies: repliesMap,
-    _replyInsights: {},
+    _replyInsights: replyInsights,
     _replyDescriptors: {},
     _recommendedVariant: null,
-    tip: data.timing_note || data.tip || "",
+    tip: data.timing_note || data.response_tip || data.what_to_avoid || "",
     _remaining: data.remaining,
     _raw: data,
   };
 }
 
 function normalizeDifficultEmailResponse(data) {
+  // Backend returns data.emails.safe and data.emails.direct
   const repliesMap = {};
-  if (Array.isArray(data.replies)) {
-    data.replies.forEach((r) => {
-      const key = capitalize(r.variant || r.label || "");
-      repliesMap[key] = r.text || "";
-    });
-  } else if (data.replies && typeof data.replies === "object") {
-    Object.assign(repliesMap, data.replies);
+  const replyInsights = {};
+  if (data.emails) {
+    if (data.emails.safe) {
+      repliesMap["Safe"] = data.emails.safe.body || "";
+      replyInsights["Safe"] = data.emails.safe.insight || "";
+    }
+    if (data.emails.direct) {
+      repliesMap["Direct"] = data.emails.direct.body || "";
+      replyInsights["Direct"] = data.emails.direct.insight || "";
+    }
   }
   return {
     replies: repliesMap,
-    _replyInsights: {},
+    _replyInsights: replyInsights,
     _replyDescriptors: {},
     _recommendedVariant: null,
-    tip: data.safety_note || data.tip || "",
+    tip: data.safety_note || data.what_to_avoid || "",
     _remaining: data.remaining,
     _raw: data,
   };
 }
 
 function normalizeIntentResponse(data) {
+  // Backend returns similar to tone checker but with different keys
   return {
-    primary_tone: data.surface_meaning || data.primary_tone || "",
-    secondary_tone: data.real_intent || data.secondary_tone || "",
-    intent: data.real_intent || data.intent || "",
-    subtext: data.decoded_subtext || data.subtext || "",
-    risk_level: data.warning_level || data.risk_level || "",
-    risk_reason: data.risk_reason || "",
-    emotional_signals: data.warning_signals || data.emotional_signals || [],
-    what_not_to_do: data.what_not_to_do || "",
-    recommended_approach: data.recommended_approach || "",
-    urgency: data.emotional_state || data.urgency || "",
-    urgency_reason: data.urgency_reason || "",
+    primary_tone: data.tone || "",
+    secondary_tone: data.emotional_temperature || "",
+    intent: data.intent || "",
+    subtext: data.subtext || "",
+    risk_level: data.risk_level || "",
+    risk_reason: data.power_dynamic || "",
+    emotional_signals: data.awareness_points || [],
+    what_not_to_do: "",
+    recommended_approach: data.recommended_action || "",
+    urgency: data.emotional_charge || "",
+    urgency_reason: "",
     _remaining: data.remaining,
     _raw: data,
   };
 }
 
-// ── API calls ─────────────────────────────────────────────────────────────
-
+// ── API calls ───────────────────────────────────────────────────────────────
 export const generateApi = {
   replies: async (fields) => {
     const { data } = await api.post(
@@ -434,10 +334,12 @@ export const generateApi = {
     );
     return normalizeRepliesResponse(data);
   },
+
   tone: async (fields) => {
     const { data } = await api.post("/generate/tone", buildToneRequest(fields));
     return normalizeToneResponse(data);
   },
+
   boundary: async (fields) => {
     const { data } = await api.post(
       "/generate/boundary",
@@ -445,6 +347,7 @@ export const generateApi = {
     );
     return normalizeBoundaryResponse(data);
   },
+
   negotiation: async (fields) => {
     const { data } = await api.post(
       "/generate/negotiation",
@@ -452,6 +355,7 @@ export const generateApi = {
     );
     return normalizeNegotiationResponse(data);
   },
+
   followup: async (fields) => {
     const { data } = await api.post(
       "/generate/followup",
@@ -459,6 +363,7 @@ export const generateApi = {
     );
     return normalizeFollowupResponse(data);
   },
+
   difficultEmail: async (fields) => {
     const { data } = await api.post(
       "/generate/difficult-email",
@@ -466,6 +371,7 @@ export const generateApi = {
     );
     return normalizeDifficultEmailResponse(data);
   },
+
   intent: async (fields) => {
     const { data } = await api.post(
       "/generate/intent",

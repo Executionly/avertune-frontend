@@ -2548,512 +2548,320 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                 animation: "fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both",
               }}
             >
-              {/* Tone-checker deep extras */}
-              {(tool.id === "tone-checker" ||
-                tool.id === "intent-detector") && (
+              {/* Tone Checker – only primary tone */}
+              {tool.id === "tone-checker" && (
                 <div
                   style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
+                    background: "var(--surface)",
+                    border: "1px solid var(--border2)",
+                    borderRadius: 16,
+                    padding: "clamp(20px,3vw,32px)",
+                    textAlign: "center",
                     marginBottom: 16,
                   }}
                 >
-                  {result.emotional_signals?.length > 0 && (
-                    <div
-                      style={{
-                        padding: "16px 20px",
-                        background: "var(--surface)",
-                        border: "1px solid var(--border)",
-                        borderRadius: 14,
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          color: "var(--ink-3)",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                          marginBottom: 10,
-                        }}
-                      >
-                        Emotional signals
-                      </p>
-                      <div
-                        style={{ display: "flex", flexWrap: "wrap", gap: 7 }}
-                      >
-                        {result.emotional_signals.map((s) => (
-                          <span
-                            key={s}
-                            style={{
-                              padding: "4px 12px",
-                              borderRadius: 20,
-                              background: "var(--surface2)",
-                              border: "1px solid var(--border2)",
-                              color: "var(--ink-2)",
-                              fontSize: 13,
-                              fontWeight: 500,
-                            }}
-                          >
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {result.what_not_to_do && (
-                    <div
-                      style={{
-                        padding: "14px 18px",
-                        background: "rgba(239,68,68,0.05)",
-                        border: "1px solid rgba(239,68,68,0.15)",
-                        borderRadius: 14,
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          color: "#ef4444",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                          marginBottom: 6,
-                        }}
-                      >
-                        ⚠ Don't do this
-                      </p>
-                      <p
-                        style={{
-                          fontSize: 14,
-                          color: "var(--ink)",
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        {result.what_not_to_do}
-                      </p>
-                    </div>
-                  )}
-                  {result.recommended_approach && (
-                    <div
-                      style={{
-                        padding: "14px 18px",
-                        background: "rgba(34,197,94,0.05)",
-                        border: "1px solid rgba(34,197,94,0.18)",
-                        borderRadius: 14,
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          color: "var(--green)",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                          marginBottom: 6,
-                        }}
-                      >
-                        {tool.id === "intent-detector"
-                          ? "How to respond"
-                          : "Recommended approach"}
-                      </p>
-                      <p
-                        style={{
-                          fontSize: 14,
-                          color: "var(--ink)",
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        {result.recommended_approach}
-                      </p>
+                  <p
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "var(--ink-3)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                      marginBottom: 12,
+                    }}
+                  >
+                    Detected tone
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "clamp(24px,4vw,32px)",
+                      fontWeight: 800,
+                      color: "var(--green)",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    {result.primary_tone || result.tone || "—"}
+                  </p>
+                </div>
+              )}
+
+              {/* Follow-Up and Difficult Email – only reply variants */}
+              {(tool.id === "follow-up-writer" ||
+                tool.id === "difficult-email") &&
+                result.replies && (
+                  <div style={{ marginBottom: 16 }}>
+                    <VariantPanel
+                      variants={tool.outputVariants}
+                      replies={result.replies}
+                      activeTab={activeTab}
+                      setActiveTab={(v) => setActiveTab(v)}
+                      onShare={() => setShowShare(true)}
+                      insights={result._replyInsights}
+                      descriptors={result._replyDescriptors}
+                      recommendedVariant={result._recommendedVariant}
+                    />
+                  </div>
+                )}
+
+              {/* All other tools – full output (variants + tips + analysis) */}
+              {![
+                "tone-checker",
+                "follow-up-writer",
+                "difficult-email",
+              ].includes(tool.id) && (
+                <>
+                  {tool.outputVariants && result.replies && (
+                    <div style={{ marginBottom: 16 }}>
+                      <VariantPanel
+                        variants={tool.outputVariants}
+                        replies={result.replies}
+                        activeTab={activeTab}
+                        setActiveTab={(v) => setActiveTab(v)}
+                        onShare={() => setShowShare(true)}
+                        insights={result._replyInsights}
+                        descriptors={result._replyDescriptors}
+                        recommendedVariant={result._recommendedVariant}
+                      />
                     </div>
                   )}
 
-                  {/* Intent detector: primary/secondary tone as analysis cards */}
-                  {tool.id === "intent-detector" && (
-                    <>
-                      {result.primary_tone && (
+                  {/* Extra tips – only for these tools */}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                    }}
+                  >
+                    {[result.tip, result.anchoring_tip, result.timing_tip]
+                      .filter(Boolean)
+                      .map((t, i) => (
                         <div
+                          key={i}
                           style={{
                             padding: "14px 18px",
-                            background: "var(--surface)",
-                            border: "1px solid var(--border)",
-                            borderRadius: 14,
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              color: "var(--ink-3)",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.08em",
-                              marginBottom: 6,
-                            }}
-                          >
-                            Surface meaning
-                          </p>
-                          <p
-                            style={{
-                              fontSize: 14,
-                              color: "var(--ink)",
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            {result.primary_tone}
-                          </p>
-                        </div>
-                      )}
-                      {result.secondary_tone && (
-                        <div
-                          style={{
-                            padding: "14px 18px",
-                            background: "rgba(167,139,250,0.05)",
-                            border: "1px solid rgba(167,139,250,0.18)",
-                            borderRadius: 14,
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              color: "#a78bfa",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.08em",
-                              marginBottom: 6,
-                            }}
-                          >
-                            Real intent
-                          </p>
-                          <p
-                            style={{
-                              fontSize: 14,
-                              color: "var(--ink)",
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            {result.secondary_tone}
-                          </p>
-                        </div>
-                      )}
-                      {result.subtext && (
-                        <div
-                          style={{
-                            padding: "14px 18px",
-                            background: "var(--surface2)",
-                            border: "1px solid var(--border2)",
-                            borderRadius: 14,
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              color: "var(--ink-3)",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.08em",
-                              marginBottom: 6,
-                            }}
-                          >
-                            Decoded subtext
-                          </p>
-                          <p
-                            style={{
-                              fontSize: 14,
-                              color: "var(--ink)",
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            {result.subtext}
-                          </p>
-                        </div>
-                      )}
-                      {result.urgency && (
-                        <div
-                          style={{
-                            padding: "10px 16px",
-                            background: "rgba(245,158,11,0.05)",
-                            border: "1px solid rgba(245,158,11,0.18)",
+                            background: "rgba(34,197,94,0.05)",
+                            border: "1px solid rgba(34,197,94,0.15)",
                             borderRadius: 12,
                             display: "flex",
-                            alignItems: "center",
                             gap: 10,
                           }}
                         >
-                          <span
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: "#f59e0b",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.08em",
-                            }}
-                          >
-                            Emotional state
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 13.5,
-                              color: "var(--ink)",
-                              fontWeight: 600,
-                            }}
-                          >
-                            {result.urgency}
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Reply variants */}
-              {tool.outputVariants && result.replies && (
-                <div style={{ marginBottom: 16 }}>
-                  <VariantPanel
-                    variants={tool.outputVariants}
-                    replies={result.replies}
-                    activeTab={activeTab}
-                    setActiveTab={(v) => setActiveTab(v)}
-                    onShare={() => setShowShare(true)}
-                    insights={result._replyInsights}
-                    descriptors={result._replyDescriptors}
-                    recommendedVariant={result._recommendedVariant}
-                  />
-                </div>
-              )}
-
-              {/* Extra tip/do/dont rows */}
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: 10 }}
-              >
-                {[result.tip, result.anchoring_tip, result.timing_tip]
-                  .filter(Boolean)
-                  .map((t, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        padding: "14px 18px",
-                        background: "rgba(34,197,94,0.05)",
-                        border: "1px solid rgba(34,197,94,0.15)",
-                        borderRadius: 12,
-                        display: "flex",
-                        gap: 10,
-                      }}
-                    >
-                      <Lightbulb
-                        size={14}
-                        color="var(--green)"
-                        style={{ flexShrink: 0, marginTop: 2 }}
-                      />
-                      <p
-                        style={{
-                          fontSize: 14,
-                          color: "var(--ink)",
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        {t}
-                      </p>
-                    </div>
-                  ))}
-                {result.do && (
-                  <div
-                    style={{
-                      padding: "14px 18px",
-                      background: "rgba(34,197,94,0.05)",
-                      border: "1px solid rgba(34,197,94,0.15)",
-                      borderRadius: 12,
-                    }}
-                  >
-                    <p
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 700,
-                        color: "var(--green)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        marginBottom: 5,
-                      }}
-                    >
-                      Do this
-                    </p>
-                    <p style={{ fontSize: 14, color: "var(--ink)" }}>
-                      {result.do}
-                    </p>
-                  </div>
-                )}
-                {result.dont && (
-                  <div
-                    style={{
-                      padding: "14px 18px",
-                      background: "rgba(239,68,68,0.05)",
-                      border: "1px solid rgba(239,68,68,0.15)",
-                      borderRadius: 12,
-                    }}
-                  >
-                    <p
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 700,
-                        color: "#ef4444",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        marginBottom: 5,
-                      }}
-                    >
-                      Avoid this
-                    </p>
-                    <p style={{ fontSize: 14, color: "var(--ink)" }}>
-                      {result.dont}
-                    </p>
-                  </div>
-                )}
-                {result.follow_up && (
-                  <div
-                    style={{
-                      padding: "14px 18px",
-                      background: "var(--surface2)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 12,
-                    }}
-                  >
-                    <p
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 700,
-                        color: "var(--ink-3)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        marginBottom: 5,
-                      }}
-                    >
-                      If they push back
-                    </p>
-                    <p
-                      style={{
-                        fontSize: 14,
-                        color: "var(--ink)",
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      {result.follow_up}
-                    </p>
-                  </div>
-                )}
-                {result.key_improvements?.length > 0 && (
-                  <div
-                    style={{
-                      padding: "14px 18px",
-                      background: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 12,
-                    }}
-                  >
-                    <p
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 700,
-                        color: "var(--ink-3)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        marginBottom: 8,
-                      }}
-                    >
-                      Key improvements
-                    </p>
-                    <ul
-                      style={{
-                        listStyle: "none",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 6,
-                      }}
-                    >
-                      {result.key_improvements.map((k, i) => (
-                        <li key={i} style={{ display: "flex", gap: 8 }}>
-                          <span
-                            style={{
-                              color: "var(--green)",
-                              fontWeight: 700,
-                              flexShrink: 0,
-                            }}
-                          >
-                            →
-                          </span>
-                          <span
+                          <Lightbulb
+                            size={14}
+                            color="var(--green)"
+                            style={{ flexShrink: 0, marginTop: 2 }}
+                          />
+                          <p
                             style={{
                               fontSize: 14,
                               color: "var(--ink)",
-                              lineHeight: 1.5,
+                              lineHeight: 1.6,
                             }}
                           >
-                            {k}
-                          </span>
-                        </li>
+                            {t}
+                          </p>
+                        </div>
                       ))}
-                    </ul>
+                    {result.do && (
+                      <div
+                        style={{
+                          padding: "14px 18px",
+                          background: "rgba(34,197,94,0.05)",
+                          border: "1px solid rgba(34,197,94,0.15)",
+                          borderRadius: 12,
+                        }}
+                      >
+                        <p
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 700,
+                            color: "var(--green)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 5,
+                          }}
+                        >
+                          Do this
+                        </p>
+                        <p style={{ fontSize: 14, color: "var(--ink)" }}>
+                          {result.do}
+                        </p>
+                      </div>
+                    )}
+                    {result.dont && (
+                      <div
+                        style={{
+                          padding: "14px 18px",
+                          background: "rgba(239,68,68,0.05)",
+                          border: "1px solid rgba(239,68,68,0.15)",
+                          borderRadius: 12,
+                        }}
+                      >
+                        <p
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 700,
+                            color: "#ef4444",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 5,
+                          }}
+                        >
+                          Avoid this
+                        </p>
+                        <p style={{ fontSize: 14, color: "var(--ink)" }}>
+                          {result.dont}
+                        </p>
+                      </div>
+                    )}
+                    {result.follow_up && (
+                      <div
+                        style={{
+                          padding: "14px 18px",
+                          background: "var(--surface2)",
+                          border: "1px solid var(--border)",
+                          borderRadius: 12,
+                        }}
+                      >
+                        <p
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 700,
+                            color: "var(--ink-3)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 5,
+                          }}
+                        >
+                          If they push back
+                        </p>
+                        <p
+                          style={{
+                            fontSize: 14,
+                            color: "var(--ink)",
+                            lineHeight: 1.6,
+                          }}
+                        >
+                          {result.follow_up}
+                        </p>
+                      </div>
+                    )}
+                    {result.key_improvements?.length > 0 && (
+                      <div
+                        style={{
+                          padding: "14px 18px",
+                          background: "var(--surface)",
+                          border: "1px solid var(--border)",
+                          borderRadius: 12,
+                        }}
+                      >
+                        <p
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 700,
+                            color: "var(--ink-3)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 8,
+                          }}
+                        >
+                          Key improvements
+                        </p>
+                        <ul
+                          style={{
+                            listStyle: "none",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 6,
+                          }}
+                        >
+                          {result.key_improvements.map((k, i) => (
+                            <li key={i} style={{ display: "flex", gap: 8 }}>
+                              <span
+                                style={{
+                                  color: "var(--green)",
+                                  fontWeight: 700,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                →
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 14,
+                                  color: "var(--ink)",
+                                  lineHeight: 1.5,
+                                }}
+                              >
+                                {k}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {result.red_flags && (
+                      <div
+                        style={{
+                          padding: "14px 18px",
+                          background: "rgba(245,158,11,0.06)",
+                          border: "1px solid rgba(245,158,11,0.2)",
+                          borderRadius: 12,
+                        }}
+                      >
+                        <p
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 700,
+                            color: "#f59e0b",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 5,
+                          }}
+                        >
+                          ⚑ Red flags
+                        </p>
+                        <p
+                          style={{
+                            fontSize: 14,
+                            color: "var(--ink)",
+                            lineHeight: 1.6,
+                          }}
+                        >
+                          {result.red_flags}
+                        </p>
+                      </div>
+                    )}
+                    {result.call_to_action && (
+                      <div
+                        style={{
+                          padding: "14px 18px",
+                          background: "rgba(34,197,94,0.05)",
+                          border: "1px solid rgba(34,197,94,0.15)",
+                          borderRadius: 12,
+                        }}
+                      >
+                        <p
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 700,
+                            color: "var(--green)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 5,
+                          }}
+                        >
+                          Best CTA
+                        </p>
+                        <p style={{ fontSize: 14, color: "var(--ink)" }}>
+                          {result.call_to_action}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )}
-                {result.red_flags && (
-                  <div
-                    style={{
-                      padding: "14px 18px",
-                      background: "rgba(245,158,11,0.06)",
-                      border: "1px solid rgba(245,158,11,0.2)",
-                      borderRadius: 12,
-                    }}
-                  >
-                    <p
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 700,
-                        color: "#f59e0b",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        marginBottom: 5,
-                      }}
-                    >
-                      ⚑ Red flags
-                    </p>
-                    <p
-                      style={{
-                        fontSize: 14,
-                        color: "var(--ink)",
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      {result.red_flags}
-                    </p>
-                  </div>
-                )}
-                {result.call_to_action && (
-                  <div
-                    style={{
-                      padding: "14px 18px",
-                      background: "rgba(34,197,94,0.05)",
-                      border: "1px solid rgba(34,197,94,0.15)",
-                      borderRadius: 12,
-                    }}
-                  >
-                    <p
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 700,
-                        color: "var(--green)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        marginBottom: 5,
-                      }}
-                    >
-                      Best CTA
-                    </p>
-                    <p style={{ fontSize: 14, color: "var(--ink)" }}>
-                      {result.call_to_action}
-                    </p>
-                  </div>
-                )}
-              </div>
+                </>
+              )}
             </div>
           )}
         </div>
