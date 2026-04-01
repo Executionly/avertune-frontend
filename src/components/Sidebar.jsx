@@ -29,6 +29,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   const displayName = user?.full_name || user?.email?.split("@")[0] || "User";
   const displayInitial = displayName[0].toUpperCase();
   const planTier = subscription?.plan_tier || user?.plan_tier || "free";
+  const cancelAtPeriodEnd =
+    subscription?.subscription?.cancel_at_period_end || false;
   const isOnPaidPlan =
     planTier && !["free", "trial"].includes(planTier.toLowerCase());
 
@@ -387,7 +389,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
               >
                 Pricing
               </button>
-              {isOnPaidPlan && (
+              {isOnPaidPlan && !cancelAtPeriodEnd && (
                 <button
                   onClick={() => {
                     setBillingMenuOpen(false);
@@ -415,6 +417,25 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                 >
                   Cancel subscription
                 </button>
+              )}
+              {isOnPaidPlan && cancelAtPeriodEnd && (
+                <div
+                  style={{
+                    padding: "8px 12px",
+                    fontSize: 12,
+                    color: "var(--ink-3)",
+                    textAlign: "center",
+                    borderTop: "1px solid var(--border)",
+                    marginTop: 4,
+                  }}
+                >
+                  Cancelled – access until{" "}
+                  {subscription?.subscription?.current_period_end
+                    ? new Date(
+                        subscription.subscription.current_period_end,
+                      ).toLocaleDateString()
+                    : "end of period"}
+                </div>
               )}
             </div>
           )}
