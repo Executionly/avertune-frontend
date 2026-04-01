@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "https://avertune-backend.onrender.com",
+        target: "https://avertuneserver.xyz",
         changeOrigin: true,
         secure: true,
       },
