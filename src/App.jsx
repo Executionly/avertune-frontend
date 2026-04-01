@@ -31,6 +31,8 @@ import ToolPage from "./components/ToolPage.jsx";
 import PricingPage from "./components/PricingPage.jsx";
 import { useState, useEffect } from "react";
 import { useToast } from "./lib/Toast.jsx";
+import PaymentSuccessPage from "./components/PaymentSuccessPage.jsx";
+import PaymentFailurePage from "./components/PaymentFailurePage.jsx";
 
 // ── Protected route ───────────────────────────────────────────────────────────
 function Protected({ children }) {
