@@ -165,7 +165,12 @@ function normalizeRepliesResponse(data) {
       if (r.recommended) recommendedVariant = key;
     });
   } else if (data.replies && typeof data.replies === "object") {
-    Object.assign(repliesMap, data.replies);
+    Object.keys(data.replies).forEach((key) => {
+      const item = data.replies[key];
+      const capKey = capitalize(key);
+      repliesMap[capKey] = item.text || item || "";
+      if (item.insight) replyInsights[capKey] = item.insight;
+    });
   }
 
   const toneScores = [];
@@ -191,7 +196,6 @@ function normalizeRepliesResponse(data) {
 }
 
 function normalizeToneResponse(data) {
-  // data: { tone, emotional_temperature, intent, power_dynamic, risk_level, ... }
   return {
     primary_tone: data.tone || "",
     secondary_tone: data.emotional_temperature || "",
@@ -210,7 +214,6 @@ function normalizeToneResponse(data) {
 }
 
 function normalizeBoundaryResponse(data) {
-  // Backend returns { situation_read, boundary_statement: { firm, gentle, final }, what_to_avoid, power_note, ... }
   const repliesMap = {};
   const replyInsights = {};
   const statement = data.boundary_statement || {};
@@ -235,42 +238,43 @@ function normalizeBoundaryResponse(data) {
 }
 
 function normalizeNegotiationResponse(data) {
-  // Assuming backend returns { replies: [{ variant, text, insight }] } or similar
   const repliesMap = {};
   const replyInsights = {};
-  if (Array.isArray(data.replies)) {
-    data.replies.forEach((r) => {
-      const key = capitalize(r.variant);
-      repliesMap[key] = r.text || "";
-      replyInsights[key] = r.insight || "";
+
+  // Prefer replies object (most likely)
+  const repliesObj = data.replies || {};
+  if (Object.keys(repliesObj).length > 0) {
+    Object.keys(repliesObj).forEach((key) => {
+      const item = repliesObj[key];
+      const capKey = capitalize(key);
+      repliesMap[capKey] = item.text || "";
+      replyInsights[capKey] = item.insight || "";
     });
-  } else if (data.replies && typeof data.replies === "object") {
-    Object.assign(repliesMap, data.replies);
   } else {
-    // Fallback: maybe returns { hold_firm: { text, insight }, ... }
+    // Fallback for older format
     const possible = ["hold_firm", "counter", "collaborative"];
     possible.forEach((v) => {
       const item = data[v];
       if (item) {
-        const key = capitalize(v);
-        repliesMap[key] = item.text || "";
-        replyInsights[key] = item.insight || "";
+        const capKey = capitalize(v);
+        repliesMap[capKey] = item.text || "";
+        replyInsights[capKey] = item.insight || "";
       }
     });
   }
+
   return {
     replies: repliesMap,
     _replyInsights: replyInsights,
     _replyDescriptors: {},
     _recommendedVariant: null,
-    tip: data.strategic_insights || data.tip || "",
+    tip: data.negotiation_insight || data.strategic_insights || data.tip || "",
     _remaining: data.remaining,
     _raw: data,
   };
 }
 
 function normalizeFollowupResponse(data) {
-  // Backend returns data.messages.standard and data.messages.shorter
   const repliesMap = {};
   const replyInsights = {};
   if (data.messages) {
@@ -295,7 +299,6 @@ function normalizeFollowupResponse(data) {
 }
 
 function normalizeDifficultEmailResponse(data) {
-  // Backend returns data.emails.safe and data.emails.direct
   const repliesMap = {};
   const replyInsights = {};
   if (data.emails) {
@@ -320,18 +323,19 @@ function normalizeDifficultEmailResponse(data) {
 }
 
 function normalizeIntentResponse(data) {
-  // Similar to tone checker
+  // Backend includes primary_intent – map to primary_tone for the simplified card
   return {
-    primary_tone: data.tone || "",
-    secondary_tone: data.emotional_temperature || "",
-    intent: data.intent || "",
-    subtext: data.subtext || "",
-    risk_level: data.risk_level || "",
-    risk_reason: data.power_dynamic || "",
-    emotional_signals: data.awareness_points || [],
+    primary_tone:
+      data.primary_intent || data.intent || data.surface_meaning || "",
+    secondary_tone: "", // not used in simplified display
+    intent: data.primary_intent || data.intent || "",
+    subtext: data.decoded_subtext || data.subtext || "",
+    risk_level: "",
+    risk_reason: "",
+    emotional_signals: data.warning_signals || [],
     what_not_to_do: "",
-    recommended_approach: data.recommended_action || "",
-    urgency: data.emotional_charge || "",
+    recommended_approach: data.recommended_awareness?.[0] || "",
+    urgency: data.emotional_state || "",
     urgency_reason: "",
     _remaining: data.remaining,
     _raw: data,
