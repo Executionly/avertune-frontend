@@ -46,7 +46,7 @@ const tools = [
     icon: Clock,
     slug: "difficult-email",
     title: "Difficult Email",
-    desc: "Rewrite sensitive workplace emails into safe, polished versions.",
+    desc: "Reply confidently to difficult emails or messages",
     color: "#f59e0b",
   },
   {

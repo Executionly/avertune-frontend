@@ -35,6 +35,11 @@ import {
 } from "./components/PaymentPages.jsx";
 import { useState, useEffect } from "react";
 import { useToast } from "./lib/Toast.jsx";
+import {
+  AccuracySection,
+  AudienceSection,
+  SecuritySection,
+} from "./components/HomeSections.jsx";
 
 // ── Protected route ───────────────────────────────────────────────────────────
 function Protected({ children }) {
@@ -76,6 +81,12 @@ function Landing() {
       <HowItWorks />
       <div className="hr" />
       <UseCases />
+      <div className="hr" />
+      <SecuritySection />
+      <div className="hr" />
+      <AudienceSection />
+      <div className="hr" />
+      <AccuracySection />
       <div className="hr" />
       <Tools
         onTool={(slug) => {

@@ -7,6 +7,13 @@ import {
 } from "../lib/useSubscription";
 import { useToast } from "../lib/Toast";
 import { Home, Zap, LogOut, X } from "lucide-react";
+import { TOOL_CONFIGS } from "../toolConfigs";
+
+// Get all tool slugs and labels
+const tools = Object.entries(TOOL_CONFIGS).map(([slug, config]) => ({
+  slug,
+  label: config.label,
+}));
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const navigate = useNavigate();
@@ -42,6 +49,11 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
   const handleDashboard = () => {
     navigate("/dashboard");
+    setIsOpen(false);
+  };
+
+  const handleTool = (slug) => {
+    navigate(`/tool/${slug}`);
     setIsOpen(false);
   };
 
@@ -175,6 +187,57 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             <Home size={15} strokeWidth={1.8} />
             Dashboard
           </button>
+        </div>
+
+        {/* Tools section */}
+        <div style={{ padding: "12px 10px" }}>
+          <p
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: "var(--ink-4)",
+              textTransform: "uppercase",
+              letterSpacing: "0.09em",
+              marginBottom: 6,
+              paddingLeft: 8,
+            }}
+          >
+            Tools
+          </p>
+          {tools.map((tool) => (
+            <button
+              key={tool.slug}
+              onClick={() => handleTool(tool.slug)}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 9,
+                padding: "9px 10px",
+                borderRadius: 9,
+                marginBottom: 2,
+                background: "transparent",
+                color: "var(--ink-3)",
+                fontFamily: "inherit",
+                fontWeight: 500,
+                fontSize: 13.5,
+                cursor: "pointer",
+                textAlign: "left",
+                border: "none",
+                transition: "all .15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--surface2)";
+                e.currentTarget.style.color = "var(--ink)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "var(--ink-3)";
+              }}
+            >
+              {tool.label}
+            </button>
+          ))}
         </div>
 
         {/* Spacer */}
