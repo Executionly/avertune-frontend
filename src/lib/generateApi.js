@@ -1,6 +1,7 @@
 import { api } from "./apiClient";
 
-// ── Field mappers (convert frontend values to backend enums) ─────────────────
+// ────────────────────────────── Helpers ──────────────────────────────────────
+
 function mapRelationship(val) {
   const map = {
     Colleague: "colleague",
@@ -64,7 +65,8 @@ function capitalize(str) {
     .join(" ");
 }
 
-// ── Request builders ────────────────────────────────────────────────────────
+// ────────────────────────────── Request builders ─────────────────────────────
+
 function buildRepliesRequest(fields) {
   const ps = fields.pack_scenario || {};
   const chips = parseChips(fields.context);
@@ -147,214 +149,160 @@ function buildIntentRequest(fields) {
   };
 }
 
-// ── Response normalizers (convert backend shape to frontend expected shape) ─
-function normalizeRepliesResponse(data) {
-  const briefing = data.decision_briefing || {};
-  const receipt = data.tone_receipt || {};
-  const repliesMap = {};
-  const replyInsights = {};
-  const replyDescriptors = {};
-  let recommendedVariant = null;
+// ────────────────────────────── Unified normaliser ───────────────────────────
 
-  if (Array.isArray(data.replies)) {
+function normalizeToolResponse(data, toolId) {
+  console.log(`🔍 Raw ${toolId} response:`, data); // for debugging
+
+  // 1. TONE CHECKER – only primary tone, no variants
+  if (toolId === "tone") {
+    return {
+      primary_tone: data.tone || "",
+      secondary_tone: data.emotional_temperature || "",
+      intent: data.intent || "",
+      subtext: data.subtext || "",
+      risk_level: data.risk_level || "",
+      emotional_signals: data.awareness_points || [],
+      recommended_approach: data.recommended_action || "",
+      urgency: data.emotional_charge || "",
+      _remaining: data.remaining,
+      _raw: data,
+    };
+  }
+
+  // 2. INTENT DETECTOR – simplified (primary intent only)
+  if (toolId === "intent") {
+    return {
+      primary_tone:
+        data.primary_intent || data.intent || data.surface_meaning || "",
+      secondary_tone: "",
+      intent: data.primary_intent || "",
+      subtext: data.decoded_subtext || "",
+      risk_level: "",
+      emotional_signals: data.warning_signals || [],
+      recommended_approach: data.recommended_awareness?.[0] || "",
+      urgency: data.emotional_state || "",
+      _remaining: data.remaining,
+      _raw: data,
+    };
+  }
+
+  // For all other tools, we build a `replies` object with insights.
+  const replies = {};
+  const insights = {};
+  let tip = "";
+
+  // REPLY GENERATOR
+  if (toolId === "replies" && Array.isArray(data.replies)) {
     data.replies.forEach((r) => {
       const key = capitalize(r.variant);
-      repliesMap[key] = r.text || "";
-      replyInsights[key] = r.insight || "";
-      replyDescriptors[key] = r.label || "";
-      if (r.recommended) recommendedVariant = key;
+      replies[key] = r.text || "";
+      insights[key] = r.insight || "";
     });
-  } else if (data.replies && typeof data.replies === "object") {
-    Object.keys(data.replies).forEach((key) => {
-      const item = data.replies[key];
-      const capKey = capitalize(key);
-      repliesMap[capKey] = item.text || item || "";
-      if (item.insight) replyInsights[capKey] = item.insight;
+    tip = data.tone_receipt?.risk_note || "";
+  }
+
+  // BOUNDARY BUILDER
+  else if (toolId === "boundary") {
+    const stmt = data.boundary_statement || data.replies || {};
+    ["firm", "gentle", "final"].forEach((v) => {
+      const item = stmt[v];
+      if (item) {
+        const key = capitalize(v);
+        replies[key] = item.text || "";
+        insights[key] = item.insight || "";
+      }
+    });
+    tip = data.power_note || data.what_to_avoid || "";
+  }
+
+  // NEGOTIATION
+  else if (toolId === "negotiation") {
+    const repliesObj = data.replies || {};
+    if (Object.keys(repliesObj).length) {
+      Object.entries(repliesObj).forEach(([k, v]) => {
+        const key = capitalize(k);
+        replies[key] = v.text || v || "";
+        insights[key] = v.insight || "";
+      });
+    } else {
+      ["hold_firm", "counter", "collaborative"].forEach((v) => {
+        const item = data[v];
+        if (item) {
+          const key = capitalize(v);
+          replies[key] = item.text || "";
+          insights[key] = item.insight || "";
+        }
+      });
+    }
+    tip = data.negotiation_insight || data.strategic_insights || data.tip || "";
+  }
+
+  // FOLLOW‑UP
+  else if (toolId === "followup" && data.messages) {
+    if (data.messages.standard) {
+      replies["Standard"] = data.messages.standard.text || "";
+      insights["Standard"] = data.messages.standard.insight || "";
+    }
+    if (data.messages.shorter) {
+      replies["Shorter"] = data.messages.shorter.text || "";
+      insights["Shorter"] = data.messages.shorter.insight || "";
+    }
+    tip = data.timing_note || data.response_tip || data.what_to_avoid || "";
+  }
+
+  // DIFFICULT EMAIL
+  else if (toolId === "difficultEmail" && data.emails) {
+    if (data.emails.safe) {
+      replies["Safe"] = data.emails.safe.body || "";
+      insights["Safe"] = data.emails.safe.insight || "";
+    }
+    if (data.emails.direct) {
+      replies["Direct"] = data.emails.direct.body || "";
+      insights["Direct"] = data.emails.direct.insight || "";
+    }
+    tip = data.safety_note || data.what_to_avoid || "";
+  }
+
+  // Fallback – if we still have no replies, try to extract any object with .text
+  if (
+    Object.keys(replies).length === 0 &&
+    data.replies &&
+    typeof data.replies === "object"
+  ) {
+    Object.entries(data.replies).forEach(([k, v]) => {
+      const key = capitalize(k);
+      replies[key] = v.text || v || "";
+      insights[key] = v.insight || "";
     });
   }
 
-  const toneScores = [];
-  if (receipt.respect) toneScores.push(`Respect ${receipt.respect}%`);
-  if (receipt.warmth) toneScores.push(`Warmth ${receipt.warmth}%`);
-  if (receipt.confidence) toneScores.push(`Confidence ${receipt.confidence}%`);
-
   return {
-    tone: toneScores[0] || "",
-    risk: capitalize(briefing.risk_level || ""),
-    intent: briefing.what_is_happening || "",
-    strategy: briefing.recommended_strategy || "",
-    tip: receipt.risk_note || "",
-    risk_detail: "",
-    replies: repliesMap,
-    _replyInsights: replyInsights,
-    _replyDescriptors: replyDescriptors,
-    _recommendedVariant: recommendedVariant,
+    replies,
+    _replyInsights: insights,
+    _replyDescriptors: {},
+    _recommendedVariant: null,
+    tip,
     _remaining: data.remaining,
     _limit: data.limit,
     _raw: data,
   };
 }
 
-function normalizeToneResponse(data) {
-  return {
-    primary_tone: data.tone || "",
-    secondary_tone: data.emotional_temperature || "",
-    intent: data.intent || "",
-    subtext: data.subtext || "",
-    risk_level: data.risk_level || "",
-    risk_reason: data.power_dynamic || "",
-    emotional_signals: data.awareness_points || [],
-    what_not_to_do: "",
-    recommended_approach: data.recommended_action || "",
-    urgency: data.emotional_charge || "",
-    urgency_reason: "",
-    _remaining: data.remaining,
-    _raw: data,
-  };
-}
+// ────────────────────────────── API calls ─────────────────────────────────────
 
-function normalizeBoundaryResponse(data) {
-  const repliesMap = {};
-  const replyInsights = {};
-  const statement = data.boundary_statement || {};
-  const variants = ["firm", "gentle", "final"];
-  variants.forEach((v) => {
-    const item = statement[v];
-    if (item) {
-      const key = capitalize(v); // 'Firm', 'Gentle', 'Final'
-      repliesMap[key] = item.text || "";
-      replyInsights[key] = item.insight || "";
-    }
-  });
-  return {
-    replies: repliesMap,
-    _replyInsights: replyInsights,
-    _replyDescriptors: {},
-    _recommendedVariant: null,
-    tip: data.power_note || data.what_to_avoid || "",
-    _remaining: data.remaining,
-    _raw: data,
-  };
-}
-
-function normalizeNegotiationResponse(data) {
-  const repliesMap = {};
-  const replyInsights = {};
-
-  // Prefer replies object (most likely)
-  const repliesObj = data.replies || {};
-  if (Object.keys(repliesObj).length > 0) {
-    Object.keys(repliesObj).forEach((key) => {
-      const item = repliesObj[key];
-      const capKey = capitalize(key);
-      repliesMap[capKey] = item.text || "";
-      replyInsights[capKey] = item.insight || "";
-    });
-  } else {
-    // Fallback for older format
-    const possible = ["hold_firm", "counter", "collaborative"];
-    possible.forEach((v) => {
-      const item = data[v];
-      if (item) {
-        const capKey = capitalize(v);
-        repliesMap[capKey] = item.text || "";
-        replyInsights[capKey] = item.insight || "";
-      }
-    });
-  }
-
-  return {
-    replies: repliesMap,
-    _replyInsights: replyInsights,
-    _replyDescriptors: {},
-    _recommendedVariant: null,
-    tip: data.negotiation_insight || data.strategic_insights || data.tip || "",
-    _remaining: data.remaining,
-    _raw: data,
-  };
-}
-
-function normalizeFollowupResponse(data) {
-  const repliesMap = {};
-  const replyInsights = {};
-  if (data.messages) {
-    if (data.messages.standard) {
-      repliesMap["Standard"] = data.messages.standard.text || "";
-      replyInsights["Standard"] = data.messages.standard.insight || "";
-    }
-    if (data.messages.shorter) {
-      repliesMap["Shorter"] = data.messages.shorter.text || "";
-      replyInsights["Shorter"] = data.messages.shorter.insight || "";
-    }
-  }
-  return {
-    replies: repliesMap,
-    _replyInsights: replyInsights,
-    _replyDescriptors: {},
-    _recommendedVariant: null,
-    tip: data.timing_note || data.response_tip || data.what_to_avoid || "",
-    _remaining: data.remaining,
-    _raw: data,
-  };
-}
-
-function normalizeDifficultEmailResponse(data) {
-  const repliesMap = {};
-  const replyInsights = {};
-  if (data.emails) {
-    if (data.emails.safe) {
-      repliesMap["Safe"] = data.emails.safe.body || "";
-      replyInsights["Safe"] = data.emails.safe.insight || "";
-    }
-    if (data.emails.direct) {
-      repliesMap["Direct"] = data.emails.direct.body || "";
-      replyInsights["Direct"] = data.emails.direct.insight || "";
-    }
-  }
-  return {
-    replies: repliesMap,
-    _replyInsights: replyInsights,
-    _replyDescriptors: {},
-    _recommendedVariant: null,
-    tip: data.safety_note || data.what_to_avoid || "",
-    _remaining: data.remaining,
-    _raw: data,
-  };
-}
-
-function normalizeIntentResponse(data) {
-  // Backend includes primary_intent – map to primary_tone for the simplified card
-  return {
-    primary_tone:
-      data.primary_intent || data.intent || data.surface_meaning || "",
-    secondary_tone: "", // not used in simplified display
-    intent: data.primary_intent || data.intent || "",
-    subtext: data.decoded_subtext || data.subtext || "",
-    risk_level: "",
-    risk_reason: "",
-    emotional_signals: data.warning_signals || [],
-    what_not_to_do: "",
-    recommended_approach: data.recommended_awareness?.[0] || "",
-    urgency: data.emotional_state || "",
-    urgency_reason: "",
-    _remaining: data.remaining,
-    _raw: data,
-  };
-}
-
-// ── API calls ───────────────────────────────────────────────────────────────
 export const generateApi = {
   replies: async (fields) => {
     const { data } = await api.post(
       "/generate/replies",
       buildRepliesRequest(fields),
     );
-    return normalizeRepliesResponse(data);
+    return normalizeToolResponse(data, "replies");
   },
 
   tone: async (fields) => {
     const { data } = await api.post("/generate/tone", buildToneRequest(fields));
-    return normalizeToneResponse(data);
+    return normalizeToolResponse(data, "tone");
   },
 
   boundary: async (fields) => {
@@ -362,7 +310,7 @@ export const generateApi = {
       "/generate/boundary",
       buildBoundaryRequest(fields),
     );
-    return normalizeBoundaryResponse(data);
+    return normalizeToolResponse(data, "boundary");
   },
 
   negotiation: async (fields) => {
@@ -370,7 +318,7 @@ export const generateApi = {
       "/generate/negotiation",
       buildNegotiationRequest(fields),
     );
-    return normalizeNegotiationResponse(data);
+    return normalizeToolResponse(data, "negotiation");
   },
 
   followup: async (fields) => {
@@ -378,7 +326,7 @@ export const generateApi = {
       "/generate/followup",
       buildFollowupRequest(fields),
     );
-    return normalizeFollowupResponse(data);
+    return normalizeToolResponse(data, "followup");
   },
 
   difficultEmail: async (fields) => {
@@ -386,7 +334,7 @@ export const generateApi = {
       "/generate/difficult-email",
       buildDifficultEmailRequest(fields),
     );
-    return normalizeDifficultEmailResponse(data);
+    return normalizeToolResponse(data, "difficultEmail");
   },
 
   intent: async (fields) => {
@@ -394,6 +342,6 @@ export const generateApi = {
       "/generate/intent",
       buildIntentRequest(fields),
     );
-    return normalizeIntentResponse(data);
+    return normalizeToolResponse(data, "intent");
   },
 };
