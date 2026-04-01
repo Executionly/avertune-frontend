@@ -1,13 +1,48 @@
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, XCircle, ArrowRight } from "lucide-react";
-import { PageShell, Card } from "./AuthPages";
+import { CheckCircle2, XCircle } from "lucide-react";
+
+// Simple static shell – no dependencies on AuthProvider or queries
+function StaticShell({ children }) {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--bg)",
+        padding: 20,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function StaticCard({ children }) {
+  return (
+    <div
+      style={{
+        width: "100%",
+        maxWidth: 400,
+        background: "var(--surface)",
+        border: "1px solid var(--border2)",
+        borderRadius: 22,
+        padding: "clamp(24px,5vw,34px)",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.16)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function PaymentSuccessPage() {
   const navigate = useNavigate();
 
   return (
-    <PageShell>
-      <Card>
+    <StaticShell>
+      <StaticCard>
         <div style={{ textAlign: "center" }}>
           <div
             style={{
@@ -47,8 +82,8 @@ export function PaymentSuccessPage() {
             Go to Dashboard
           </button>
         </div>
-      </Card>
-    </PageShell>
+      </StaticCard>
+    </StaticShell>
   );
 }
 
@@ -56,8 +91,8 @@ export function PaymentFailurePage() {
   const navigate = useNavigate();
 
   return (
-    <PageShell>
-      <Card>
+    <StaticShell>
+      <StaticCard>
         <div style={{ textAlign: "center" }}>
           <div
             style={{
@@ -108,7 +143,7 @@ export function PaymentFailurePage() {
             </button>
           </div>
         </div>
-      </Card>
-    </PageShell>
+      </StaticCard>
+    </StaticShell>
   );
 }
