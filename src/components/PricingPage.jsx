@@ -718,13 +718,14 @@ export default function PricingPage() {
           {/* Billing toggle */}
           <div
             style={{
-              display: "inline-flex",
-              alignItems: "center",
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: 6,
               padding: "4px",
               background: "var(--surface)",
               border: "1px solid var(--border)",
               borderRadius: 12,
-              gap: 2,
               marginTop: 8,
             }}
           >

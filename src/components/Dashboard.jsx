@@ -159,7 +159,7 @@ export default function Dashboard() {
 
       {/* ── Main content ── */}
       <main
-        className="dashboard-main"
+        className="main-content"
         style={{
           flex: 1,
           marginLeft: 240,
@@ -822,6 +822,14 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+      <style>{`
+  @media (max-width: 560px) {
+    .dashboard-stats-grid,
+    .dashboard-tools-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+`}</style>
     </div>
   );
 }

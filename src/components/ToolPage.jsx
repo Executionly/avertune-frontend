@@ -1777,7 +1777,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
 
       {/* ── Main ── */}
       <main
-        className="tool-main"
+        className="main-content tool-main"
         style={{ flex: 1, marginLeft: 240, minWidth: 0 }}
       >
         {/* Header */}
@@ -2314,6 +2314,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
           {/* ── Options row (selects) ── */}
           {optionFields.filter((f) => f.type === "select").length > 0 && (
             <div
+              className="tool-selects-grid"
               style={{
                 display: "grid",
                 gridTemplateColumns:
@@ -3057,6 +3058,13 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
           )}
         </div>
       </main>
+      <style>{`
+  @media (max-width: 480px) {
+    .tool-selects-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+`}</style>
     </div>
   );
 }
