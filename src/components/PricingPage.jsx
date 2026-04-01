@@ -573,13 +573,16 @@ export default function PricingPage() {
       return;
     }
 
+    // Map UI billing period to backend expected values
+    let period = billingPeriod;
+    if (period === "annual") period = "yearly";
+
     setActivePlanId(plan.id);
     try {
       await checkoutMutation.mutateAsync({
         plan: plan.id,
-        billing_period: billingPeriod,
+        billing_period: period, // sends weekly, monthly, or yearly
       });
-      // The mutation will redirect to the payment URL
     } catch (err) {
       toast.error(err.message || "Checkout failed");
     } finally {
