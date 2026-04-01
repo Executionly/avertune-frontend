@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, XCircle } from "lucide-react";
 
-// Simple static shell – no dependencies on AuthProvider or queries
 function StaticShell({ children }) {
   return (
     <div
