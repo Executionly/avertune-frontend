@@ -9,7 +9,6 @@ import {
   Mail,
   CheckCircle2,
   AlertTriangle,
-  RefreshCw,
 } from "lucide-react";
 import { useAuth } from "../AuthContext.jsx";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -1103,5 +1102,3 @@ export function ResetPasswordPage() {
     </PageShell>
   );
 }
-
-export { PageShell, Card };
