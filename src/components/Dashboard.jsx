@@ -1,27 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  useMySubscription,
-  usePortal,
-  useCancel,
-  getPlanLabel,
-} from "../lib/useSubscription.js";
-import { useToast } from "../lib/Toast.jsx";
+import { useMySubscription, getPlanLabel } from "../lib/useSubscription.js";
 import {
   MessageSquare,
   Activity,
   ShieldCheck,
   Swords,
   Clock,
-  ChevronRight,
-  Star,
-  TrendingUp,
   Zap,
   Menu,
-  X,
-  Home,
-  Settings,
-  LogOut,
   BarChart2,
   ArrowUpRight,
 } from "lucide-react";
@@ -95,14 +82,10 @@ const TOOLS = [
 ];
 
 export default function Dashboard() {
-  const { user, authLoading, logout } = useAuth();
+  const { user, authLoading } = useAuth();
   const navigate = useNavigate();
-  const toast = useToast();
   const { data: subscription } = useMySubscription();
-  const portalMutation = usePortal();
-  const cancelMutation = useCancel();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   if (authLoading) return null;
   if (!user) {
@@ -111,16 +94,7 @@ export default function Dashboard() {
   }
 
   const displayName = user.full_name || user.email?.split("@")[0] || "User";
-  const displayInitial = displayName[0].toUpperCase();
-  const subPlanTier = subscription?.plan_tier || user.plan_tier;
-  const displayPlan = getPlanLabel(subPlanTier);
-  const subStatus = subscription?.status || "";
-  const subRenewsAt =
-    subscription?.current_period_end || subscription?.renews_at || null;
-  const subCancelAt =
-    subscription?.cancel_at || subscription?.cancels_at || null;
-  const isOnPaidPlan =
-    subPlanTier && !["free", "trial"].includes(subPlanTier.toLowerCase());
+  const displayPlan = getPlanLabel(subscription?.plan_tier || user.plan_tier);
   const usageToday = user.usage_today ?? 0;
   const limitToday = user.limit_today ?? 5;
   const repliesRemaining = user.replies_remaining ?? limitToday - usageToday;
@@ -247,6 +221,7 @@ export default function Dashboard() {
         <div style={{ padding: "clamp(20px,3vw,36px)", flex: 1 }}>
           {/* Stats row */}
           <div
+            className="dashboard-stats-grid"
             style={{
               display: "grid",
               gridTemplateColumns:
@@ -322,514 +297,178 @@ export default function Dashboard() {
             })}
           </div>
 
-          {/* One-col */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr",
-              gap: 20,
-              alignItems: "start",
-            }}
-          >
-            {/* Tools grid */}
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 14,
-                }}
-              >
-                <h2
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 700,
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  Your tools
-                </h2>
-                <span style={{ fontSize: 12, color: "var(--ink-4)" }}>
-                  {TOOLS.length} available
-                </span>
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 10,
-                }}
-              >
-                {TOOLS.map((t) => {
-                  const Icon = t.icon;
-                  return (
-                    <button
-                      key={t.slug}
-                      onClick={() => navigate(`/tool/${t.slug}`)}
-                      style={{
-                        padding: "16px",
-                        borderRadius: 14,
-                        background: "var(--surface)",
-                        border: `1px solid var(--border)`,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-start",
-                        gap: 10,
-                        textAlign: "left",
-                        cursor: "pointer",
-                        transition:
-                          "border-color .2s, transform .18s, box-shadow .18s",
-                        fontFamily: "inherit",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = t.color;
-                        e.currentTarget.style.transform = "translateY(-2px)";
-                        e.currentTarget.style.boxShadow = `0 8px 28px rgba(0,0,0,0.13)`;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "var(--border)";
-                        e.currentTarget.style.transform = "none";
-                        e.currentTarget.style.boxShadow = "none";
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 10,
-                          background: t.bg,
-                          border: `1px solid ${t.border}`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Icon size={15} color={t.color} strokeWidth={1.8} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <p
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: "var(--ink)",
-                            marginBottom: 3,
-                          }}
-                        >
-                          {t.label}
-                        </p>
-                        <p
-                          style={{
-                            fontSize: 11.5,
-                            color: "var(--ink-3)",
-                            lineHeight: 1.45,
-                          }}
-                        >
-                          {t.desc}
-                        </p>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                          color: t.color,
-                          fontSize: 11.5,
-                          fontWeight: 600,
-                        }}
-                      >
-                        Open <ArrowUpRight size={11} />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Right: usage + upgrade */}
+          {/* Tools grid */}
+          <div>
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
-                gap: 18,
-                width: "100%",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 14,
               }}
             >
-              {/* Usage bar */}
-              <div
+              <h2
                 style={{
-                  width: "100%",
-                  padding: "18px 20px",
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 16,
+                  fontSize: 15,
+                  fontWeight: 700,
+                  letterSpacing: "-0.02em",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: 10,
-                  }}
-                >
-                  <p style={{ fontSize: 13, fontWeight: 700 }}>Daily usage</p>
-                  <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
-                    {usageToday} / {limitToday} replies used
-                  </span>
-                </div>
-                <div
-                  style={{
-                    height: 6,
-                    background: "var(--surface3)",
-                    borderRadius: 3,
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
+                Your tools
+              </h2>
+              <span style={{ fontSize: 12, color: "var(--ink-4)" }}>
+                {TOOLS.length} available
+              </span>
+            </div>
+            <div
+              className="dashboard-tools-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 10,
+              }}
+            >
+              {TOOLS.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <button
+                    key={t.slug}
+                    onClick={() => navigate(`/tool/${t.slug}`)}
                     style={{
-                      height: "100%",
-                      width: `${usagePct}%`,
-                      background:
-                        "linear-gradient(90deg,var(--green),var(--teal))",
-                      borderRadius: 3,
-                    }}
-                  />
-                </div>
-                <p
-                  style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 8 }}
-                >
-                  Resets at midnight UTC · {displayPlan} plan
-                </p>
-              </div>
-
-              {/* Subscription status for paid users */}
-              {isOnPaidPlan && subscription && (
-                <div
-                  style={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 16,
-                    padding: "16px 20px",
-                    marginBottom: 16,
-                  }}
-                >
-                  <div
-                    style={{
+                      padding: "16px",
+                      borderRadius: 14,
+                      background: "var(--surface)",
+                      border: `1px solid var(--border)`,
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      marginBottom: 8,
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      gap: 10,
+                      textAlign: "left",
+                      cursor: "pointer",
+                      transition:
+                        "border-color .2s, transform .18s, box-shadow .18s",
+                      fontFamily: "inherit",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = t.color;
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow = `0 8px 28px rgba(0,0,0,0.13)`;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "var(--border)";
+                      e.currentTarget.style.transform = "none";
+                      e.currentTarget.style.boxShadow = "none";
                     }}
                   >
                     <div
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: t.bg,
+                        border: `1px solid ${t.border}`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
                     >
-                      <div
-                        style={{
-                          width: 7,
-                          height: 7,
-                          borderRadius: "50%",
-                          background: subCancelAt ? "#f59e0b" : "var(--green)",
-                          animation: subCancelAt
-                            ? "none"
-                            : "glow-pulse 2s ease infinite",
-                        }}
-                      />
+                      <Icon size={15} color={t.color} strokeWidth={1.8} />
+                    </div>
+                    <div style={{ flex: 1 }}>
                       <p
                         style={{
-                          fontSize: 13.5,
+                          fontSize: 13,
                           fontWeight: 700,
                           color: "var(--ink)",
+                          marginBottom: 3,
                         }}
                       >
-                        {displayPlan} plan
+                        {t.label}
+                      </p>
+                      <p
+                        style={{
+                          fontSize: 11.5,
+                          color: "var(--ink-3)",
+                          lineHeight: 1.45,
+                        }}
+                      >
+                        {t.desc}
                       </p>
                     </div>
-                    <span
+                    <div
                       style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: "2px 9px",
-                        borderRadius: 20,
-                        background: subCancelAt
-                          ? "rgba(245,158,11,0.1)"
-                          : "rgba(34,197,94,0.1)",
-                        color: subCancelAt ? "#f59e0b" : "var(--green)",
-                        border: `1px solid ${subCancelAt ? "rgba(245,158,11,0.25)" : "rgba(34,197,94,0.25)"}`,
-                      }}
-                    >
-                      {subCancelAt ? "Cancels soon" : "Active"}
-                    </span>
-                  </div>
-                  {subRenewsAt && !subCancelAt && (
-                    <p
-                      style={{
-                        fontSize: 12,
-                        color: "var(--ink-3)",
-                        marginBottom: 10,
-                      }}
-                    >
-                      Renews{" "}
-                      {new Date(subRenewsAt).toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </p>
-                  )}
-                  {subCancelAt && (
-                    <p
-                      style={{
-                        fontSize: 12,
-                        color: "#f59e0b",
-                        marginBottom: 10,
-                      }}
-                    >
-                      Access until{" "}
-                      {new Date(subCancelAt).toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </p>
-                  )}
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button
-                      onClick={() =>
-                        portalMutation.mutateAsync().catch(() => {})
-                      }
-                      disabled={portalMutation.isPending}
-                      style={{
-                        flex: 1,
-                        padding: "8px 12px",
-                        borderRadius: 9,
-                        border: "1px solid var(--border2)",
-                        background: "transparent",
-                        color: "var(--ink-2)",
-                        fontFamily: "inherit",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        color: t.color,
+                        fontSize: 11.5,
                         fontWeight: 600,
-                        fontSize: 12.5,
-                        cursor: "pointer",
-                        transition: "all .15s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = "var(--green)";
-                        e.currentTarget.style.color = "var(--green)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "var(--border2)";
-                        e.currentTarget.style.color = "var(--ink-2)";
                       }}
                     >
-                      {portalMutation.isPending ? "Opening…" : "Manage billing"}
-                    </button>
-                    {!subCancelAt && (
-                      <button
-                        onClick={() => setShowCancelConfirm(true)}
-                        style={{
-                          padding: "8px 12px",
-                          borderRadius: 9,
-                          border: "1px solid var(--border2)",
-                          background: "transparent",
-                          color: "var(--ink-3)",
-                          fontFamily: "inherit",
-                          fontWeight: 500,
-                          fontSize: 12.5,
-                          cursor: "pointer",
-                          transition: "all .15s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor =
-                            "rgba(239,68,68,0.3)";
-                          e.currentTarget.style.color = "#ef4444";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = "var(--border2)";
-                          e.currentTarget.style.color = "var(--ink-3)";
-                        }}
-                      >
-                        Cancel plan
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Cancel confirmation modal */}
-              {showCancelConfirm && (
-                <div
-                  style={{
-                    position: "fixed",
-                    inset: 0,
-                    zIndex: 600,
-                    background: "rgba(0,0,0,0.7)",
-                    backdropFilter: "blur(8px)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: 20,
-                  }}
-                >
-                  <div
-                    style={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border2)",
-                      borderRadius: 20,
-                      padding: 28,
-                      maxWidth: 400,
-                      width: "100%",
-                      animation: "fadeUp 0.25s cubic-bezier(0.16,1,0.3,1) both",
-                    }}
-                  >
-                    <h3
-                      style={{
-                        fontSize: 18,
-                        fontWeight: 800,
-                        letterSpacing: "-0.03em",
-                        marginBottom: 10,
-                      }}
-                    >
-                      Cancel subscription?
-                    </h3>
-                    <p
-                      style={{
-                        fontSize: 14,
-                        color: "var(--ink-3)",
-                        lineHeight: 1.65,
-                        marginBottom: 24,
-                      }}
-                    >
-                      Your access continues until the end of your billing
-                      period. You can resubscribe anytime.
-                    </p>
-                    <div style={{ display: "flex", gap: 10 }}>
-                      <button
-                        onClick={() => setShowCancelConfirm(false)}
-                        style={{
-                          flex: 1,
-                          padding: "11px",
-                          borderRadius: 10,
-                          border: "1px solid var(--border2)",
-                          background: "transparent",
-                          color: "var(--ink-2)",
-                          fontFamily: "inherit",
-                          fontWeight: 600,
-                          fontSize: 14,
-                          cursor: "pointer",
-                        }}
-                      >
-                        Keep plan
-                      </button>
-                      <button
-                        onClick={async () => {
-                          try {
-                            await cancelMutation.mutateAsync({});
-                            setShowCancelConfirm(false);
-                            toast.success(
-                              "Cancelled. Access continues until end of period.",
-                            );
-                          } catch (err) {
-                            toast.error(
-                              err?.message ||
-                                "Could not cancel. Try billing portal instead.",
-                            );
-                            setShowCancelConfirm(false);
-                          }
-                        }}
-                        disabled={cancelMutation.isPending}
-                        style={{
-                          flex: 1,
-                          padding: "11px",
-                          borderRadius: 10,
-                          border: "none",
-                          background: "rgba(239,68,68,0.9)",
-                          color: "#fff",
-                          fontFamily: "inherit",
-                          fontWeight: 700,
-                          fontSize: 14,
-                          cursor: "pointer",
-                          opacity: cancelMutation.isPending ? 0.7 : 1,
-                        }}
-                      >
-                        {cancelMutation.isPending
-                          ? "Cancelling…"
-                          : "Yes, cancel"}
-                      </button>
+                      Open <ArrowUpRight size={11} />
                     </div>
-                  </div>
-                </div>
-              )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-              {/* Upgrade */}
+          {/* Usage bar */}
+          <div
+            style={{
+              width: "100%",
+              padding: "18px 20px",
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 16,
+              marginTop: 28,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 10,
+              }}
+            >
+              <p style={{ fontSize: 13, fontWeight: 700 }}>Daily usage</p>
+              <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
+                {usageToday} / {limitToday} replies used
+              </span>
+            </div>
+            <div
+              style={{
+                height: 6,
+                background: "var(--surface3)",
+                borderRadius: 3,
+                overflow: "hidden",
+              }}
+            >
               <div
                 style={{
-                  padding: "20px",
-                  borderRadius: 16,
-                  background:
-                    "linear-gradient(135deg,rgba(34,197,94,0.08),rgba(45,212,191,0.06))",
-                  border: "1px solid rgba(34,197,94,0.2)",
+                  height: "100%",
+                  width: `${usagePct}%`,
+                  background: "linear-gradient(90deg,var(--green),var(--teal))",
+                  borderRadius: 3,
                 }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 8,
-                  }}
-                >
-                  <Star size={14} color="var(--green)" />
-                  <span
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: "var(--green)",
-                    }}
-                  >
-                    Upgrade to Pro
-                  </span>
-                </div>
-                <p
-                  style={{
-                    fontSize: 13,
-                    color: "var(--ink-3)",
-                    lineHeight: 1.55,
-                    marginBottom: 14,
-                  }}
-                >
-                  Unlimited replies, all tools, reply history, and share cards.
-                </p>
-                <button
-                  onClick={() =>
-                    isOnPaidPlan
-                      ? portalMutation.mutateAsync().catch(() => {})
-                      : navigate("/pricing")
-                  }
-                  className="btn-green"
-                  style={{
-                    padding: "9px 20px",
-                    borderRadius: 9,
-                    fontSize: 13,
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                  }}
-                >
-                  See plans →
-                </button>
-              </div>
+              />
             </div>
+            <p style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 8 }}>
+              Resets at midnight UTC · {displayPlan} plan
+            </p>
           </div>
         </div>
       </main>
+
       <style>{`
-  @media (max-width: 560px) {
-    .dashboard-stats-grid,
-    .dashboard-tools-grid {
-      grid-template-columns: 1fr !important;
-    }
-  }
-`}</style>
+        @media (max-width: 560px) {
+          .dashboard-stats-grid,
+          .dashboard-tools-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

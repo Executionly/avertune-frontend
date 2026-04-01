@@ -2,14 +2,14 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 import {
   useMySubscription,
-  usePortal,
   getPlanLabel,
+  useCancel,
 } from "../lib/useSubscription";
 import { useToast } from "../lib/Toast";
-import { Home, Zap, LogOut, X } from "lucide-react";
+import { Home, LogOut, X, MoreHorizontal } from "lucide-react";
 import { TOOL_CONFIGS } from "../toolConfigs";
+import { useState } from "react";
 
-// Get all tool slugs and labels
 const tools = Object.entries(TOOL_CONFIGS).map(([slug, config]) => ({
   slug,
   label: config.label,
@@ -20,26 +20,17 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   const { user, logout } = useAuth();
   const toast = useToast();
   const { data: subscription } = useMySubscription();
-  const portalMutation = usePortal();
+  const cancelMutation = useCancel();
+
+  const [billingMenuOpen, setBillingMenuOpen] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   const displayName = user?.full_name || user?.email?.split("@")[0] || "User";
   const displayInitial = displayName[0].toUpperCase();
   const planTier = subscription?.plan_tier || user?.plan_tier || "free";
   const isOnPaidPlan =
     planTier && !["free", "trial"].includes(planTier.toLowerCase());
-
-  const handlePortal = async () => {
-    try {
-      await portalMutation.mutateAsync();
-    } catch (err) {
-      toast.error(err?.message || "Could not open billing portal.");
-    }
-  };
-
-  const handleUpgrade = () => {
-    navigate("/pricing");
-    setIsOpen(false);
-  };
 
   const handleSignOut = async () => {
     await logout();
@@ -55,6 +46,20 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   const handleTool = (slug) => {
     navigate(`/tool/${slug}`);
     setIsOpen(false);
+  };
+
+  const handleCancel = async () => {
+    try {
+      await cancelMutation.mutateAsync({ reason: cancelReason });
+      setShowCancelModal(false);
+      setCancelReason("");
+      toast.success("Cancelled. Access continues until end of period.");
+      setBillingMenuOpen(false);
+    } catch (err) {
+      toast.error(
+        err?.message || "Could not cancel. Try billing portal instead.",
+      );
+    }
   };
 
   return (
@@ -111,14 +116,22 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           <X size={20} />
         </button>
 
-        {/* Logo */}
-        <div
+        {/* Logo – clickable to home */}
+        <button
+          onClick={() => {
+            navigate("/");
+            setIsOpen(false);
+          }}
           style={{
-            padding: "20px 20px 16px",
-            borderBottom: "1px solid var(--border)",
             display: "flex",
             alignItems: "center",
             gap: 8,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            width: "100%",
+            padding: "20px 20px 16px",
+            borderBottom: "1px solid var(--border)",
           }}
         >
           <div
@@ -152,7 +165,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           >
             Avertune
           </span>
-        </div>
+        </button>
 
         {/* Dashboard link */}
         <div style={{ padding: "12px 10px" }}>
@@ -295,72 +308,120 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           </div>
         </div>
 
-        {/* Billing / Upgrade */}
-        <div style={{ padding: "12px 10px" }}>
-          {isOnPaidPlan ? (
-            <button
-              onClick={handlePortal}
-              disabled={portalMutation.isPending}
+        {/* Billing dropdown */}
+        <div style={{ padding: "12px 10px", position: "relative" }}>
+          <button
+            onClick={() => setBillingMenuOpen(!billingMenuOpen)}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 9,
+              padding: "9px 10px",
+              borderRadius: 9,
+              background: "transparent",
+              color: "var(--ink-3)",
+              fontFamily: "inherit",
+              fontWeight: 500,
+              fontSize: 13,
+              cursor: "pointer",
+              textAlign: "left",
+              border: "none",
+              transition: "all .15s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--surface2)";
+              e.currentTarget.style.color = "var(--ink)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--ink-3)";
+            }}
+          >
+            <span>Billing</span>
+            <MoreHorizontal size={16} />
+          </button>
+
+          {billingMenuOpen && (
+            <div
               style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: 9,
-                padding: "9px 10px",
-                borderRadius: 9,
-                background: "transparent",
-                color: "var(--green)",
-                fontFamily: "inherit",
-                fontWeight: 600,
-                fontSize: 13,
-                cursor: "pointer",
-                textAlign: "left",
-                border: "none",
-                marginBottom: 2,
-                transition: "all .15s",
-                opacity: portalMutation.isPending ? 0.7 : 1,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(34,197,94,0.08)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
+                position: "absolute",
+                bottom: "calc(100% + 8px)",
+                left: 12,
+                right: 12,
+                background: "var(--surface)",
+                border: "1px solid var(--border2)",
+                borderRadius: 12,
+                padding: 6,
+                zIndex: 60,
+                boxShadow: "0 12px 32px rgba(0,0,0,0.2)",
+                animation: "slideDown 0.18s ease both",
               }}
             >
-              <Zap size={14} />{" "}
-              {portalMutation.isPending ? "Opening…" : "Manage billing"}
-            </button>
-          ) : (
-            <button
-              onClick={handleUpgrade}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: 9,
-                padding: "9px 10px",
-                borderRadius: 9,
-                background: "transparent",
-                color: "var(--green)",
-                fontFamily: "inherit",
-                fontWeight: 600,
-                fontSize: 13,
-                cursor: "pointer",
-                textAlign: "left",
-                border: "none",
-                marginBottom: 2,
-                transition: "all .15s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(34,197,94,0.08)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-              }}
-            >
-              <Zap size={14} /> Upgrade plan
-            </button>
+              <button
+                onClick={() => {
+                  navigate("/pricing");
+                  setBillingMenuOpen(false);
+                  setIsOpen(false);
+                }}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  background: "transparent",
+                  color: "var(--ink)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  textAlign: "left",
+                  cursor: "pointer",
+                  border: "none",
+                  transition: "background 0.12s",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "var(--surface2)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
+              >
+                Pricing
+              </button>
+              {isOnPaidPlan && (
+                <button
+                  onClick={() => {
+                    setBillingMenuOpen(false);
+                    setShowCancelModal(true);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    background: "transparent",
+                    color: "#ef4444",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    border: "none",
+                    transition: "background 0.12s",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "rgba(239,68,68,0.08)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "transparent")
+                  }
+                >
+                  Cancel subscription
+                </button>
+              )}
+            </div>
           )}
+        </div>
+
+        {/* Sign out */}
+        <div style={{ padding: "12px 10px" }}>
           <button
             onClick={handleSignOut}
             style={{
@@ -393,6 +454,117 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           </button>
         </div>
       </aside>
+
+      {/* Cancel modal */}
+      {showCancelModal && (
+        <div
+          onClick={(e) =>
+            e.target === e.currentTarget && setShowCancelModal(false)
+          }
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 600,
+            background: "rgba(0,0,0,0.75)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+            animation: "fadeIn 0.2s ease both",
+          }}
+        >
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border2)",
+              borderRadius: 20,
+              padding: 28,
+              maxWidth: 400,
+              width: "100%",
+              animation: "fadeUp 0.25s cubic-bezier(0.16,1,0.3,1) both",
+            }}
+          >
+            <h3
+              style={{
+                fontSize: 18,
+                fontWeight: 800,
+                letterSpacing: "-0.03em",
+                marginBottom: 10,
+              }}
+            >
+              Cancel subscription?
+            </h3>
+            <p
+              style={{
+                fontSize: 14,
+                color: "var(--ink-3)",
+                lineHeight: 1.65,
+                marginBottom: 16,
+              }}
+            >
+              Your access continues until the end of your billing period. You
+              can resubscribe anytime.
+            </p>
+            <textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Optional: tell us why you're cancelling..."
+              rows={3}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: 10,
+                border: "1px solid var(--border2)",
+                background: "var(--surface2)",
+                color: "var(--ink)",
+                fontSize: 13,
+                fontFamily: "inherit",
+                marginBottom: 20,
+                resize: "vertical",
+              }}
+            />
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setShowCancelModal(false)}
+                style={{
+                  flex: 1,
+                  padding: "11px",
+                  borderRadius: 10,
+                  border: "1px solid var(--border2)",
+                  background: "transparent",
+                  color: "var(--ink-2)",
+                  fontFamily: "inherit",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  cursor: "pointer",
+                }}
+              >
+                Keep plan
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={cancelMutation.isPending}
+                style={{
+                  flex: 1,
+                  padding: "11px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "rgba(239,68,68,0.9)",
+                  color: "#fff",
+                  fontFamily: "inherit",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: "pointer",
+                  opacity: cancelMutation.isPending ? 0.7 : 1,
+                }}
+              >
+                {cancelMutation.isPending ? "Cancelling…" : "Yes, cancel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CSS to hide the close button on desktop */}
       <style>{`
