@@ -1817,39 +1817,13 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                 <Menu size={21} />
               </button>
               <style>{`
-                @media (max-width: 900px) {
-                  .tool-hamburger {
-                    display: flex !important;
-                  }
-                }
-              `}</style>
+    @media (max-width: 900px) {
+      .tool-hamburger {
+        display: flex !important;
+      }
+    }
+  `}</style>
 
-              <button
-                onClick={onBack}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  color: "var(--ink-3)",
-                  fontSize: 13,
-                  transition: "color .15s",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.color = "var(--ink)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.color = "var(--ink-3)")
-                }
-              >
-                <ArrowLeft size={15} /> Back
-              </button>
-              <div
-                style={{ width: 1, height: 20, background: "var(--border)" }}
-              />
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                 <div
                   style={{
