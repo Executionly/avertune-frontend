@@ -29,10 +29,12 @@ import {
 import Dashboard from "./components/Dashboard.jsx";
 import ToolPage from "./components/ToolPage.jsx";
 import PricingPage from "./components/PricingPage.jsx";
+import {
+  PaymentSuccessPage,
+  PaymentFailurePage,
+} from "./components/PaymentPages.jsx";
 import { useState, useEffect } from "react";
 import { useToast } from "./lib/Toast.jsx";
-import PaymentSuccessPage from "./components/PaymentSuccessPage.jsx";
-import PaymentFailurePage from "./components/PaymentFailurePage.jsx";
 
 // ── Protected route ───────────────────────────────────────────────────────────
 function Protected({ children }) {
@@ -141,18 +143,8 @@ function EmailSentWrapper() {
 
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
-  const toast = useToast();
-
-  // Handle checkout return
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("checkout") === "success") {
-      // Replace the URL with /payment/success (remove query param)
-      window.location.replace("/payment/success");
-    } else if (params.get("checkout") === "canceled") {
-      window.location.replace("/payment/failure");
-    }
-  }, []);
+  // No need for the old checkout effect anymore – the payment provider redirects
+  // directly to /subscription/success or /subscription/cancel.
 
   return (
     <Routes>
@@ -165,8 +157,10 @@ export default function App() {
       <Route path="/email-sent" element={<EmailSentWrapper />} />
       <Route path="/link-expired" element={<LinkAlreadyUsedPage />} />
       <Route path="/account-confirmed" element={<AccountConfirmedPage />} />
-      <Route path="/payment/success" element={<PaymentSuccessPage />} />
-      <Route path="/payment/failure" element={<PaymentFailurePage />} />
+
+      {/* Payment callbacks */}
+      <Route path="/subscription/success" element={<PaymentSuccessPage />} />
+      <Route path="/subscription/cancel" element={<PaymentFailurePage />} />
 
       {/* Auth callbacks */}
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
