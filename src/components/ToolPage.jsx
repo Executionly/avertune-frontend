@@ -33,6 +33,15 @@ import { useToast } from "../lib/Toast.jsx";
 import Sidebar from "./Sidebar.jsx";
 
 /* ─────────────────────────────── Custom Select ─────────────────────────── */
+// Helper to convert snake_case to Title Case with spaces
+function formatOptionLabel(str) {
+  if (!str) return "";
+  return str
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
 function CustomSelect({ label, options, value, onChange, placeholder }) {
   const [open, setOpen] = useState(false);
   const ref = useRef();
@@ -92,7 +101,7 @@ function CustomSelect({ label, options, value, onChange, placeholder }) {
             whiteSpace: "nowrap",
           }}
         >
-          {selected || placeholder || "Select…"}
+          {selected ? formatOptionLabel(selected) : placeholder || "Select…"}
         </span>
         <ChevronDown
           size={14}
@@ -161,7 +170,7 @@ function CustomSelect({ label, options, value, onChange, placeholder }) {
                   e.currentTarget.style.background = "transparent";
               }}
             >
-              {opt}
+              {formatOptionLabel(opt)}
               {selected && opt === selected && (
                 <Check size={12} color="var(--green)" />
               )}
@@ -1629,10 +1638,16 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const [showPackModal, setShowPackModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const mainField = tool.fields.find(
-    (f) => f.type === "textarea" && f.required,
+  // Get all textarea fields
+  const allTextareas = tool.fields.filter((f) => f.type === "textarea");
+  // The first required textarea (if any) is the "big" one
+  const firstRequiredTextarea = allTextareas.find((f) => f.required);
+  // Remaining textareas (including any optional ones) will be rendered as compact fields
+  const otherTextareas = allTextareas.filter(
+    (f) => f !== firstRequiredTextarea,
   );
-  const optionFields = tool.fields.filter((f) => f !== mainField);
+  // All non-textarea fields (selects, chips, etc.)
+  const optionFields = tool.fields.filter((f) => f.type !== "textarea");
 
   // Reset all field values, results and phase whenever the tool changes
   useEffect(() => {
@@ -1961,8 +1976,8 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
             </p>
           </div>
 
-          {/* ── BIG textarea (centered, full width) ── */}
-          {mainField && (
+          {/* ── Main textarea (first required) ── */}
+          {firstRequiredTextarea && (
             <div style={{ marginBottom: "clamp(16px,2vw,24px)" }}>
               <div
                 style={{
@@ -2009,7 +2024,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                       letterSpacing: "-0.01em",
                     }}
                   >
-                    {mainField.label}
+                    {firstRequiredTextarea.label}
                   </span>
                   <span
                     style={{
@@ -2018,14 +2033,16 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                       color: "var(--ink-4)",
                     }}
                   >
-                    {(fields[mainField.id] || "").length} chars
+                    {(fields[firstRequiredTextarea.id] || "").length} chars
                   </span>
                 </div>
                 <textarea
-                  value={fields[mainField.id] || ""}
-                  onChange={(e) => setField(mainField.id, e.target.value)}
-                  placeholder={mainField.placeholder}
-                  rows={mainField.rows || 7}
+                  value={fields[firstRequiredTextarea.id] || ""}
+                  onChange={(e) =>
+                    setField(firstRequiredTextarea.id, e.target.value)
+                  }
+                  placeholder={firstRequiredTextarea.placeholder}
+                  rows={firstRequiredTextarea.rows || 7}
                   style={{
                     width: "100%",
                     padding: "clamp(18px,2.5vw,28px) clamp(20px,3vw,32px)",
@@ -2043,8 +2060,74 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
             </div>
           )}
 
-          {/* ── Second textarea (if any) ── */}
-          {/* Optional textareas hidden — thread_context and context are sent silently */}
+          {/* Additional textareas (compact) */}
+          {otherTextareas.map((f) => (
+            <div key={f.id} style={{ marginBottom: "clamp(14px,2vw,20px)" }}>
+              <div
+                style={{
+                  background: "var(--surface)",
+                  border: "1.5px solid var(--border2)",
+                  borderRadius: 16,
+                  overflow: "hidden",
+                  transition: "border-color .2s, box-shadow .2s",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "12px 18px 8px",
+                    borderBottom: "1px solid var(--border)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: tool.color,
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: "var(--ink-3)",
+                    }}
+                  >
+                    {f.label}
+                  </span>
+                  <span
+                    style={{
+                      marginLeft: "auto",
+                      fontSize: 11.5,
+                      color: "var(--ink-4)",
+                    }}
+                  >
+                    {(fields[f.id] || "").length} chars
+                  </span>
+                </div>
+                <textarea
+                  value={fields[f.id] || ""}
+                  onChange={(e) => setField(f.id, e.target.value)}
+                  placeholder={f.placeholder}
+                  rows={f.rows || 4}
+                  style={{
+                    width: "100%",
+                    padding: "14px 18px",
+                    fontSize: "clamp(14px,1.8vw,16px)",
+                    lineHeight: 1.65,
+                    color: "var(--ink)",
+                    background: "transparent",
+                    border: "none",
+                    caretColor: tool.color,
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
+            </div>
+          ))}
 
           {/* ── Chips fields ── */}
           {optionFields
