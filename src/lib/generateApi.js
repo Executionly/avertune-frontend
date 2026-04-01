@@ -147,9 +147,11 @@ function buildIntentRequest(fields) {
   };
 }
 
-// ── Unified normaliser (this is the key part) ────────────────────────────
-function normalizeToolResponse(data, toolId) {
-  console.log(`🔍 Raw ${toolId} response:`, data); // 👈 Open browser console to see this
+// ── Unified normaliser (now unwraps the `data` property) ──────────────────
+function normalizeToolResponse(raw, toolId) {
+  // The backend wraps the actual content inside a `data` property
+  const data = raw.data || raw;
+  console.log(`🔍 Raw ${toolId} response (unwrapped):`, data);
 
   // Special case: tone and intent use a different result shape (no variants)
   if (toolId === "tone") {
@@ -162,8 +164,8 @@ function normalizeToolResponse(data, toolId) {
       emotional_signals: data.awareness_points || [],
       recommended_approach: data.recommended_action || "",
       urgency: data.emotional_charge || "",
-      _remaining: data.remaining,
-      _raw: data,
+      _remaining: raw.remaining,
+      _raw: raw,
     };
   }
 
@@ -178,8 +180,8 @@ function normalizeToolResponse(data, toolId) {
       emotional_signals: data.warning_signals || [],
       recommended_approach: data.recommended_awareness?.[0] || "",
       urgency: data.emotional_state || "",
-      _remaining: data.remaining,
-      _raw: data,
+      _remaining: raw.remaining,
+      _raw: raw,
     };
   }
 
@@ -279,9 +281,9 @@ function normalizeToolResponse(data, toolId) {
     _replyDescriptors: {},
     _recommendedVariant: null,
     tip,
-    _remaining: data.remaining,
-    _limit: data.limit,
-    _raw: data,
+    _remaining: raw.remaining,
+    _limit: raw.limit,
+    _raw: raw,
   };
 }
 
