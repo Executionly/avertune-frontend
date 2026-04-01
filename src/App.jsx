@@ -145,11 +145,10 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("checkout") === "success") {
-      toast.success("Payment successful! Your plan is now active.");
-      window.history.replaceState({}, "", window.location.pathname);
+      // Replace the URL with /payment/success (remove query param)
+      window.location.replace("/payment/success");
     } else if (params.get("checkout") === "canceled") {
-      toast.warning("Payment canceled. You can try again.");
-      window.history.replaceState({}, "", window.location.pathname);
+      window.location.replace("/payment/failure");
     }
   }, []);
 
@@ -164,6 +163,8 @@ export default function App() {
       <Route path="/email-sent" element={<EmailSentWrapper />} />
       <Route path="/link-expired" element={<LinkAlreadyUsedPage />} />
       <Route path="/account-confirmed" element={<AccountConfirmedPage />} />
+      <Route path="/payment/success" element={<PaymentSuccessPage />} />
+      <Route path="/payment/failure" element={<PaymentFailurePage />} />
 
       {/* Auth callbacks */}
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
