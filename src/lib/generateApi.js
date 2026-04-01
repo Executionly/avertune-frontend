@@ -191,7 +191,7 @@ function normalizeRepliesResponse(data) {
 }
 
 function normalizeToneResponse(data) {
-  // Backend returns { tone, emotional_temperature, intent, power_dynamic, risk_level, subtext, what_is_really_being_said, emotional_charge, awareness_points, recommended_action, respond_with_caution }
+  // data: { tone, emotional_temperature, intent, power_dynamic, risk_level, ... }
   return {
     primary_tone: data.tone || "",
     secondary_tone: data.emotional_temperature || "",
@@ -200,7 +200,7 @@ function normalizeToneResponse(data) {
     risk_level: data.risk_level || "",
     risk_reason: data.power_dynamic || "",
     emotional_signals: data.awareness_points || [],
-    what_not_to_do: "", // Not provided
+    what_not_to_do: "",
     recommended_approach: data.recommended_action || "",
     urgency: data.emotional_charge || "",
     urgency_reason: "",
@@ -210,30 +210,32 @@ function normalizeToneResponse(data) {
 }
 
 function normalizeBoundaryResponse(data) {
-  // Expected: data.replies = [{ variant, label, text, insight }]
+  // Backend returns { situation_read, boundary_statement: { firm, gentle, final }, what_to_avoid, power_note, ... }
   const repliesMap = {};
   const replyInsights = {};
-  if (Array.isArray(data.replies)) {
-    data.replies.forEach((r) => {
-      const key = capitalize(r.variant);
-      repliesMap[key] = r.text || "";
-      replyInsights[key] = r.insight || "";
-    });
-  } else if (data.replies && typeof data.replies === "object") {
-    Object.assign(repliesMap, data.replies);
-  }
+  const statement = data.boundary_statement || {};
+  const variants = ["firm", "gentle", "final"];
+  variants.forEach((v) => {
+    const item = statement[v];
+    if (item) {
+      const key = capitalize(v); // 'Firm', 'Gentle', 'Final'
+      repliesMap[key] = item.text || "";
+      replyInsights[key] = item.insight || "";
+    }
+  });
   return {
     replies: repliesMap,
     _replyInsights: replyInsights,
     _replyDescriptors: {},
     _recommendedVariant: null,
-    tip: data.power_note || data.tip || "",
+    tip: data.power_note || data.what_to_avoid || "",
     _remaining: data.remaining,
     _raw: data,
   };
 }
 
 function normalizeNegotiationResponse(data) {
+  // Assuming backend returns { replies: [{ variant, text, insight }] } or similar
   const repliesMap = {};
   const replyInsights = {};
   if (Array.isArray(data.replies)) {
@@ -244,6 +246,17 @@ function normalizeNegotiationResponse(data) {
     });
   } else if (data.replies && typeof data.replies === "object") {
     Object.assign(repliesMap, data.replies);
+  } else {
+    // Fallback: maybe returns { hold_firm: { text, insight }, ... }
+    const possible = ["hold_firm", "counter", "collaborative"];
+    possible.forEach((v) => {
+      const item = data[v];
+      if (item) {
+        const key = capitalize(v);
+        repliesMap[key] = item.text || "";
+        replyInsights[key] = item.insight || "";
+      }
+    });
   }
   return {
     replies: repliesMap,
@@ -307,7 +320,7 @@ function normalizeDifficultEmailResponse(data) {
 }
 
 function normalizeIntentResponse(data) {
-  // Backend returns similar to tone checker but with different keys
+  // Similar to tone checker
   return {
     primary_tone: data.tone || "",
     secondary_tone: data.emotional_temperature || "",
