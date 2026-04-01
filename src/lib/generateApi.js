@@ -1,7 +1,6 @@
 import { api } from "./apiClient";
 
-// ────────────────────────────── Helpers ──────────────────────────────────────
-
+// ── Helpers (unchanged) ─────────────────────────────────────────────────────
 function mapRelationship(val) {
   const map = {
     Colleague: "colleague",
@@ -65,8 +64,7 @@ function capitalize(str) {
     .join(" ");
 }
 
-// ────────────────────────────── Request builders ─────────────────────────────
-
+// ── Request builders (unchanged) ───────────────────────────────────────────
 function buildRepliesRequest(fields) {
   const ps = fields.pack_scenario || {};
   const chips = parseChips(fields.context);
@@ -149,12 +147,11 @@ function buildIntentRequest(fields) {
   };
 }
 
-// ────────────────────────────── Unified normaliser ───────────────────────────
-
+// ── Unified normaliser (this is the key part) ────────────────────────────
 function normalizeToolResponse(data, toolId) {
-  console.log(`🔍 Raw ${toolId} response:`, data); // for debugging
+  console.log(`🔍 Raw ${toolId} response:`, data); // 👈 Open browser console to see this
 
-  // 1. TONE CHECKER – only primary tone, no variants
+  // Special case: tone and intent use a different result shape (no variants)
   if (toolId === "tone") {
     return {
       primary_tone: data.tone || "",
@@ -170,7 +167,6 @@ function normalizeToolResponse(data, toolId) {
     };
   }
 
-  // 2. INTENT DETECTOR – simplified (primary intent only)
   if (toolId === "intent") {
     return {
       primary_tone:
@@ -187,12 +183,12 @@ function normalizeToolResponse(data, toolId) {
     };
   }
 
-  // For all other tools, we build a `replies` object with insights.
+  // For all other tools, build a `replies` object
   const replies = {};
   const insights = {};
   let tip = "";
 
-  // REPLY GENERATOR
+  // ---- REPLY GENERATOR ----
   if (toolId === "replies" && Array.isArray(data.replies)) {
     data.replies.forEach((r) => {
       const key = capitalize(r.variant);
@@ -202,13 +198,13 @@ function normalizeToolResponse(data, toolId) {
     tip = data.tone_receipt?.risk_note || "";
   }
 
-  // BOUNDARY BUILDER
+  // ---- BOUNDARY BUILDER ----
   else if (toolId === "boundary") {
-    const stmt = data.boundary_statement || data.replies || {};
+    const stmt = data.boundary_statement || {};
     ["firm", "gentle", "final"].forEach((v) => {
       const item = stmt[v];
       if (item) {
-        const key = capitalize(v);
+        const key = capitalize(v); // "Firm", "Gentle", "Final"
         replies[key] = item.text || "";
         insights[key] = item.insight || "";
       }
@@ -216,7 +212,7 @@ function normalizeToolResponse(data, toolId) {
     tip = data.power_note || data.what_to_avoid || "";
   }
 
-  // NEGOTIATION
+  // ---- NEGOTIATION ----
   else if (toolId === "negotiation") {
     const repliesObj = data.replies || {};
     if (Object.keys(repliesObj).length) {
@@ -238,7 +234,7 @@ function normalizeToolResponse(data, toolId) {
     tip = data.negotiation_insight || data.strategic_insights || data.tip || "";
   }
 
-  // FOLLOW‑UP
+  // ---- FOLLOW‑UP ----
   else if (toolId === "followup" && data.messages) {
     if (data.messages.standard) {
       replies["Standard"] = data.messages.standard.text || "";
@@ -251,7 +247,7 @@ function normalizeToolResponse(data, toolId) {
     tip = data.timing_note || data.response_tip || data.what_to_avoid || "";
   }
 
-  // DIFFICULT EMAIL
+  // ---- DIFFICULT EMAIL ----
   else if (toolId === "difficultEmail" && data.emails) {
     if (data.emails.safe) {
       replies["Safe"] = data.emails.safe.body || "";
@@ -264,7 +260,7 @@ function normalizeToolResponse(data, toolId) {
     tip = data.safety_note || data.what_to_avoid || "";
   }
 
-  // Fallback – if we still have no replies, try to extract any object with .text
+  // Fallback: if we still have no replies, try to extract any object with .text
   if (
     Object.keys(replies).length === 0 &&
     data.replies &&
@@ -289,8 +285,7 @@ function normalizeToolResponse(data, toolId) {
   };
 }
 
-// ────────────────────────────── API calls ─────────────────────────────────────
-
+// ── API calls ───────────────────────────────────────────────────────────────
 export const generateApi = {
   replies: async (fields) => {
     const { data } = await api.post(
