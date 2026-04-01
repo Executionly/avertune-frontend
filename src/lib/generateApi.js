@@ -92,13 +92,22 @@ function buildToneRequest(fields) {
   };
 }
 
+function mapSaidBefore(val) {
+  const map = {
+    first_time: "first_time",
+    said_once: "said_once_before",
+    said_multiple_times: "said_multiple_times",
+  };
+  return map[val] || "first_time";
+}
+
 function buildBoundaryRequest(fields) {
   return {
     what_is_happening: fields.what_is_happening || "",
     what_boundary_needed: fields.what_boundary_needed || "",
     relationship: mapRelationship(fields.relationship),
     relationship_stakes: fields.relationship_stakes || "medium",
-    said_before: fields.said_before || "first_time",
+    said_before: mapSaidBefore(fields.said_before) || "first_time",
     medium: normalizeMedium(fields.medium || "Email"),
   };
 }
