@@ -1103,3 +1103,5 @@ export function ResetPasswordPage() {
     </PageShell>
   );
 }
+
+export { PageShell, Card };
