@@ -9,6 +9,7 @@ export const TOOL_CONFIGS = {
     bg: "rgba(34,197,94,0.08)",
     border: "rgba(34,197,94,0.2)",
     backendRoute: "replies",
+    limitKey: "reply_generator",
     fields: [
       {
         id: "message",
@@ -122,6 +123,7 @@ export const TOOL_CONFIGS = {
     bg: "rgba(45,212,191,0.08)",
     border: "rgba(45,212,191,0.2)",
     backendRoute: "tone",
+    limitKey: "tone_checker",
     fields: [
       {
         id: "message",
@@ -173,6 +175,7 @@ export const TOOL_CONFIGS = {
     bg: "rgba(34,197,94,0.08)",
     border: "rgba(34,197,94,0.2)",
     backendRoute: "boundary",
+    limitKey: "boundary_builder",
     fields: [
       {
         id: "what_is_happening",
@@ -250,6 +253,7 @@ export const TOOL_CONFIGS = {
     bg: "rgba(45,212,191,0.08)",
     border: "rgba(45,212,191,0.2)",
     backendRoute: "negotiation",
+    limitKey: "negotiation",
     fields: [
       {
         id: "their_message",
@@ -331,6 +335,7 @@ export const TOOL_CONFIGS = {
     bg: "rgba(56,189,248,0.08)",
     border: "rgba(56,189,248,0.2)",
     backendRoute: "followup",
+    limitKey: "follow_up",
     fields: [
       {
         id: "context",
@@ -412,6 +417,7 @@ export const TOOL_CONFIGS = {
     bg: "rgba(245,158,11,0.08)",
     border: "rgba(245,158,11,0.2)",
     backendRoute: "difficultEmail",
+    limitKey: "difficult_email",
     fields: [
       {
         id: "what_to_communicate",
@@ -484,6 +490,7 @@ export const TOOL_CONFIGS = {
     bg: "rgba(167,139,250,0.08)",
     border: "rgba(167,139,250,0.2)",
     backendRoute: "intent",
+    limitKey: "intent_detector",
     fields: [
       {
         id: "message",

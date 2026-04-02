@@ -31,9 +31,9 @@ import { generateApi } from "../lib/generateApi.js";
 import { PACKS } from "../lib/packData.js";
 import { useToast } from "../lib/Toast.jsx";
 import Sidebar from "./Sidebar.jsx";
+import { useMySubscription } from "../lib/useSubscription";
 
 /* ─────────────────────────────── Custom Select ─────────────────────────── */
-// Helper to convert snake_case to Title Case with spaces
 function formatOptionLabel(str) {
   if (!str) return "";
   return str
@@ -220,7 +220,6 @@ function ChipsField({ field, value, onChange }) {
   const maxSelect = field.maxSelect || Infinity;
   const atLimit = selected.size >= maxSelect;
 
-  // Reset internal state when parent clears value (tool switch)
   useEffect(() => {
     if (!value) {
       setSelected(new Set());
@@ -233,7 +232,7 @@ function ChipsField({ field, value, onChange }) {
       if (next.has(chip)) {
         next.delete(chip);
       } else {
-        if (next.size >= maxSelect) return prev; // at limit — ignore
+        if (next.size >= maxSelect) return prev;
         next.add(chip);
       }
       onChange([...next].join(", "));
@@ -257,7 +256,6 @@ function ChipsField({ field, value, onChange }) {
           transition: "border-color .2s",
         }}
       >
-        {/* Header */}
         <div
           style={{
             padding: "12px 18px 10px",
@@ -285,7 +283,6 @@ function ChipsField({ field, value, onChange }) {
               ? `pick up to ${field.maxSelect}`
               : "optional · pick any"}
           </span>
-          {/* Clear button — only shown when something is selected */}
           {selected.size > 0 && (
             <button
               type="button"
@@ -314,12 +311,10 @@ function ChipsField({ field, value, onChange }) {
           )}
         </div>
 
-        {/* Chips */}
         <div style={{ padding: "14px 16px" }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {field.chips.map((chip) => {
               const active = selected.has(chip);
-              // dim unselected chips when at limit
               const dimmed = atLimit && !active;
               return (
                 <button
@@ -423,7 +418,6 @@ function PackModal({ value, onChange, onClose, userPlan }) {
           boxShadow: "0 32px 80px rgba(0,0,0,0.4)",
         }}
       >
-        {/* Header */}
         <div
           style={{
             padding: "18px 24px",
@@ -467,7 +461,6 @@ function PackModal({ value, onChange, onClose, userPlan }) {
           </button>
         </div>
 
-        {/* Body */}
         <div
           className="pack-modal-body"
           style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}
@@ -480,7 +473,6 @@ function PackModal({ value, onChange, onClose, userPlan }) {
             }
           `}</style>
 
-          {/* Left: Pack list */}
           <div
             className="pack-modal-left"
             style={{
@@ -547,14 +539,12 @@ function PackModal({ value, onChange, onClose, userPlan }) {
             })}
           </div>
 
-          {/* Right: Scenarios */}
           <div
             className="pack-modal-right"
             style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}
           >
             {activePack && (
               <>
-                {/* Pack header */}
                 <div
                   style={{
                     display: "flex",
@@ -588,8 +578,6 @@ function PackModal({ value, onChange, onClose, userPlan }) {
                     </p>
                   </div>
                 </div>
-
-                {/* Scenarios grid */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {activePack.scenarios.map((scenario) => {
                     const isSelected =
@@ -663,7 +651,6 @@ function PackModal({ value, onChange, onClose, userPlan }) {
           </div>
         </div>
 
-        {/* Footer */}
         <div
           style={{
             padding: "14px 20px",
@@ -675,7 +662,6 @@ function PackModal({ value, onChange, onClose, userPlan }) {
             background: "var(--surface2)",
           }}
         >
-          {/* Selected preview */}
           <div
             style={{
               display: "flex",
@@ -716,8 +702,6 @@ function PackModal({ value, onChange, onClose, userPlan }) {
               </p>
             )}
           </div>
-
-          {/* Actions */}
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
             {value && (
               <button
@@ -780,7 +764,6 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
   const riskText = result?.risk || result?.risk_level || "—";
   const stratText = result?.strategy || result?.recommended_approach || "";
 
-  // Text to share on platforms
   const shareQuote = `📊 Message analysis via Avertune:\n\nTone: ${toneText} · Risk: ${riskText}\nStrategy: ${stratText}\n\n💬 ${activeVariant} reply:\n"${replyText.slice(0, 200)}${replyText.length > 200 ? "…" : ""}"\n\n🔗 avertune.com`;
 
   const platforms = [
@@ -831,11 +814,9 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
     },
   ];
 
-  // Download card as image using the DOM card element
   async function downloadCard() {
     setDownloading(true);
     try {
-      // dynamically load html2canvas from CDN
       if (!window.html2canvas) {
         await new Promise((res, rej) => {
           const s = document.createElement("script");
@@ -887,7 +868,6 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
           setCopied(true);
           setTimeout(() => setCopied(false), 2500);
         } catch {
-          // fallback: copy text
           await navigator.clipboard.writeText(shareQuote);
           setCopied(true);
           setTimeout(() => setCopied(false), 2500);
@@ -982,7 +962,6 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
           Your insight card
         </p>
 
-        {/* ── The visual card (this is what gets captured) ── */}
         <div
           ref={cardRef}
           style={{
@@ -996,7 +975,6 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
             border: "1px solid rgba(34,197,94,0.15)",
           }}
         >
-          {/* Glow */}
           <div
             style={{
               position: "absolute",
@@ -1021,7 +999,6 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
             }}
           />
 
-          {/* Header */}
           <div
             style={{
               display: "flex",
@@ -1084,7 +1061,6 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
             </div>
           </div>
 
-          {/* Stats row */}
           <div
             style={{
               display: "grid",
@@ -1145,7 +1121,6 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
             ))}
           </div>
 
-          {/* Strategy */}
           {stratText && (
             <div
               style={{
@@ -1174,7 +1149,6 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
             </div>
           )}
 
-          {/* Reply */}
           {replyText && (
             <div
               style={{
@@ -1207,7 +1181,6 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
             </div>
           )}
 
-          {/* Footer */}
           <div
             style={{
               display: "flex",
@@ -1222,7 +1195,6 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
           </div>
         </div>
 
-        {/* Actions */}
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           <button
             onClick={copyImage}
@@ -1284,7 +1256,6 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
           </button>
         </div>
 
-        {/* Platform buttons */}
         <p
           style={{
             fontSize: 11,
@@ -1374,7 +1345,6 @@ function VariantPanel({
         overflow: "hidden",
       }}
     >
-      {/* Tab row */}
       <div
         style={{
           display: "flex",
@@ -1434,7 +1404,6 @@ function VariantPanel({
           );
         })}
       </div>
-      {/* Active reply */}
       {variants
         .filter((v) => v === activeTab)
         .map((v) => {
@@ -1450,7 +1419,6 @@ function VariantPanel({
             >
               {text ? (
                 <>
-                  {/* Descriptor tag */}
                   {descriptors?.[v] && (
                     <p
                       style={{
@@ -1486,7 +1454,6 @@ function VariantPanel({
                   >
                     {text}
                   </p>
-                  {/* Per-reply insight */}
                   {insights?.[v] && (
                     <div
                       style={{
@@ -1623,11 +1590,11 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const toast = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { data: subscription } = useMySubscription();
+
   const displayName = user?.full_name || user?.email?.split("@")[0] || "User";
   const displayInitial = displayName[0].toUpperCase();
   const planTier = user?.plan_tier || "free";
-  const displayPlan = planTier.charAt(0).toUpperCase() + planTier.slice(1);
-  const repliesRemaining = user?.replies_remaining ?? user?.limit_today ?? 5;
   const [fields, setFields] = useState({});
 
   const [phase, setPhase] = useState("idle");
@@ -1638,18 +1605,18 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const [showPackModal, setShowPackModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Get all textarea fields
   const allTextareas = tool.fields.filter((f) => f.type === "textarea");
-  // The first required textarea (if any) is the "big" one
   const firstRequiredTextarea = allTextareas.find((f) => f.required);
-  // Remaining textareas (including any optional ones) will be rendered as compact fields
   const otherTextareas = allTextareas.filter(
     (f) => f !== firstRequiredTextarea,
   );
-  // All non-textarea fields (selects, chips, etc.)
   const optionFields = tool.fields.filter((f) => f.type !== "textarea");
 
-  // Reset all field values, results and phase whenever the tool changes
+  // Word limit
+  const wordLimit = subscription?.word_limits?.[tool.limitKey] || 2000;
+  const mainText = fields[firstRequiredTextarea?.id] || "";
+  const wordCount = mainText.trim().split(/\s+/).filter(Boolean).length;
+
   useEffect(() => {
     setFields({});
     setResult(null);
@@ -1661,13 +1628,23 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   }, [tool.id]);
 
   function setField(id, val) {
+    if (id === firstRequiredTextarea?.id) {
+      const newWordCount = val.trim().split(/\s+/).filter(Boolean).length;
+      if (newWordCount > wordLimit) {
+        toast.warning(`Word limit exceeded (max ${wordLimit} words).`);
+        return;
+      }
+    }
     setFields((prev) => ({ ...prev, [id]: val }));
   }
 
   function canSubmit() {
-    return tool.fields
+    const requiredOk = tool.fields
       .filter((f) => f.required)
       .every((f) => (fields[f.id] || "").trim().length > 0);
+    if (!requiredOk) return false;
+    if (firstRequiredTextarea && wordCount > wordLimit) return false;
+    return true;
   }
 
   async function generate() {
@@ -1679,11 +1656,9 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
     try {
       let parsed;
       if (tool.backendRoute && generateApi[tool.backendRoute]) {
-        // ── Backend API call ──────────────────────────────────────────────
         parsed = await generateApi[tool.backendRoute](fields);
         toast.success("Done! Here are your results.");
       } else {
-        // ── Fallback: direct Anthropic call (for tools without backend route) ──
         const prompt = tool.buildPrompt(fields);
         const res = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
@@ -1701,7 +1676,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
       }
       setResult(parsed);
       setPhase("done");
-      // Update user cache with latest remaining/usage from API response
       if (parsed?._remaining != null || parsed?._raw?.remaining != null) {
         const remaining = parsed._remaining ?? parsed._raw?.remaining;
         const limit = parsed._raw?.limit;
@@ -1775,12 +1749,10 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
 
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
-      {/* ── Main ── */}
       <main
         className="main-content tool-main"
         style={{ flex: 1, marginLeft: 240, minWidth: 0 }}
       >
-        {/* Header */}
         <header
           style={{
             position: "sticky",
@@ -1802,7 +1774,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              {/* Mobile hamburger button */}
               <button
                 onClick={() => setSidebarOpen(true)}
                 style={{
@@ -1817,12 +1788,12 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                 <Menu size={21} />
               </button>
               <style>{`
-    @media (max-width: 900px) {
-      .tool-hamburger {
-        display: flex !important;
-      }
-    }
-  `}</style>
+                @media (max-width: 900px) {
+                  .tool-hamburger {
+                    display: flex !important;
+                  }
+                }
+              `}</style>
 
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                 <div
@@ -1887,7 +1858,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
             margin: "0 auto",
           }}
         >
-          {/* Tool hero */}
           <div
             style={{
               textAlign: "center",
@@ -1950,7 +1920,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
             </p>
           </div>
 
-          {/* ── Main textarea (first required) ── */}
           {firstRequiredTextarea && (
             <div style={{ marginBottom: "clamp(16px,2vw,24px)" }}>
               <div
@@ -2000,15 +1969,20 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                   >
                     {firstRequiredTextarea.label}
                   </span>
-                  <span
-                    style={{
-                      marginLeft: "auto",
-                      fontSize: 11.5,
-                      color: "var(--ink-4)",
-                    }}
-                  >
-                    {(fields[firstRequiredTextarea.id] || "").length} chars
-                  </span>
+                  <div style={{ display: "flex", gap: 12, marginLeft: "auto" }}>
+                    <span style={{ fontSize: 11.5, color: "var(--ink-4)" }}>
+                      {(fields[firstRequiredTextarea.id] || "").length} chars
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 11.5,
+                        color:
+                          wordCount > wordLimit ? "#ef4444" : "var(--ink-4)",
+                      }}
+                    >
+                      {wordCount}/{wordLimit} words
+                    </span>
+                  </div>
                 </div>
                 <textarea
                   value={fields[firstRequiredTextarea.id] || ""}
@@ -2031,10 +2005,22 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                   }}
                 />
               </div>
+              {wordCount > wordLimit && (
+                <p
+                  style={{
+                    color: "#ef4444",
+                    fontSize: 12,
+                    marginTop: 8,
+                    textAlign: "center",
+                  }}
+                >
+                  Word limit exceeded ({wordLimit} words maximum). Please
+                  shorten your message.
+                </p>
+              )}
             </div>
           )}
 
-          {/* Additional textareas (compact) */}
           {otherTextareas.map((f) => (
             <div key={f.id} style={{ marginBottom: "clamp(14px,2vw,20px)" }}>
               <div
@@ -2103,7 +2089,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
             </div>
           ))}
 
-          {/* ── Chips fields ── */}
           {optionFields
             .filter((f) => f.type === "chips")
             .map((f) => (
@@ -2115,7 +2100,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
               />
             ))}
 
-          {/* ── Pack modal trigger ── */}
           {optionFields
             .filter((f) => f.type === "pack-modal")
             .map((f) => {
@@ -2285,7 +2269,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
               );
             })}
 
-          {/* ── Options row (selects) ── */}
           {optionFields.filter((f) => f.type === "select").length > 0 && (
             <div
               className="tool-selects-grid"
@@ -2312,7 +2295,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
             </div>
           )}
 
-          {/* ── Generate button ── */}
           {user ? (
             <button
               onClick={generate}
@@ -2405,7 +2387,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
             </div>
           )}
 
-          {/* ── Loading ── */}
           {phase === "generating" && (
             <div
               style={{
@@ -2454,7 +2435,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
             </div>
           )}
 
-          {/* ── Error ── */}
           {phase === "error" && (
             <div
               style={{
@@ -2515,14 +2495,12 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
             </div>
           )}
 
-          {/* ── Results ── */}
           {phase === "done" && result && (
             <div
               style={{
                 animation: "fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both",
               }}
             >
-              {/* Tone Checker – only tone */}
               {tool.id === "tone-checker" && (
                 <div
                   style={{
@@ -2559,7 +2537,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                 </div>
               )}
 
-              {/* Intent Detector – only primary intent */}
               {tool.id === "intent-detector" && (
                 <div
                   style={{
@@ -2596,7 +2573,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                 </div>
               )}
 
-              {/* All tools that have reply variants – show VariantPanel */}
               {tool.outputVariants && result.replies && (
                 <div style={{ marginBottom: 16 }}>
                   <VariantPanel
@@ -2616,12 +2592,12 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
         </div>
       </main>
       <style>{`
-  @media (max-width: 480px) {
-    .tool-selects-grid {
-      grid-template-columns: 1fr !important;
-    }
-  }
-`}</style>
+        @media (max-width: 480px) {
+          .tool-selects-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
