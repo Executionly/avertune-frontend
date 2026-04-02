@@ -753,10 +753,15 @@ function PackModal({ value, onChange, onClose, userPlan }) {
 }
 
 /* ─────────────────────────────── Share Modal ─────────────────────────── */
-function ShareModal({ result, tool, activeVariant, onClose }) {
+
+function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
   const cardRef = useRef();
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
+
+  // Show watermark only if the plan has share_receipt_watermark === true
+  const showWatermark =
+    subscription?.features?.share_receipt_watermark === true;
 
   const replyText =
     result?.replies?.[activeVariant] || result?.recommended_approach || "";
@@ -773,7 +778,7 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
       color: "#fff",
       icon: () => (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622z" />
         </svg>
       ),
       action: () =>
@@ -788,7 +793,7 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
       color: "#fff",
       icon: () => (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0z" />
         </svg>
       ),
       action: () =>
@@ -827,11 +832,17 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
           document.head.appendChild(s);
         });
       }
-      const canvas = await window.html2canvas(cardRef.current, {
+      const cardElement = cardRef.current;
+      const originalOverflow = cardElement.style.overflow;
+      cardElement.style.overflow = "visible";
+      const canvas = await window.html2canvas(cardElement, {
         scale: 2,
         useCORS: true,
         backgroundColor: null,
+        windowWidth: cardElement.scrollWidth,
+        windowHeight: cardElement.scrollHeight,
       });
+      cardElement.style.overflow = originalOverflow;
       const link = document.createElement("a");
       link.download = `avertune-${tool.id}-${Date.now()}.png`;
       link.href = canvas.toDataURL("image/png");
@@ -855,11 +866,17 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
           document.head.appendChild(s);
         });
       }
-      const canvas = await window.html2canvas(cardRef.current, {
+      const cardElement = cardRef.current;
+      const originalOverflow = cardElement.style.overflow;
+      cardElement.style.overflow = "visible";
+      const canvas = await window.html2canvas(cardElement, {
         scale: 2,
         useCORS: true,
         backgroundColor: null,
+        windowWidth: cardElement.scrollWidth,
+        windowHeight: cardElement.scrollHeight,
       });
+      cardElement.style.overflow = originalOverflow;
       canvas.toBlob(async (blob) => {
         try {
           await navigator.clipboard.write([
@@ -1181,18 +1198,47 @@ function ShareModal({ result, tool, activeVariant, onClose }) {
             </div>
           )}
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <p style={{ fontSize: 11, color: "#3F3F46" }}>avertune.com</p>
-            <p style={{ fontSize: 10, color: "#3F3F46" }}>
-              Think before you send.
-            </p>
-          </div>
+          {/* Watermark footer – company logo + name + website */}
+          {showWatermark && (
+            <div
+              style={{
+                marginTop: 16,
+                paddingTop: 12,
+                borderTop: "1px solid rgba(255,255,255,0.08)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <div
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: 5,
+                  background: "linear-gradient(135deg,#22c55e,#2dd4bf)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <svg width="9" height="9" viewBox="0 0 13 13" fill="none">
+                  <path
+                    d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
+                    stroke="#000"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <span style={{ fontSize: 10, color: "#71717A" }}>Avertune</span>
+              <span style={{ fontSize: 10, color: "#3F3F46" }}>·</span>
+              <span style={{ fontSize: 10, color: "#71717A" }}>
+                avertune.com
+              </span>
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -1744,6 +1790,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
           tool={tool}
           activeVariant={activeTab}
           onClose={() => setShowShare(false)}
+          subscription={subscription}
         />
       )}
 
