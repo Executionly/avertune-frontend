@@ -42,7 +42,7 @@ function capitalize(str) {
     .join(" ");
 }
 
-// ── Request builders ───────────────────────────────────────────────────────
+// ── Request builders (unchanged) ──────────────────────────────────────────
 function buildRepliesRequest(fields) {
   const ps = fields.pack_scenario || {};
   const chips = parseChips(fields.context);
@@ -124,7 +124,7 @@ function buildIntentRequest(fields) {
   };
 }
 
-// ── Response normalizers ───────────────────────────────────────────────────
+// ── Response normalizers (corrected: do NOT overwrite `replies` with raw data) ──
 
 function normalizeRepliesResponse(raw) {
   const data = raw.data || raw;
@@ -143,12 +143,14 @@ function normalizeRepliesResponse(raw) {
     });
   }
 
+  // Spread all data except the original `replies` array
+  const { replies: _, ...rest } = data;
   return {
     replies,
     _replyInsights: insights,
     _replyDescriptors: descriptors,
     _recommendedVariant: recommendedVariant,
-    ...data,
+    ...rest,
     _remaining: raw.remaining,
     _limit: raw.limit,
     _raw: raw,
@@ -181,6 +183,7 @@ function normalizeBoundaryResponse(raw) {
       replies[key] = text;
     }
   });
+  const { responses: _, ...rest } = data;
   return {
     replies,
     _replyInsights: insights,
@@ -188,7 +191,7 @@ function normalizeBoundaryResponse(raw) {
     _recommendedVariant: data.recommended ? capitalize(data.recommended) : null,
     situation_read: data.situation_read || "",
     power_note: data.power_note || data.what_to_avoid || "",
-    ...data,
+    ...rest,
     _remaining: raw.remaining,
     _raw: raw,
   };
@@ -207,6 +210,7 @@ function normalizeNegotiationResponse(raw) {
     replies[displayKey] = value.text || value;
     insights[displayKey] = value.insight || "";
   });
+  const { replies: _, ...rest } = data;
   return {
     replies,
     _replyInsights: insights,
@@ -219,7 +223,7 @@ function normalizeNegotiationResponse(raw) {
       : null,
     situation_read: data.situation_read || "",
     insight: data.insight || "",
-    ...data,
+    ...rest,
     _remaining: raw.remaining,
     _raw: raw,
   };
@@ -244,6 +248,7 @@ function normalizeFollowupResponse(raw) {
       replies[displayKey] = value || "";
     }
   });
+  const { follow_ups: _, ...rest } = data;
   return {
     replies,
     _replyInsights: insights,
@@ -254,7 +259,7 @@ function normalizeFollowupResponse(raw) {
           .map((w) => capitalize(w))
           .join(" ")
       : null,
-    ...data,
+    ...rest,
     _remaining: raw.remaining,
     _raw: raw,
   };
@@ -272,12 +277,13 @@ function normalizeDifficultEmailResponse(raw) {
     if (!replies._emailSubjects) replies._emailSubjects = {};
     replies._emailSubjects[displayKey] = value.subject || "";
   });
+  const { emails: _, ...rest } = data;
   return {
     replies,
     _replyInsights: insights,
     _replyDescriptors: {},
     _recommendedVariant: data.recommended ? capitalize(data.recommended) : null,
-    ...data,
+    ...rest,
     _remaining: raw.remaining,
     _raw: raw,
   };
