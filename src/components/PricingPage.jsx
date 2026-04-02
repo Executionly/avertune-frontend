@@ -115,7 +115,7 @@ const TOPUPS = [
 const FAQS = [
   {
     q: "Is the free trial really free?",
-    a: "Yes — no credit card required. You get 7 full days of access. After the trial, you're automatically moved to the free plan unless you choose to upgrade.",
+    a: "Yes — no credit card required. You get 7 full days of access.",
   },
   {
     q: "What is the Weekly Pass?",
