@@ -1,6 +1,6 @@
 import { api } from "./apiClient";
 
-// ── Helpers (only needed for tone‑checker labels) ─────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
 function mapRelationship(val) {
   const map = {
     Colleague: "colleague",
@@ -42,7 +42,7 @@ function capitalize(str) {
     .join(" ");
 }
 
-// ── Request builders (unchanged) ──────────────────────────────────────────
+// ── Request builders ───────────────────────────────────────────────────────
 function buildRepliesRequest(fields) {
   const ps = fields.pack_scenario || {};
   const chips = parseChips(fields.context);
@@ -124,7 +124,7 @@ function buildIntentRequest(fields) {
   };
 }
 
-// ── Response normalizers (ensure `replies` is always an object) ────────────
+// ── Response normalizers ───────────────────────────────────────────────────
 
 function normalizeRepliesResponse(raw) {
   const data = raw.data || raw;
@@ -140,13 +140,6 @@ function normalizeRepliesResponse(raw) {
       insights[key] = r.insight || "";
       descriptors[key] = r.descriptor || "";
       if (r.recommended) recommendedVariant = key;
-    });
-  } else if (data.replies && typeof data.replies === "object") {
-    // Fallback: if replies is an object with keys like "balanced", "firm", etc.
-    Object.entries(data.replies).forEach(([k, v]) => {
-      const key = capitalize(k);
-      replies[key] = v.text || v;
-      insights[key] = v.insight || "";
     });
   }
 
@@ -205,14 +198,12 @@ function normalizeNegotiationResponse(raw) {
   const data = raw.data || raw;
   const replies = {};
   const insights = {};
-  // The backend sends `replies` as an object with keys like "value_reinforcement", etc.
   const repliesObj = data.replies || {};
   Object.entries(repliesObj).forEach(([key, value]) => {
     const displayKey = key
       .split("_")
       .map((w) => capitalize(w))
       .join(" ");
-    // Value could be a string or an object with .text
     replies[displayKey] = value.text || value;
     insights[displayKey] = value.insight || "";
   });
