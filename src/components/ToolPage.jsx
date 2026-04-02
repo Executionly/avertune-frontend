@@ -2548,79 +2548,292 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                 animation: "fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both",
               }}
             >
+              {/* ── REPLY GENERATOR ── */}
+              {tool.id === "reply-generator" && (
+                <div style={{ marginBottom: 16 }}>
+                  {/* Optionally show tone_receipt, quality_score, etc. here */}
+                  <VariantPanel
+                    variants={tool.outputVariants}
+                    replies={result.replies}
+                    activeTab={activeTab}
+                    setActiveTab={(v) => setActiveTab(v)}
+                    onShare={() => setShowShare(true)}
+                    insights={result._replyInsights}
+                    descriptors={result._replyDescriptors}
+                    recommendedVariant={result._recommendedVariant}
+                  />
+                </div>
+              )}
+
+              {/* ── TONE CHECKER ── */}
               {tool.id === "tone-checker" && (
-                <div
-                  style={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border2)",
-                    borderRadius: 16,
-                    padding: "clamp(20px,3vw,32px)",
-                    textAlign: "center",
-                    marginBottom: 16,
-                  }}
-                >
-                  <p
+                <div style={{ marginBottom: 16 }}>
+                  <div
                     style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: "var(--ink-3)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                      marginBottom: 12,
+                      background: "var(--surface)",
+                      border: "1px solid var(--border2)",
+                      borderRadius: 16,
+                      padding: "clamp(20px,3vw,32px)",
                     }}
                   >
-                    Detected tone
-                  </p>
-                  <p
-                    style={{
-                      fontSize: "clamp(24px,4vw,32px)",
-                      fontWeight: 800,
-                      color: "var(--green)",
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    {result.primary_tone || result.tone || "—"}
-                  </p>
+                    <p
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: "var(--ink-3)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                        marginBottom: 12,
+                      }}
+                    >
+                      Detected tone
+                    </p>
+                    <p
+                      style={{
+                        fontSize: "clamp(24px,4vw,32px)",
+                        fontWeight: 800,
+                        color: "var(--green)",
+                        letterSpacing: "-0.02em",
+                        marginBottom: 16,
+                      }}
+                    >
+                      {result.primary_tone || "—"}
+                    </p>
+                    {result.secondary_signals?.length > 0 && (
+                      <>
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "var(--ink-3)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 8,
+                          }}
+                        >
+                          Secondary signals
+                        </p>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 8,
+                            marginBottom: 16,
+                          }}
+                        >
+                          {result.secondary_signals.map((signal) => (
+                            <span
+                              key={signal}
+                              style={{
+                                padding: "4px 12px",
+                                borderRadius: 20,
+                                background: "var(--surface2)",
+                                border: "1px solid var(--border2)",
+                                fontSize: 13,
+                              }}
+                            >
+                              {signal}
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    {result.emotional_intensity && (
+                      <div style={{ marginBottom: 12 }}>
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "var(--ink-3)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Emotional intensity
+                        </p>
+                        <p style={{ fontSize: 14, color: "var(--ink)" }}>
+                          {result.emotional_intensity}
+                        </p>
+                      </div>
+                    )}
+                    {result.risk_level && (
+                      <div style={{ marginBottom: 12 }}>
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "var(--ink-3)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Risk level
+                        </p>
+                        <p style={{ fontSize: 14, color: "var(--ink)" }}>
+                          {result.risk_level}
+                        </p>
+                      </div>
+                    )}
+                    {result.interpretation && (
+                      <div>
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "var(--ink-3)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Interpretation
+                        </p>
+                        <p
+                          style={{
+                            fontSize: 14,
+                            color: "var(--ink-2)",
+                            lineHeight: 1.6,
+                          }}
+                        >
+                          {result.interpretation}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {tool.id === "intent-detector" && (
-                <div
-                  style={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border2)",
-                    borderRadius: 16,
-                    padding: "clamp(20px,3vw,32px)",
-                    textAlign: "center",
-                    marginBottom: 16,
-                  }}
-                >
-                  <p
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: "var(--ink-3)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                      marginBottom: 12,
-                    }}
-                  >
-                    Detected intent
-                  </p>
-                  <p
-                    style={{
-                      fontSize: "clamp(24px,4vw,32px)",
-                      fontWeight: 800,
-                      color: "var(--teal)",
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    {result.primary_intent || result.intent || "—"}
-                  </p>
+              {/* ── BOUNDARY BUILDER ── */}
+              {tool.id === "boundary-builder" && (
+                <div style={{ marginBottom: 16 }}>
+                  {result.situation_read && (
+                    <div
+                      style={{
+                        padding: "12px 16px",
+                        background: "rgba(34,197,94,0.05)",
+                        borderRadius: 12,
+                        marginBottom: 16,
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "var(--ink-3)",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Situation
+                      </p>
+                      <p style={{ fontSize: 14, color: "var(--ink)" }}>
+                        {result.situation_read}
+                      </p>
+                    </div>
+                  )}
+                  <VariantPanel
+                    variants={tool.outputVariants}
+                    replies={result.replies}
+                    activeTab={activeTab}
+                    setActiveTab={(v) => setActiveTab(v)}
+                    onShare={() => setShowShare(true)}
+                    insights={result._replyInsights}
+                    descriptors={result._replyDescriptors}
+                    recommendedVariant={result._recommendedVariant}
+                  />
+                  {result.power_note && (
+                    <div
+                      style={{
+                        marginTop: 12,
+                        padding: "10px 14px",
+                        background: "rgba(34,197,94,0.03)",
+                        borderRadius: 10,
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: "var(--green)",
+                        }}
+                      >
+                        Power note
+                      </p>
+                      <p style={{ fontSize: 13, color: "var(--ink-2)" }}>
+                        {result.power_note}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {tool.outputVariants && result.replies && (
+              {/* ── NEGOTIATION ── */}
+              {tool.id === "negotiation-reply" && (
+                <div style={{ marginBottom: 16 }}>
+                  {result.situation_read && (
+                    <div
+                      style={{
+                        padding: "12px 16px",
+                        background: "rgba(34,197,94,0.05)",
+                        borderRadius: 12,
+                        marginBottom: 16,
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "var(--ink-3)",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Situation
+                      </p>
+                      <p style={{ fontSize: 14, color: "var(--ink)" }}>
+                        {result.situation_read}
+                      </p>
+                    </div>
+                  )}
+                  {result.insight && (
+                    <div
+                      style={{
+                        padding: "12px 16px",
+                        background: "rgba(45,212,191,0.05)",
+                        borderRadius: 12,
+                        marginBottom: 16,
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "var(--teal)",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Key insight
+                      </p>
+                      <p style={{ fontSize: 14, color: "var(--ink)" }}>
+                        {result.insight}
+                      </p>
+                    </div>
+                  )}
+                  <VariantPanel
+                    variants={tool.outputVariants}
+                    replies={result.replies}
+                    activeTab={activeTab}
+                    setActiveTab={(v) => setActiveTab(v)}
+                    onShare={() => setShowShare(true)}
+                    insights={result._replyInsights}
+                    descriptors={result._replyDescriptors}
+                    recommendedVariant={result._recommendedVariant}
+                  />
+                </div>
+              )}
+
+              {/* ── FOLLOW‑UP WRITER ── */}
+              {tool.id === "follow-up-writer" && (
                 <div style={{ marginBottom: 16 }}>
                   <VariantPanel
                     variants={tool.outputVariants}
@@ -2632,6 +2845,326 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
                   />
+                  {result.replies._emailDetails &&
+                    result.replies._emailDetails[activeTab] && (
+                      <div
+                        style={{
+                          marginTop: 8,
+                          padding: "10px 14px",
+                          background: "var(--surface2)",
+                          borderRadius: 10,
+                        }}
+                      >
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: "var(--ink-3)",
+                            marginBottom: 2,
+                          }}
+                        >
+                          Subject
+                        </p>
+                        <p style={{ fontSize: 13, color: "var(--ink)" }}>
+                          {result.replies._emailDetails[activeTab].subject}
+                        </p>
+                      </div>
+                    )}
+                </div>
+              )}
+
+              {/* ── DIFFICULT EMAIL ── */}
+              {tool.id === "difficult-email" && (
+                <div style={{ marginBottom: 16 }}>
+                  <VariantPanel
+                    variants={tool.outputVariants}
+                    replies={result.replies}
+                    activeTab={activeTab}
+                    setActiveTab={(v) => setActiveTab(v)}
+                    onShare={() => setShowShare(true)}
+                    insights={result._replyInsights}
+                    descriptors={result._replyDescriptors}
+                    recommendedVariant={result._recommendedVariant}
+                  />
+                  {result.replies._emailSubjects &&
+                    result.replies._emailSubjects[activeTab] && (
+                      <div
+                        style={{
+                          marginTop: 8,
+                          padding: "10px 14px",
+                          background: "var(--surface2)",
+                          borderRadius: 10,
+                        }}
+                      >
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: "var(--ink-3)",
+                            marginBottom: 2,
+                          }}
+                        >
+                          Subject
+                        </p>
+                        <p style={{ fontSize: 13, color: "var(--ink)" }}>
+                          {result.replies._emailSubjects[activeTab]}
+                        </p>
+                      </div>
+                    )}
+                </div>
+              )}
+
+              {/* ── INTENT DETECTOR ── */}
+              {tool.id === "intent-detector" && (
+                <div style={{ marginBottom: 16 }}>
+                  <div
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border2)",
+                      borderRadius: 16,
+                      padding: "clamp(20px,3vw,32px)",
+                    }}
+                  >
+                    {result.surface_meaning && (
+                      <div style={{ marginBottom: 16 }}>
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "var(--ink-3)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Surface meaning
+                        </p>
+                        <p style={{ fontSize: 14, color: "var(--ink)" }}>
+                          {result.surface_meaning}
+                        </p>
+                      </div>
+                    )}
+                    {result.likely_intents &&
+                      result.likely_intents.length > 0 && (
+                        <div style={{ marginBottom: 16 }}>
+                          <p
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: "var(--ink-3)",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.08em",
+                              marginBottom: 8,
+                            }}
+                          >
+                            Likely intents
+                          </p>
+                          <ul
+                            style={{
+                              marginLeft: 20,
+                              color: "var(--ink-2)",
+                              fontSize: 14,
+                            }}
+                          >
+                            {result.likely_intents.map((intent, i) => (
+                              <li key={i}>{intent}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    {result.primary_intent && (
+                      <div style={{ marginBottom: 16 }}>
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "var(--ink-3)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Primary intent
+                        </p>
+                        <p
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 600,
+                            color: "var(--teal)",
+                          }}
+                        >
+                          {result.primary_intent}
+                        </p>
+                      </div>
+                    )}
+                    {result.emotional_tone && (
+                      <div style={{ marginBottom: 16 }}>
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "var(--ink-3)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Emotional tone
+                        </p>
+                        <p style={{ fontSize: 14, color: "var(--ink)" }}>
+                          {result.emotional_tone}
+                        </p>
+                      </div>
+                    )}
+                    {result.subtext && (
+                      <div style={{ marginBottom: 16 }}>
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "var(--ink-3)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Subtext
+                        </p>
+                        <p style={{ fontSize: 14, color: "var(--ink)" }}>
+                          {result.subtext}
+                        </p>
+                      </div>
+                    )}
+                    {result.risk_indicators &&
+                      result.risk_indicators.length > 0 && (
+                        <div style={{ marginBottom: 16 }}>
+                          <p
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: "var(--ink-3)",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.08em",
+                              marginBottom: 8,
+                            }}
+                          >
+                            Risk indicators
+                          </p>
+                          <ul
+                            style={{
+                              marginLeft: 20,
+                              color: "var(--ink-2)",
+                              fontSize: 14,
+                            }}
+                          >
+                            {result.risk_indicators.map((ind, i) => (
+                              <li key={i}>{ind}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    {result.what_they_want && (
+                      <div style={{ marginBottom: 16 }}>
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "var(--ink-3)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 4,
+                          }}
+                        >
+                          What they want
+                        </p>
+                        <p style={{ fontSize: 14, color: "var(--ink)" }}>
+                          {result.what_they_want}
+                        </p>
+                      </div>
+                    )}
+                    {result.what_they_expect_next && (
+                      <div style={{ marginBottom: 16 }}>
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "var(--ink-3)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 4,
+                          }}
+                        >
+                          What they expect next
+                        </p>
+                        <p style={{ fontSize: 14, color: "var(--ink)" }}>
+                          {result.what_they_expect_next}
+                        </p>
+                      </div>
+                    )}
+                    {result.confidence && (
+                      <div style={{ marginBottom: 16 }}>
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "var(--ink-3)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Confidence
+                        </p>
+                        <p style={{ fontSize: 14, color: "var(--ink)" }}>
+                          {Math.round(result.confidence * 100)}%
+                        </p>
+                      </div>
+                    )}
+                    {result.trust_signal && (
+                      <div style={{ marginBottom: 16 }}>
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "var(--ink-3)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Trust signal
+                        </p>
+                        <p style={{ fontSize: 14, color: "var(--ink)" }}>
+                          {result.trust_signal}
+                        </p>
+                      </div>
+                    )}
+                    {result.recommended_response_strategy && (
+                      <div>
+                        <p
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "var(--ink-3)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Recommended response strategy
+                        </p>
+                        <p
+                          style={{
+                            fontSize: 14,
+                            color: "var(--ink)",
+                            lineHeight: 1.6,
+                          }}
+                        >
+                          {result.recommended_response_strategy}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
