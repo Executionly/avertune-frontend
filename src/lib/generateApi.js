@@ -25,8 +25,6 @@ function mapTension(val) {
   return map[val] || "no_history";
 }
 
-// No other mappings – select values already match backend enums
-
 function parseChips(val) {
   if (!val) return [];
   return val
@@ -44,12 +42,11 @@ function capitalize(str) {
     .join(" ");
 }
 
-// ── Request builders (values are sent as they are) ─────────────────────────
+// ── Request builders (unchanged – already send correct enums) ──────────────
 function buildRepliesRequest(fields) {
   const ps = fields.pack_scenario || {};
   const chips = parseChips(fields.context);
   if (ps.scenarioLabel) chips.push(ps.scenarioLabel);
-
   return {
     message: fields.message || "",
     thread_context: "",
@@ -127,125 +124,184 @@ function buildIntentRequest(fields) {
   };
 }
 
-// ── Unified normaliser (unchanged, already works) ──────────────────────────
-function normalizeToolResponse(raw, toolId) {
+// ── Response normalizers – keep ALL fields ─────────────────────────────────
+
+function normalizeRepliesResponse(raw) {
   const data = raw.data || raw;
-  console.log(`🔍 Raw ${toolId} response (unwrapped):`, data);
-
-  if (toolId === "tone") {
-    return {
-      primary_tone: data.tone || "",
-      secondary_tone: data.emotional_temperature || "",
-      intent: data.intent || "",
-      subtext: data.subtext || "",
-      risk_level: data.risk_level || "",
-      emotional_signals: data.awareness_points || [],
-      recommended_approach: data.recommended_action || "",
-      urgency: data.emotional_charge || "",
-      _remaining: raw.remaining,
-      _raw: raw,
-    };
-  }
-
-  if (toolId === "intent") {
-    return {
-      primary_tone:
-        data.primary_intent || data.intent || data.surface_meaning || "",
-      secondary_tone: "",
-      intent: data.primary_intent || "",
-      subtext: data.decoded_subtext || "",
-      risk_level: "",
-      emotional_signals: data.warning_signals || [],
-      recommended_approach: data.recommended_awareness?.[0] || "",
-      urgency: data.emotional_state || "",
-      _remaining: raw.remaining,
-      _raw: raw,
-    };
-  }
-
   const replies = {};
   const insights = {};
-  let tip = "";
-
-  if (toolId === "replies" && Array.isArray(data.replies)) {
+  const descriptors = {};
+  let recommendedVariant = null;
+  if (Array.isArray(data.replies)) {
     data.replies.forEach((r) => {
       const key = capitalize(r.variant);
       replies[key] = r.text || "";
       insights[key] = r.insight || "";
-    });
-    tip = data.tone_receipt?.risk_note || "";
-  } else if (toolId === "boundary") {
-    const stmt = data.boundary_statement || {};
-    ["firm", "gentle", "final"].forEach((v) => {
-      const item = stmt[v];
-      if (item) {
-        const key = capitalize(v);
-        replies[key] = item.text || "";
-        insights[key] = item.insight || "";
-      }
-    });
-    tip = data.power_note || data.what_to_avoid || "";
-  } else if (toolId === "negotiation") {
-    const repliesObj = data.replies || {};
-    if (Object.keys(repliesObj).length) {
-      Object.entries(repliesObj).forEach(([k, v]) => {
-        const key = capitalize(k);
-        replies[key] = v.text || v || "";
-        insights[key] = v.insight || "";
-      });
-    } else {
-      ["hold_firm", "counter", "collaborative"].forEach((v) => {
-        const item = data[v];
-        if (item) {
-          const key = capitalize(v);
-          replies[key] = item.text || "";
-          insights[key] = item.insight || "";
-        }
-      });
-    }
-    tip = data.negotiation_insight || data.strategic_insights || data.tip || "";
-  } else if (toolId === "followup" && data.messages) {
-    if (data.messages.standard) {
-      replies["Standard"] = data.messages.standard.text || "";
-      insights["Standard"] = data.messages.standard.insight || "";
-    }
-    if (data.messages.shorter) {
-      replies["Shorter"] = data.messages.shorter.text || "";
-      insights["Shorter"] = data.messages.shorter.insight || "";
-    }
-    tip = data.timing_note || data.response_tip || data.what_to_avoid || "";
-  } else if (toolId === "difficultEmail" && data.emails) {
-    if (data.emails.safe) {
-      replies["Safe"] = data.emails.safe.body || "";
-      insights["Safe"] = data.emails.safe.insight || "";
-    }
-    if (data.emails.direct) {
-      replies["Direct"] = data.emails.direct.body || "";
-      insights["Direct"] = data.emails.direct.insight || "";
-    }
-    tip = data.safety_note || data.what_to_avoid || "";
-  }
-
-  if (
-    Object.keys(replies).length === 0 &&
-    data.replies &&
-    typeof data.replies === "object"
-  ) {
-    Object.entries(data.replies).forEach(([k, v]) => {
-      const key = capitalize(k);
-      replies[key] = v.text || v || "";
-      insights[key] = v.insight || "";
+      descriptors[key] = r.descriptor || "";
+      if (r.recommended) recommendedVariant = key;
     });
   }
+  // Pass through any extra fields (e.g., tone_receipt, quality_score, etc.)
+  return {
+    replies,
+    _replyInsights: insights,
+    _replyDescriptors: descriptors,
+    _recommendedVariant: recommendedVariant,
+    // All other fields from data
+    ...data,
+    // Overwrite remaining/limit from raw (top‑level)
+    _remaining: raw.remaining,
+    _limit: raw.limit,
+    _raw: raw,
+  };
+}
 
+function normalizeToneResponse(raw) {
+  const data = raw.data || raw;
+  return {
+    primary_tone: data.primary_tone || "",
+    secondary_signals: data.secondary_signals || [],
+    emotional_intensity: data.emotional_intensity || "",
+    risk_level: data.risk_level || "",
+    interpretation: data.interpretation || "",
+    _remaining: raw.remaining,
+    _raw: raw,
+  };
+}
+
+function normalizeBoundaryResponse(raw) {
+  const data = raw.data || raw;
+  const replies = {};
+  const insights = {};
+  const responses = data.responses || {};
+  // Backend uses "soft", "balanced", "firm"
+  const variants = ["soft", "balanced", "firm"];
+  variants.forEach((v) => {
+    const text = responses[v];
+    if (text) {
+      const key = capitalize(v); // Soft, Balanced, Firm
+      replies[key] = text;
+    }
+  });
   return {
     replies,
     _replyInsights: insights,
     _replyDescriptors: {},
-    _recommendedVariant: null,
-    tip,
+    _recommendedVariant: data.recommended ? capitalize(data.recommended) : null,
+    situation_read: data.situation_read || "",
+    // Pass through any extra fields
+    ...data,
     _remaining: raw.remaining,
-    _limit: raw.limit,
+    _raw: raw,
+  };
+}
+
+function normalizeNegotiationResponse(raw) {
+  const data = raw.data || raw;
+  const replies = {};
+  const insights = {};
+  const repliesObj = data.replies || {};
+  Object.entries(repliesObj).forEach(([key, value]) => {
+    const displayKey = key
+      .split("_")
+      .map((w) => capitalize(w))
+      .join(" ");
+    replies[displayKey] = value.text || value;
+    insights[displayKey] = value.insight || "";
+  });
+  return {
+    replies,
+    _replyInsights: insights,
+    _replyDescriptors: {},
+    _recommendedVariant: data.recommended
+      ? data.recommended
+          .split("_")
+          .map((w) => capitalize(w))
+          .join(" ")
+      : null,
+    situation_read: data.situation_read || "",
+    insight: data.insight || "",
+    ...data,
+    _remaining: raw.remaining,
+    _raw: raw,
+  };
+}
+
+function normalizeFollowupResponse(raw) {
+  const data = raw.data || raw;
+  const replies = {};
+  const insights = {};
+  const followUps = data.follow_ups || {};
+  Object.entries(followUps).forEach(([key, value]) => {
+    const displayKey = key
+      .split("_")
+      .map((w) => capitalize(w))
+      .join(" ");
+    if (typeof value === "object" && value !== null) {
+      replies[displayKey] = value.body || "";
+      insights[displayKey] = value.subject || "";
+      // Store full email object for later use
+      if (!replies._emailDetails) replies._emailDetails = {};
+      replies._emailDetails[displayKey] = value;
+    } else {
+      replies[displayKey] = value || "";
+    }
+  });
+  return {
+    replies,
+    _replyInsights: insights,
+    _replyDescriptors: {},
+    _recommendedVariant: data.recommended
+      ? data.recommended
+          .split("_")
+          .map((w) => capitalize(w))
+          .join(" ")
+      : null,
+    ...data,
+    _remaining: raw.remaining,
+    _raw: raw,
+  };
+}
+
+function normalizeDifficultEmailResponse(raw) {
+  const data = raw.data || raw;
+  const replies = {};
+  const insights = {};
+  const emails = data.emails || {};
+  Object.entries(emails).forEach(([key, value]) => {
+    const displayKey = capitalize(key);
+    replies[displayKey] = value.body || "";
+    insights[displayKey] = value.insight || "";
+    if (!replies._emailSubjects) replies._emailSubjects = {};
+    replies._emailSubjects[displayKey] = value.subject || "";
+  });
+  return {
+    replies,
+    _replyInsights: insights,
+    _replyDescriptors: {},
+    _recommendedVariant: data.recommended ? capitalize(data.recommended) : null,
+    ...data,
+    _remaining: raw.remaining,
+    _raw: raw,
+  };
+}
+
+function normalizeIntentResponse(raw) {
+  const data = raw.data || raw;
+  return {
+    surface_meaning: data.surface_meaning || "",
+    likely_intents: data.likely_intents || [],
+    primary_intent: data.primary_intent || "",
+    emotional_tone: data.emotional_tone || "",
+    subtext: data.subtext || "",
+    risk_indicators: data.risk_indicators || [],
+    what_they_want: data.what_they_want || "",
+    what_they_expect_next: data.what_they_expect_next || "",
+    confidence: data.confidence || 0,
+    trust_signal: data.trust_signal || "",
+    recommended_response_strategy: data.recommended_response_strategy || "",
+    ...data,
+    _remaining: raw.remaining,
     _raw: raw,
   };
 }
@@ -257,45 +313,45 @@ export const generateApi = {
       "/generate/replies",
       buildRepliesRequest(fields),
     );
-    return normalizeToolResponse(data, "replies");
+    return normalizeRepliesResponse(data);
   },
   tone: async (fields) => {
     const { data } = await api.post("/generate/tone", buildToneRequest(fields));
-    return normalizeToolResponse(data, "tone");
+    return normalizeToneResponse(data);
   },
   boundary: async (fields) => {
     const { data } = await api.post(
       "/generate/boundary",
       buildBoundaryRequest(fields),
     );
-    return normalizeToolResponse(data, "boundary");
+    return normalizeBoundaryResponse(data);
   },
   negotiation: async (fields) => {
     const { data } = await api.post(
       "/generate/negotiation",
       buildNegotiationRequest(fields),
     );
-    return normalizeToolResponse(data, "negotiation");
+    return normalizeNegotiationResponse(data);
   },
   followup: async (fields) => {
     const { data } = await api.post(
       "/generate/followup",
       buildFollowupRequest(fields),
     );
-    return normalizeToolResponse(data, "followup");
+    return normalizeFollowupResponse(data);
   },
   difficultEmail: async (fields) => {
     const { data } = await api.post(
       "/generate/difficult-email",
       buildDifficultEmailRequest(fields),
     );
-    return normalizeToolResponse(data, "difficultEmail");
+    return normalizeDifficultEmailResponse(data);
   },
   intent: async (fields) => {
     const { data } = await api.post(
       "/generate/intent",
       buildIntentRequest(fields),
     );
-    return normalizeToolResponse(data, "intent");
+    return normalizeIntentResponse(data);
   },
 };
