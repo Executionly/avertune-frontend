@@ -42,7 +42,7 @@ function capitalize(str) {
     .join(" ");
 }
 
-// ── Request builders (unchanged – already send correct enums) ──────────────
+// ── Request builders (unchanged) ──────────────────────────────────────────
 function buildRepliesRequest(fields) {
   const ps = fields.pack_scenario || {};
   const chips = parseChips(fields.context);
@@ -124,7 +124,7 @@ function buildIntentRequest(fields) {
   };
 }
 
-// ── Response normalizers – keep ALL fields ─────────────────────────────────
+// ── Response normalizers (ensure `replies` is always an object) ────────────
 
 function normalizeRepliesResponse(raw) {
   const data = raw.data || raw;
@@ -132,6 +132,7 @@ function normalizeRepliesResponse(raw) {
   const insights = {};
   const descriptors = {};
   let recommendedVariant = null;
+
   if (Array.isArray(data.replies)) {
     data.replies.forEach((r) => {
       const key = capitalize(r.variant);
@@ -140,16 +141,21 @@ function normalizeRepliesResponse(raw) {
       descriptors[key] = r.descriptor || "";
       if (r.recommended) recommendedVariant = key;
     });
+  } else if (data.replies && typeof data.replies === "object") {
+    // Fallback: if replies is an object with keys like "balanced", "firm", etc.
+    Object.entries(data.replies).forEach(([k, v]) => {
+      const key = capitalize(k);
+      replies[key] = v.text || v;
+      insights[key] = v.insight || "";
+    });
   }
-  // Pass through any extra fields (e.g., tone_receipt, quality_score, etc.)
+
   return {
     replies,
     _replyInsights: insights,
     _replyDescriptors: descriptors,
     _recommendedVariant: recommendedVariant,
-    // All other fields from data
     ...data,
-    // Overwrite remaining/limit from raw (top‑level)
     _remaining: raw.remaining,
     _limit: raw.limit,
     _raw: raw,
@@ -174,12 +180,11 @@ function normalizeBoundaryResponse(raw) {
   const replies = {};
   const insights = {};
   const responses = data.responses || {};
-  // Backend uses "soft", "balanced", "firm"
   const variants = ["soft", "balanced", "firm"];
   variants.forEach((v) => {
     const text = responses[v];
     if (text) {
-      const key = capitalize(v); // Soft, Balanced, Firm
+      const key = capitalize(v);
       replies[key] = text;
     }
   });
@@ -189,7 +194,7 @@ function normalizeBoundaryResponse(raw) {
     _replyDescriptors: {},
     _recommendedVariant: data.recommended ? capitalize(data.recommended) : null,
     situation_read: data.situation_read || "",
-    // Pass through any extra fields
+    power_note: data.power_note || data.what_to_avoid || "",
     ...data,
     _remaining: raw.remaining,
     _raw: raw,
@@ -200,12 +205,14 @@ function normalizeNegotiationResponse(raw) {
   const data = raw.data || raw;
   const replies = {};
   const insights = {};
+  // The backend sends `replies` as an object with keys like "value_reinforcement", etc.
   const repliesObj = data.replies || {};
   Object.entries(repliesObj).forEach(([key, value]) => {
     const displayKey = key
       .split("_")
       .map((w) => capitalize(w))
       .join(" ");
+    // Value could be a string or an object with .text
     replies[displayKey] = value.text || value;
     insights[displayKey] = value.insight || "";
   });
@@ -240,7 +247,6 @@ function normalizeFollowupResponse(raw) {
     if (typeof value === "object" && value !== null) {
       replies[displayKey] = value.body || "";
       insights[displayKey] = value.subject || "";
-      // Store full email object for later use
       if (!replies._emailDetails) replies._emailDetails = {};
       replies._emailDetails[displayKey] = value;
     } else {
