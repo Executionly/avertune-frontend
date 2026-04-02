@@ -59,12 +59,11 @@ const PLANS = [
     badge: "Most Popular",
     cta: "Upgrade to Daily",
     ctaStyle: "teal",
-    repliesNote: "900 replies/month (~30/day typical use)",
+    repliesNote: null,
     tagline:
       "Built for high-stakes conversations where tone, clarity, and outcome matter.",
     weeklyNote: "Weekly Pass · billed every 7 days · 210 replies/week",
     features: [
-      { text: "900 replies/month (~30/day)", included: true },
       { text: "All conversation packs", included: true },
       { text: "Tone insights and strategy analysis", included: true },
       { text: "Share receipts (watermarked)", included: true },
