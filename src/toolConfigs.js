@@ -105,7 +105,7 @@ export const TOOL_CONFIGS = {
         ],
       },
     ],
-    outputVariants: ["Balanced", "Firm", "Warm", "Delay"],
+    outputVariants: ["Balanced", "Firm", "Calm", "Delay"],
     buildPrompt: (f) => "",
   },
 
@@ -237,7 +237,7 @@ export const TOOL_CONFIGS = {
         ],
       },
     ],
-    outputVariants: ["Firm", "Gentle", "Final"],
+    outputVariants: ["Soft", "Balanced", "Firm"],
     buildPrompt: (f) => "",
   },
 
@@ -322,7 +322,11 @@ export const TOOL_CONFIGS = {
         ],
       },
     ],
-    outputVariants: ["Hold Firm", "Counter", "Collaborative"],
+    outputVariants: [
+      "Value Reinforcement",
+      "Calm Pushback",
+      "Strategic Positioning",
+    ],
     buildPrompt: (f) => "",
   },
 
@@ -419,7 +423,7 @@ export const TOOL_CONFIGS = {
         ],
       },
     ],
-    outputVariants: ["Standard", "Shorter"],
+    outputVariants: ["Friendly Reminder", "Value Driven", "Direct"],
     buildPrompt: (f) => "",
   },
 
@@ -494,7 +498,7 @@ export const TOOL_CONFIGS = {
         options: ["low", "medium", "high"],
       },
     ],
-    outputVariants: ["Safe", "Direct"],
+    outputVariants: ["Softened", "Balanced", "Direct"],
     buildPrompt: (f) => "",
   },
 
