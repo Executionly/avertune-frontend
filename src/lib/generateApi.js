@@ -1,6 +1,6 @@
 import { api } from "./apiClient";
 
-// ── Helpers (unchanged) ─────────────────────────────────────────────────────
+// ── Helpers (only needed for tone‑checker labels) ─────────────────────────
 function mapRelationship(val) {
   const map = {
     Colleague: "colleague",
@@ -25,27 +25,7 @@ function mapTension(val) {
   return map[val] || "no_history";
 }
 
-function mapLength(val) {
-  const map = {
-    "Very short (1-2 sentences)": "very_short",
-    "Short (3-4 sentences)": "short",
-    "Medium (1 paragraph)": "medium",
-    "Long (detailed)": "long",
-  };
-  return map[val] || "short";
-}
-
-function normalizeMedium(val) {
-  const map = {
-    Email: "email",
-    "SMS / Text": "sms",
-    WhatsApp: "whatsapp",
-    LinkedIn: "linkedin",
-    Slack: "slack",
-    "In person": "in_person",
-  };
-  return map[val] || val?.toLowerCase() || "email";
-}
+// No other mappings – select values already match backend enums
 
 function parseChips(val) {
   if (!val) return [];
@@ -64,7 +44,7 @@ function capitalize(str) {
     .join(" ");
 }
 
-// ── Request builders (unchanged) ───────────────────────────────────────────
+// ── Request builders (values are sent as they are) ─────────────────────────
 function buildRepliesRequest(fields) {
   const ps = fields.pack_scenario || {};
   const chips = parseChips(fields.context);
@@ -73,9 +53,9 @@ function buildRepliesRequest(fields) {
   return {
     message: fields.message || "",
     thread_context: "",
-    medium: normalizeMedium(fields.medium || "Email"),
-    preferred_length: mapLength(fields.length),
-    tone: (fields.tone_pref || "Professional").toLowerCase(),
+    medium: fields.medium || "email",
+    preferred_length: fields.length || "short",
+    tone: fields.tone_pref || "professional",
     goal: fields.goal || "",
     audience: fields.audience || "",
     context_chips: chips,
@@ -92,23 +72,14 @@ function buildToneRequest(fields) {
   };
 }
 
-function mapSaidBefore(val) {
-  const map = {
-    first_time: "first_time",
-    said_once: "said_once_before",
-    said_multiple_times: "said_multiple_times",
-  };
-  return map[val] || "first_time";
-}
-
 function buildBoundaryRequest(fields) {
   return {
     what_is_happening: fields.what_is_happening || "",
     what_boundary_needed: fields.what_boundary_needed || "",
-    relationship: mapRelationship(fields.relationship),
+    relationship: fields.relationship || "colleague",
     relationship_stakes: fields.relationship_stakes || "medium",
-    said_before: mapSaidBefore(fields.said_before) || "first_time",
-    medium: normalizeMedium(fields.medium || "Email"),
+    said_before: fields.said_before || "first_time",
+    medium: fields.medium || "email",
   };
 }
 
@@ -116,22 +87,22 @@ function buildNegotiationRequest(fields) {
   return {
     their_message: fields.their_message || "",
     your_position: fields.your_position || "",
-    negotiation_context: fields.negotiation_context || "",
+    negotiation_context: fields.negotiation_context || "salary_negotiation",
     leverage: fields.leverage || "moderate",
     style: fields.style || "collaborative",
     context: "",
-    medium: normalizeMedium(fields.medium || "Email"),
+    medium: fields.medium || "email",
   };
 }
 
 function buildFollowupRequest(fields) {
   return {
     context: fields.context || "",
-    last_contact: fields.last_contact || "",
-    follow_up_type: fields.follow_up_type || "",
-    follow_up_number: fields.follow_up_number || "",
-    preferred_tone: fields.preferred_tone || "",
-    medium: normalizeMedium(fields.medium || "Email"),
+    last_contact: fields.last_contact || "1_week",
+    follow_up_type: fields.follow_up_type || "job_application",
+    follow_up_number: fields.follow_up_number || "first_follow_up",
+    preferred_tone: fields.preferred_tone || "professional",
+    medium: fields.medium || "email",
     extra_detail: "",
   };
 }
@@ -140,8 +111,8 @@ function buildDifficultEmailRequest(fields) {
   return {
     what_to_communicate: fields.what_to_communicate || "",
     draft: fields.draft || "",
-    situation: fields.situation || "",
-    relationship: mapRelationship(fields.relationship),
+    situation: fields.situation || "giving_bad_news",
+    relationship: fields.relationship || "client",
     sensitivity: fields.sensitivity || "medium",
     context: "",
   };
@@ -150,19 +121,17 @@ function buildDifficultEmailRequest(fields) {
 function buildIntentRequest(fields) {
   return {
     message: fields.message || "",
-    relationship: mapRelationship(fields.relationship),
-    channel: (fields.channel || "email").toLowerCase(),
+    relationship: fields.relationship || "colleague",
+    channel: fields.channel || "email",
     background: fields.background || "",
   };
 }
 
-// ── Unified normaliser (now unwraps the `data` property) ──────────────────
+// ── Unified normaliser (unchanged, already works) ──────────────────────────
 function normalizeToolResponse(raw, toolId) {
-  // The backend wraps the actual content inside a `data` property
   const data = raw.data || raw;
   console.log(`🔍 Raw ${toolId} response (unwrapped):`, data);
 
-  // Special case: tone and intent use a different result shape (no variants)
   if (toolId === "tone") {
     return {
       primary_tone: data.tone || "",
@@ -194,12 +163,10 @@ function normalizeToolResponse(raw, toolId) {
     };
   }
 
-  // For all other tools, build a `replies` object
   const replies = {};
   const insights = {};
   let tip = "";
 
-  // ---- REPLY GENERATOR ----
   if (toolId === "replies" && Array.isArray(data.replies)) {
     data.replies.forEach((r) => {
       const key = capitalize(r.variant);
@@ -207,24 +174,18 @@ function normalizeToolResponse(raw, toolId) {
       insights[key] = r.insight || "";
     });
     tip = data.tone_receipt?.risk_note || "";
-  }
-
-  // ---- BOUNDARY BUILDER ----
-  else if (toolId === "boundary") {
+  } else if (toolId === "boundary") {
     const stmt = data.boundary_statement || {};
     ["firm", "gentle", "final"].forEach((v) => {
       const item = stmt[v];
       if (item) {
-        const key = capitalize(v); // "Firm", "Gentle", "Final"
+        const key = capitalize(v);
         replies[key] = item.text || "";
         insights[key] = item.insight || "";
       }
     });
     tip = data.power_note || data.what_to_avoid || "";
-  }
-
-  // ---- NEGOTIATION ----
-  else if (toolId === "negotiation") {
+  } else if (toolId === "negotiation") {
     const repliesObj = data.replies || {};
     if (Object.keys(repliesObj).length) {
       Object.entries(repliesObj).forEach(([k, v]) => {
@@ -243,10 +204,7 @@ function normalizeToolResponse(raw, toolId) {
       });
     }
     tip = data.negotiation_insight || data.strategic_insights || data.tip || "";
-  }
-
-  // ---- FOLLOW‑UP ----
-  else if (toolId === "followup" && data.messages) {
+  } else if (toolId === "followup" && data.messages) {
     if (data.messages.standard) {
       replies["Standard"] = data.messages.standard.text || "";
       insights["Standard"] = data.messages.standard.insight || "";
@@ -256,10 +214,7 @@ function normalizeToolResponse(raw, toolId) {
       insights["Shorter"] = data.messages.shorter.insight || "";
     }
     tip = data.timing_note || data.response_tip || data.what_to_avoid || "";
-  }
-
-  // ---- DIFFICULT EMAIL ----
-  else if (toolId === "difficultEmail" && data.emails) {
+  } else if (toolId === "difficultEmail" && data.emails) {
     if (data.emails.safe) {
       replies["Safe"] = data.emails.safe.body || "";
       insights["Safe"] = data.emails.safe.insight || "";
@@ -271,7 +226,6 @@ function normalizeToolResponse(raw, toolId) {
     tip = data.safety_note || data.what_to_avoid || "";
   }
 
-  // Fallback: if we still have no replies, try to extract any object with .text
   if (
     Object.keys(replies).length === 0 &&
     data.replies &&
@@ -305,12 +259,10 @@ export const generateApi = {
     );
     return normalizeToolResponse(data, "replies");
   },
-
   tone: async (fields) => {
     const { data } = await api.post("/generate/tone", buildToneRequest(fields));
     return normalizeToolResponse(data, "tone");
   },
-
   boundary: async (fields) => {
     const { data } = await api.post(
       "/generate/boundary",
@@ -318,7 +270,6 @@ export const generateApi = {
     );
     return normalizeToolResponse(data, "boundary");
   },
-
   negotiation: async (fields) => {
     const { data } = await api.post(
       "/generate/negotiation",
@@ -326,7 +277,6 @@ export const generateApi = {
     );
     return normalizeToolResponse(data, "negotiation");
   },
-
   followup: async (fields) => {
     const { data } = await api.post(
       "/generate/followup",
@@ -334,7 +284,6 @@ export const generateApi = {
     );
     return normalizeToolResponse(data, "followup");
   },
-
   difficultEmail: async (fields) => {
     const { data } = await api.post(
       "/generate/difficult-email",
@@ -342,7 +291,6 @@ export const generateApi = {
     );
     return normalizeToolResponse(data, "difficultEmail");
   },
-
   intent: async (fields) => {
     const { data } = await api.post(
       "/generate/intent",
