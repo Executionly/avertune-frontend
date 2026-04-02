@@ -59,11 +59,12 @@ const PLANS = [
     badge: "Most Popular",
     cta: "Upgrade to Daily",
     ctaStyle: "teal",
-    repliesNote: null,
+    repliesNote: "900 replies/month (~30/day typical use)", // Fixed: added missing repliesNote
     tagline:
       "Built for high-stakes conversations where tone, clarity, and outcome matter.",
     weeklyNote: "Weekly Pass · billed every 7 days · 210 replies/week",
     features: [
+      { text: "900 replies/month (~30/day)", included: true },
       { text: "All conversation packs", included: true },
       { text: "Tone insights and strategy analysis", included: true },
       { text: "Share receipts (watermarked)", included: true },
@@ -108,8 +109,8 @@ const PLANS = [
 
 const TOPUPS = [
   { replies: 200, price: 4.99 },
-  { replies: 500, price: 9.99 },
-  { replies: 1000, price: 17.99 },
+  { replies: 500, price: 11.99 },
+  { replies: 1000, price: 19.99 },
 ];
 
 const FAQS = [
@@ -327,20 +328,24 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
         )}
       </div>
 
-      {/* Replies highlight */}
-      <p
-        style={{
-          fontSize: 13,
-          fontWeight: 700,
-          color: isPopular ? plan.color : "var(--ink)",
-          marginBottom: 6,
-        }}
-      >
-        {plan.repliesNote.split("(")[0].trim()}
-      </p>
-      <p style={{ fontSize: 12, color: "var(--ink-4)", marginBottom: 14 }}>
-        ({plan.repliesNote.split("(")[1]?.replace(")", "") || ""})
-      </p>
+      {/* Replies highlight - only if repliesNote exists */}
+      {plan.repliesNote && (
+        <>
+          <p
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: isPopular ? plan.color : "var(--ink)",
+              marginBottom: 6,
+            }}
+          >
+            {plan.repliesNote.split("(")[0].trim()}
+          </p>
+          <p style={{ fontSize: 12, color: "var(--ink-4)", marginBottom: 14 }}>
+            ({plan.repliesNote.split("(")[1]?.replace(")", "") || ""})
+          </p>
+        </>
+      )}
 
       {/* Tagline */}
       <p
