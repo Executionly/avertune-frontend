@@ -2065,7 +2065,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                       color: "var(--ink-4)",
                     }}
                   >
-                    {(fields[f.id] || "").length} charset
+                    {(fields[f.id] || "").length} chars
                   </span>
                 </div>
                 <textarea
