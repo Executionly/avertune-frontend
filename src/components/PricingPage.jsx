@@ -59,7 +59,7 @@ const PLANS = [
     badge: "Most Popular",
     cta: "Upgrade to Daily",
     ctaStyle: "teal",
-    repliesNote: "900 replies/month (~30/day typical use)", // Fixed: added missing repliesNote
+    repliesNote: null, // Fixed: added missing repliesNote
     tagline:
       "Built for high-stakes conversations where tone, clarity, and outcome matter.",
     weeklyNote: "Weekly Pass · billed every 7 days · 210 replies/week",
