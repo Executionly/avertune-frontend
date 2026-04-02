@@ -1188,13 +1188,20 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
               >
                 {activeVariant} reply
               </p>
-              <p style={{ fontSize: 12.5, color: "#F4F4F6", lineHeight: 1.65 }}>
+              <div
+                style={{
+                  fontSize: 12.5,
+                  color: "#F4F4F6",
+                  lineHeight: 1.65,
+                  whiteSpace: "pre-wrap",
+                }}
+              >
                 "
                 {replyText.length > 200
                   ? replyText.slice(0, 197) + "…"
                   : replyText}
                 "
-              </p>
+              </div>
             </div>
           )}
 
@@ -1490,16 +1497,17 @@ function VariantPanel({
                       {descriptors[v]}
                     </p>
                   )}
-                  <p
+                  <div
                     style={{
                       fontSize: 15.5,
                       color: "var(--ink)",
                       lineHeight: 1.8,
                       marginBottom: 14,
+                      whiteSpace: "pre-wrap",
                     }}
                   >
                     {text}
-                  </p>
+                  </div>
                   {insights?.[v] && (
                     <div
                       style={{
@@ -2551,9 +2559,12 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
               {/* ── REPLY GENERATOR ── */}
               {tool.id === "reply-generator" && (
                 <div style={{ marginBottom: 16 }}>
-                  {/* Optionally show tone_receipt, quality_score, etc. here */}
                   <VariantPanel
-                    variants={tool.outputVariants}
+                    variants={
+                      tool.outputVariants && tool.outputVariants.length
+                        ? tool.outputVariants
+                        : Object.keys(result.replies || {})
+                    }
                     replies={result.replies}
                     activeTab={activeTab}
                     setActiveTab={(v) => setActiveTab(v)}
@@ -2733,7 +2744,11 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     </div>
                   )}
                   <VariantPanel
-                    variants={tool.outputVariants}
+                    variants={
+                      tool.outputVariants && tool.outputVariants.length
+                        ? tool.outputVariants
+                        : Object.keys(result.replies || {})
+                    }
                     replies={result.replies}
                     activeTab={activeTab}
                     setActiveTab={(v) => setActiveTab(v)}
@@ -2820,7 +2835,11 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     </div>
                   )}
                   <VariantPanel
-                    variants={tool.outputVariants}
+                    variants={
+                      tool.outputVariants && tool.outputVariants.length
+                        ? tool.outputVariants
+                        : Object.keys(result.replies || {})
+                    }
                     replies={result.replies}
                     activeTab={activeTab}
                     setActiveTab={(v) => setActiveTab(v)}
@@ -2836,7 +2855,11 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
               {tool.id === "follow-up-writer" && (
                 <div style={{ marginBottom: 16 }}>
                   <VariantPanel
-                    variants={tool.outputVariants}
+                    variants={
+                      tool.outputVariants && tool.outputVariants.length
+                        ? tool.outputVariants
+                        : Object.keys(result.replies || {})
+                    }
                     replies={result.replies}
                     activeTab={activeTab}
                     setActiveTab={(v) => setActiveTab(v)}
@@ -2877,7 +2900,11 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
               {tool.id === "difficult-email" && (
                 <div style={{ marginBottom: 16 }}>
                   <VariantPanel
-                    variants={tool.outputVariants}
+                    variants={
+                      tool.outputVariants && tool.outputVariants.length
+                        ? tool.outputVariants
+                        : Object.keys(result.replies || {})
+                    }
                     replies={result.replies}
                     activeTab={activeTab}
                     setActiveTab={(v) => setActiveTab(v)}
