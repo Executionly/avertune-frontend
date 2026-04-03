@@ -766,6 +766,12 @@ function PaywallModal({ onClose, onSignup }) {
   );
 }
 
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../AuthContext.jsx";
+import { useMySubscription } from "../lib/useSubscription.jsx";
+import { Sparkles, ArrowRight } from "lucide-react";
+
 /* ── Try It Section ── */
 function TryItSection({ onSignup }) {
   const { user } = useAuth();
@@ -782,6 +788,8 @@ function TryItSection({ onSignup }) {
     if (!msg.trim()) return;
 
     if (!user) {
+      // Store message in sessionStorage before redirecting to login
+      sessionStorage.setItem("pendingMessage", msg);
       navigate("/login");
       return;
     }
