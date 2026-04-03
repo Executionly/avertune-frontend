@@ -1655,18 +1655,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const mainText = fields[firstRequiredTextarea?.id] || "";
   const charCount = mainText.length;
 
-  // Pre‑fill message from "Try it" section
-  useEffect(() => {
-    const prefillMessage = location.state?.message;
-    if (prefillMessage && tool.id === "reply-generator") {
-      const messageField = tool.fields.find((f) => f.id === "message");
-      if (messageField && charCount === 0) {
-        setFields((prev) => ({ ...prev, message: prefillMessage }));
-      }
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state, tool.id]);
-
+  // Reset fields when tool changes
   useEffect(() => {
     setFields({});
     setResult(null);
@@ -1676,6 +1665,36 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
     setShowShare(false);
     setShowPackModal(false);
   }, [tool.id]);
+
+  // Pre‑fill message from sessionStorage (after login)
+  useEffect(() => {
+    const pendingMessage = sessionStorage.getItem("pendingMessage");
+    if (pendingMessage && tool.id === "reply-generator") {
+      const messageField = tool.fields.find((f) => f.id === "message");
+      if (messageField) {
+        setFields((prev) => ({ ...prev, message: pendingMessage }));
+        sessionStorage.removeItem("pendingMessage");
+      }
+    }
+  }, [tool.id]);
+
+  // Pre‑fill message from navigation state (already logged in)
+  const hasPrefilled = useRef(false);
+  useEffect(() => {
+    const prefillMessage = location.state?.message;
+    if (
+      prefillMessage &&
+      tool.id === "reply-generator" &&
+      !hasPrefilled.current
+    ) {
+      const messageField = tool.fields.find((f) => f.id === "message");
+      if (messageField) {
+        setFields((prev) => ({ ...prev, message: prefillMessage }));
+        hasPrefilled.current = true;
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, tool.id]);
 
   function setField(id, val) {
     if (id === firstRequiredTextarea?.id) {

@@ -782,6 +782,8 @@ function TryItSection({ onSignup }) {
     if (!msg.trim()) return;
 
     if (!user) {
+      // Store message in sessionStorage before redirecting to login
+      sessionStorage.setItem("pendingMessage", msg);
       navigate("/login");
       return;
     }
