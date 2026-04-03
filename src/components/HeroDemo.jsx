@@ -8,6 +8,9 @@ import {
   X,
   Sparkles,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../AuthContext.jsx";
+import { useMySubscription } from "../lib/useSubscription.js";
 
 const DEMOS = [
   {
@@ -765,456 +768,232 @@ function PaywallModal({ onClose, onSignup }) {
 
 /* ── Try It Section ── */
 function TryItSection({ onSignup }) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { data: subscription } = useMySubscription();
   const [msg, setMsg] = useState("");
-  const [phase, setPhase] = useState("idle");
-  const [result, setResult] = useState(null);
-  const [showPaywall, setShowPaywall] = useState(false);
-  const MAX = 600;
 
-  async function analyze() {
-    if (!msg.trim() || phase === "analyzing") return;
-    setPhase("analyzing");
-    setResult(null);
-    try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 220,
-          messages: [
-            {
-              role: "user",
-              content: `Analyze this message. Return ONLY valid JSON, no markdown:\n{"tone":"<1-2 words>","risk":"<brief>","intent":"<brief>","strategy":"<one sentence>"}\n\nMessage: "${msg.trim()}"`,
-            },
-          ],
-        }),
-      });
-      const data = await res.json();
-      const raw = data.content?.find((b) => b.type === "text")?.text || "{}";
-      setResult(JSON.parse(raw.replace(/```json|```/g, "").trim()));
-      setPhase("done");
-    } catch {
-      setPhase("idle");
+  // Get character limit from backend (reply_generator) or fallback to 600
+  const charLimit = user
+    ? subscription?.character_limits?.reply_generator || 2000
+    : 600;
+
+  const handleGenerate = () => {
+    if (!msg.trim()) return;
+
+    if (!user) {
+      navigate("/login");
+      return;
     }
-  }
+
+    navigate("/tool/reply-generator", { state: { message: msg } });
+  };
 
   return (
-    <>
-      {showPaywall && (
-        <PaywallModal
-          onClose={() => setShowPaywall(false)}
-          onSignup={() => {
-            setShowPaywall(false);
-            onSignup();
+    <section
+      id="try"
+      style={{ padding: "clamp(64px,8vw,96px) 0", background: "var(--bg2)" }}
+    >
+      <div className="container">
+        <div
+          style={{
+            textAlign: "center",
+            marginBottom: "clamp(32px,4vw,48px)",
           }}
-        />
-      )}
-      <section
-        id="try"
-        style={{ padding: "clamp(64px,8vw,96px) 0", background: "var(--bg2)" }}
-      >
-        <div className="container">
+        >
           <div
             style={{
-              textAlign: "center",
-              marginBottom: "clamp(32px,4vw,48px)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              padding: "5px 16px",
+              borderRadius: 999,
+              background: "rgba(34,197,94,0.08)",
+              border: "1px solid rgba(34,197,94,0.22)",
+              marginBottom: 18,
+            }}
+          >
+            <Sparkles size={13} color="var(--green)" />
+            <span
+              style={{ fontSize: 13, fontWeight: 700, color: "var(--green)" }}
+            >
+              Try it right now — free
+            </span>
+          </div>
+          <h2
+            style={{
+              fontSize: "clamp(28px,4.5vw,52px)",
+              fontWeight: 800,
+              letterSpacing: "-0.04em",
+              lineHeight: 1.05,
+              marginBottom: 14,
+            }}
+          >
+            Paste any message.
+            <br />
+            Get an instant read.
+          </h2>
+          <p
+            style={{
+              fontSize: "clamp(14px,1.8vw,17px)",
+              color: "var(--ink-3)",
+              lineHeight: 1.65,
+              maxWidth: 520,
+              margin: "0 auto",
+            }}
+          >
+            Drop in an email, text, or DM you've been hesitating on. We'll break
+            down the tone, risk, and intent in seconds — completely free.
+          </p>
+        </div>
+
+        <div style={{ maxWidth: 800, margin: "0 auto" }}>
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "2px solid var(--border2)",
+              borderRadius: 24,
+              overflow: "hidden",
+              boxShadow: "0 20px 80px rgba(0,0,0,0.22)",
             }}
           >
             <div
               style={{
-                display: "inline-flex",
+                padding: "18px 24px 0",
+                display: "flex",
                 alignItems: "center",
-                gap: 7,
-                padding: "5px 16px",
-                borderRadius: 999,
-                background: "rgba(34,197,94,0.08)",
-                border: "1px solid rgba(34,197,94,0.22)",
-                marginBottom: 18,
+                justifyContent: "space-between",
               }}
             >
-              <Sparkles size={13} color="var(--green)" />
-              <span
-                style={{ fontSize: 13, fontWeight: 700, color: "var(--green)" }}
-              >
-                Try it right now — free
-              </span>
-            </div>
-            <h2
-              style={{
-                fontSize: "clamp(28px,4.5vw,52px)",
-                fontWeight: 800,
-                letterSpacing: "-0.04em",
-                lineHeight: 1.05,
-                marginBottom: 14,
-              }}
-            >
-              Paste any message.
-              <br />
-              Get an instant read.
-            </h2>
-            <p
-              style={{
-                fontSize: "clamp(14px,1.8vw,17px)",
-                color: "var(--ink-3)",
-                lineHeight: 1.65,
-                maxWidth: 520,
-                margin: "0 auto",
-              }}
-            >
-              Drop in an email, text, or DM you've been hesitating on. We'll
-              break down the tone, risk, and intent in seconds — completely
-              free.
-            </p>
-          </div>
-
-          <div style={{ maxWidth: 800, margin: "0 auto" }}>
-            <div
-              style={{
-                background: "var(--surface)",
-                border: "2px solid var(--border2)",
-                borderRadius: 24,
-                overflow: "hidden",
-                boxShadow: "0 20px 80px rgba(0,0,0,0.22)",
-              }}
-            >
-              <div
-                style={{
-                  padding: "18px 24px 0",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: "var(--green)",
-                      boxShadow: "0 0 8px var(--green)",
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: "var(--ink-2)",
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    Paste the message you received
-                  </span>
-                </div>
-                {msg && (
-                  <button
-                    onClick={() => {
-                      setMsg("");
-                      setPhase("idle");
-                      setResult(null);
-                    }}
-                    style={{
-                      fontSize: 12,
-                      color: "var(--ink-4)",
-                      cursor: "pointer",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.color = "var(--ink-2)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.color = "var(--ink-4)")
-                    }
-                  >
-                    Clear ✕
-                  </button>
-                )}
-              </div>
-              <textarea
-                value={msg}
-                onChange={(e) => {
-                  if (e.target.value.length <= MAX) {
-                    setMsg(e.target.value);
-                    if (phase === "done") {
-                      setPhase("idle");
-                      setResult(null);
-                    }
-                  }
-                }}
-                placeholder={
-                  "e.g. \"Why haven't you responded? I need this today.\"\n\nAny email, text, or DM you're unsure how to reply to…"
-                }
-                rows={7}
-                style={{
-                  width: "100%",
-                  padding: "16px 24px 12px",
-                  fontSize: "clamp(15px,1.9vw,17px)",
-                  lineHeight: 1.7,
-                  color: "var(--ink)",
-                  background: "transparent",
-                  border: "none",
-                  caretColor: "var(--green)",
-                  fontFamily: "inherit",
-                }}
-              />
-              <div
-                style={{
-                  padding: "10px 20px 20px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  flexWrap: "wrap",
-                  borderTop: "1px solid var(--border)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      height: 4,
-                      width: 100,
-                      borderRadius: 2,
-                      background: "var(--surface3)",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: "100%",
-                        borderRadius: 2,
-                        width: `${(msg.length / MAX) * 100}%`,
-                        background:
-                          msg.length > MAX * 0.85 ? "#f59e0b" : "var(--green)",
-                        transition: "width .2s, background .3s",
-                      }}
-                    />
-                  </div>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: "var(--ink-4)",
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    {msg.length}/{MAX}
-                  </span>
-                </div>
-                <button
-                  onClick={analyze}
-                  disabled={!msg.trim() || phase === "analyzing"}
-                  className="btn-green"
-                  style={{
-                    padding: "clamp(11px,1.5vw,14px) clamp(24px,3vw,36px)",
-                    borderRadius: 12,
-                    fontSize: "clamp(14px,1.6vw,16px)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    opacity: !msg.trim() || phase === "analyzing" ? 0.45 : 1,
-                    cursor:
-                      !msg.trim() || phase === "analyzing"
-                        ? "not-allowed"
-                        : "pointer",
-                  }}
-                >
-                  {phase === "analyzing" ? (
-                    <>
-                      <div
-                        style={{
-                          width: 15,
-                          height: 15,
-                          border: "2px solid rgba(0,0,0,0.25)",
-                          borderTopColor: "#000",
-                          borderRadius: "50%",
-                          animation: "spin 0.7s linear infinite",
-                        }}
-                      />
-                      Analyzing…
-                    </>
-                  ) : (
-                    <>
-                      Analyze Message <ArrowRight size={16} />
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {phase === "done" && result && (
-              <div
-                style={{
-                  marginTop: 14,
-                  animation: "fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both",
-                }}
-              >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div
                   style={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border2)",
-                    borderRadius: 16,
-                    overflow: "hidden",
-                    marginBottom: 10,
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: "var(--green)",
+                    boxShadow: "0 0 8px var(--green)",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "var(--ink-2)",
+                    letterSpacing: "-0.01em",
                   }}
                 >
-                  {[
-                    { label: "Tone", val: result.tone, color: "var(--blue)" },
-                    { label: "Risk", val: result.risk, color: "var(--teal)" },
-                    {
-                      label: "Intent",
-                      val: result.intent,
-                      color: "var(--green)",
-                    },
-                    {
-                      label: "Strategy",
-                      val: result.strategy,
-                      color: "var(--ink-2)",
-                    },
-                  ].map((r, i, arr) => (
-                    <div
-                      key={r.label}
-                      style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: 20,
-                        padding:
-                          "clamp(12px,1.5vw,15px) clamp(18px,2.5vw,24px)",
-                        borderBottom:
-                          i < arr.length - 1
-                            ? "1px solid var(--border)"
-                            : "none",
-                      }}
-                    >
-                      <span
-                        style={{
-                          minWidth: 68,
-                          fontSize: 11.5,
-                          fontWeight: 700,
-                          color: "var(--ink-3)",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.07em",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {r.label}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "clamp(14px,1.7vw,16px)",
-                          fontWeight: 600,
-                          color: r.color,
-                        }}
-                      >
-                        {r.val}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ position: "relative" }}>
-                  <div
-                    style={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border2)",
-                      borderRadius: 16,
-                      overflow: "hidden",
-                      filter: "blur(5px)",
-                      userSelect: "none",
-                      pointerEvents: "none",
-                    }}
-                  >
-                    {["Balanced", "Firm", "Warm", "Delay"].map((label, i) => (
-                      <div
-                        key={label}
-                        style={{
-                          padding: "13px 20px",
-                          borderBottom:
-                            i < 3 ? "1px solid var(--border)" : "none",
-                          background:
-                            i === 0 ? "rgba(34,197,94,0.05)" : "transparent",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: "var(--green)",
-                            marginBottom: 5,
-                          }}
-                        >
-                          {label}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 14,
-                            color: "var(--ink-2)",
-                            lineHeight: 1.6,
-                          }}
-                        >
-                          Your personalized {label.toLowerCase()} reply will
-                          appear here after you create your free account.
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      borderRadius: 16,
-                      background:
-                        "linear-gradient(to bottom,rgba(15,15,18,0.55),rgba(15,15,18,0.82))",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 14,
-                      padding: 24,
-                    }}
-                  >
-                    <Lock size={22} color="var(--green)" />
-                    <p
-                      style={{
-                        fontSize: "clamp(14px,1.7vw,16px)",
-                        color: "var(--ink)",
-                        fontWeight: 600,
-                        textAlign: "center",
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      Your analysis is ready.
-                      <br />
-                      <span
-                        style={{
-                          color: "var(--ink-3)",
-                          fontWeight: 400,
-                          fontSize: "0.9em",
-                        }}
-                      >
-                        Create a free account to unlock all 4 reply options.
-                      </span>
-                    </p>
-                    <button
-                      onClick={() => setShowPaywall(true)}
-                      className="btn-green"
-                      style={{
-                        padding:
-                          "clamp(10px,1.4vw,13px) clamp(26px,3.5vw,36px)",
-                        borderRadius: 12,
-                        fontSize: "clamp(14px,1.6vw,16px)",
-                      }}
-                    >
-                      Get My Replies — Free →
-                    </button>
-                    <span style={{ fontSize: 12.5, color: "var(--ink-4)" }}>
-                      7-day trial · No credit card needed
-                    </span>
-                  </div>
-                </div>
+                  Paste the message you received
+                </span>
               </div>
-            )}
+              {msg && (
+                <button
+                  onClick={() => setMsg("")}
+                  style={{
+                    fontSize: 12,
+                    color: "var(--ink-4)",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.color = "var(--ink-2)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.color = "var(--ink-4)")
+                  }
+                >
+                  Clear ✕
+                </button>
+              )}
+            </div>
+            <textarea
+              value={msg}
+              onChange={(e) => {
+                if (e.target.value.length <= charLimit) {
+                  setMsg(e.target.value);
+                }
+              }}
+              placeholder={
+                "e.g. \"Why haven't you responded? I need this today.\"\n\nAny email, text, or DM you're unsure how to reply to…"
+              }
+              rows={7}
+              style={{
+                width: "100%",
+                padding: "16px 24px 12px",
+                fontSize: "clamp(15px,1.9vw,17px)",
+                lineHeight: 1.7,
+                color: "var(--ink)",
+                background: "transparent",
+                border: "none",
+                caretColor: "var(--green)",
+                fontFamily: "inherit",
+              }}
+            />
+            <div
+              style={{
+                padding: "10px 20px 20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
+                borderTop: "1px solid var(--border)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    height: 4,
+                    width: 100,
+                    borderRadius: 2,
+                    background: "var(--surface3)",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      height: "100%",
+                      borderRadius: 2,
+                      width: `${(msg.length / charLimit) * 100}%`,
+                      background:
+                        msg.length > charLimit * 0.85
+                          ? "#f59e0b"
+                          : "var(--green)",
+                      transition: "width .2s, background .3s",
+                    }}
+                  />
+                </div>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "var(--ink-4)",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  {msg.length}/{charLimit} chars
+                </span>
+              </div>
+              <button
+                onClick={handleGenerate}
+                disabled={!msg.trim()}
+                className="btn-green"
+                style={{
+                  padding: "clamp(11px,1.5vw,14px) clamp(24px,3vw,36px)",
+                  borderRadius: 12,
+                  fontSize: "clamp(14px,1.6vw,16px)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  opacity: !msg.trim() ? 0.45 : 1,
+                  cursor: !msg.trim() ? "not-allowed" : "pointer",
+                }}
+              >
+                Generate
+              </button>
+            </div>
           </div>
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }
 

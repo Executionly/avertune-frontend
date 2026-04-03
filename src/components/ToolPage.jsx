@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../AuthContext.jsx";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { generateApi } from "../lib/generateApi.js";
 import { PACKS } from "../lib/packData.js";
 import { useToast } from "../lib/Toast.jsx";
@@ -753,13 +753,10 @@ function PackModal({ value, onChange, onClose, userPlan }) {
 }
 
 /* ─────────────────────────────── Share Modal ─────────────────────────── */
-
 function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
   const cardRef = useRef();
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
-
-  // Show watermark only if the plan has share_receipt_watermark === true
   const showWatermark =
     subscription?.features?.share_receipt_watermark === true;
 
@@ -965,7 +962,6 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
         >
           <X size={17} />
         </button>
-
         <p
           style={{
             fontSize: 11,
@@ -978,7 +974,6 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
         >
           Your insight card
         </p>
-
         <div
           ref={cardRef}
           style={{
@@ -1015,7 +1010,6 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
               pointerEvents: "none",
             }}
           />
-
           <div
             style={{
               display: "flex",
@@ -1077,7 +1071,6 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
               </span>
             </div>
           </div>
-
           <div
             style={{
               display: "grid",
@@ -1137,7 +1130,6 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
               </div>
             ))}
           </div>
-
           {stratText && (
             <div
               style={{
@@ -1165,7 +1157,6 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
               </p>
             </div>
           )}
-
           {replyText && (
             <div
               style={{
@@ -1204,8 +1195,6 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
               </div>
             </div>
           )}
-
-          {/* Watermark footer – company logo + name + website */}
           {showWatermark && (
             <div
               style={{
@@ -1247,7 +1236,6 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
             </div>
           )}
         </div>
-
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           <button
             onClick={copyImage}
@@ -1258,7 +1246,6 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
               border: `1px solid ${copied ? "rgba(34,197,94,0.3)" : "var(--border2)"}`,
               background: copied ? "rgba(34,197,94,0.07)" : "transparent",
               color: copied ? "var(--green)" : "var(--ink-2)",
-              fontFamily: "inherit",
               fontWeight: 600,
               fontSize: 13,
               cursor: "pointer",
@@ -1282,7 +1269,6 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
               border: "1px solid var(--border2)",
               background: "transparent",
               color: "var(--ink-2)",
-              fontFamily: "inherit",
               fontWeight: 600,
               fontSize: 13,
               cursor: downloading ? "wait" : "pointer",
@@ -1304,11 +1290,9 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
               e.currentTarget.style.color = "var(--ink-2)";
             }}
           >
-            <Download size={13} />
-            {downloading ? "Saving…" : "Download"}
+            <Download size={13} /> {downloading ? "Saving…" : "Download"}
           </button>
         </div>
-
         <p
           style={{
             fontSize: 11,
@@ -1346,8 +1330,7 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
               onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
               onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
-              <p.icon />
-              {p.label}
+              <p.icon /> {p.label}
             </button>
           ))}
         </div>
@@ -1493,7 +1476,7 @@ function VariantPanel({
                           background: c,
                           flexShrink: 0,
                         }}
-                      />
+                      />{" "}
                       {descriptors[v]}
                     </p>
                   )}
@@ -1644,6 +1627,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const toast = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: subscription } = useMySubscription();
 
   const displayName = user?.full_name || user?.email?.split("@")[0] || "User";
@@ -1666,10 +1650,22 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   );
   const optionFields = tool.fields.filter((f) => f.type !== "textarea");
 
-  // Word limit
-  const wordLimit = subscription?.word_limits?.[tool.limitKey] || 2000;
+  // Character limit (replacing word limit)
+  const charLimit = subscription?.character_limits?.[tool.limitKey] || 2000;
   const mainText = fields[firstRequiredTextarea?.id] || "";
-  const wordCount = mainText.trim().split(/\s+/).filter(Boolean).length;
+  const charCount = mainText.length;
+
+  // Pre‑fill message from "Try it" section
+  useEffect(() => {
+    const prefillMessage = location.state?.message;
+    if (prefillMessage && tool.id === "reply-generator") {
+      const messageField = tool.fields.find((f) => f.id === "message");
+      if (messageField && charCount === 0) {
+        setFields((prev) => ({ ...prev, message: prefillMessage }));
+      }
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, tool.id]);
 
   useEffect(() => {
     setFields({});
@@ -1683,9 +1679,8 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
 
   function setField(id, val) {
     if (id === firstRequiredTextarea?.id) {
-      const newWordCount = val.trim().split(/\s+/).filter(Boolean).length;
-      if (newWordCount > wordLimit) {
-        toast.warning(`Word limit exceeded (max ${wordLimit} words).`);
+      if (val.length > charLimit) {
+        toast.warning(`Character limit exceeded (max ${charLimit} chars).`);
         return;
       }
     }
@@ -1697,7 +1692,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
       .filter((f) => f.required)
       .every((f) => (fields[f.id] || "").trim().length > 0);
     if (!requiredOk) return false;
-    if (firstRequiredTextarea && wordCount > wordLimit) return false;
+    if (firstRequiredTextarea && charCount > charLimit) return false;
     return true;
   }
 
@@ -1751,9 +1746,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
         err?.response?.data?.error ||
         err?.message ||
         "Something went wrong. Please try again.";
-
       setPhase("error");
-
       if (status === 401) {
         setErrorMessage("Your session has expired. Please sign in again.");
         toast.error("Session expired — please sign in again.");
@@ -1801,9 +1794,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
           subscription={subscription}
         />
       )}
-
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
-
       <main
         className="main-content tool-main"
         style={{ flex: 1, marginLeft: 240, minWidth: 0 }}
@@ -1842,14 +1833,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
               >
                 <Menu size={21} />
               </button>
-              <style>{`
-                @media (max-width: 900px) {
-                  .tool-hamburger {
-                    display: flex !important;
-                  }
-                }
-              `}</style>
-
+              <style>{`@media (max-width: 900px) { .tool-hamburger { display: flex !important; } }`}</style>
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                 <div
                   style={{
@@ -1905,7 +1889,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
             )}
           </div>
         </header>
-
         <div
           style={{
             padding: "clamp(24px,4vw,48px) clamp(16px,4vw,48px)",
@@ -2026,16 +2009,16 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                   </span>
                   <div style={{ display: "flex", gap: 12, marginLeft: "auto" }}>
                     <span style={{ fontSize: 11.5, color: "var(--ink-4)" }}>
-                      {(fields[firstRequiredTextarea.id] || "").length} chars
+                      {charCount} chars
                     </span>
                     <span
                       style={{
                         fontSize: 11.5,
                         color:
-                          wordCount > wordLimit ? "#ef4444" : "var(--ink-4)",
+                          charCount > charLimit ? "#ef4444" : "var(--ink-4)",
                       }}
                     >
-                      {wordCount}/{wordLimit} words
+                      {charCount}/{charLimit} chars
                     </span>
                   </div>
                 </div>
@@ -2060,7 +2043,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                   }}
                 />
               </div>
-              {wordCount > wordLimit && (
+              {charCount > charLimit && (
                 <p
                   style={{
                     color: "#ef4444",
@@ -2069,8 +2052,8 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     textAlign: "center",
                   }}
                 >
-                  Word limit exceeded ({wordLimit} words maximum). Please
-                  shorten your message.
+                  Character limit exceeded ({charLimit} characters maximum).
+                  Please shorten your message.
                 </p>
               )}
             </div>
@@ -2210,34 +2193,32 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                       }}
                     >
                       {ps && pack ? (
-                        <>
-                          <div style={{ minWidth: 0 }}>
-                            <p
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                color: pack.color,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.07em",
-                                marginBottom: 2,
-                              }}
-                            >
-                              {ps.packLabel}
-                            </p>
-                            <p
-                              style={{
-                                fontSize: 13.5,
-                                fontWeight: 600,
-                                color: "var(--ink)",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {ps.scenarioLabel}
-                            </p>
-                          </div>
-                        </>
+                        <div style={{ minWidth: 0 }}>
+                          <p
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: pack.color,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.07em",
+                              marginBottom: 2,
+                            }}
+                          >
+                            {ps.packLabel}
+                          </p>
+                          <p
+                            style={{
+                              fontSize: 13.5,
+                              fontWeight: 600,
+                              color: "var(--ink)",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {ps.scenarioLabel}
+                          </p>
+                        </div>
                       ) : (
                         <>
                           <div
@@ -2385,13 +2366,12 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                       borderRadius: "50%",
                       animation: "spin .7s linear infinite",
                     }}
-                  />
+                  />{" "}
                   Generating…
                 </>
               ) : (
                 <>
-                  <Zap size={18} />
-                  Generate with Avertune
+                  <Zap size={18} /> Generate with Avertune
                 </>
               )}
             </button>
@@ -2556,7 +2536,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                 animation: "fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both",
               }}
             >
-              {/* ── REPLY GENERATOR ── */}
               {tool.id === "reply-generator" && (
                 <div style={{ marginBottom: 16 }}>
                   <VariantPanel
@@ -2575,8 +2554,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                   />
                 </div>
               )}
-
-              {/* ── TONE CHECKER ── */}
               {tool.id === "tone-checker" && (
                 <div style={{ marginBottom: 16 }}>
                   <div
@@ -2715,8 +2692,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                   </div>
                 </div>
               )}
-
-              {/* ── BOUNDARY BUILDER ── */}
               {tool.id === "boundary-builder" && (
                 <div style={{ marginBottom: 16 }}>
                   {result.situation_read && (
@@ -2782,8 +2757,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                   )}
                 </div>
               )}
-
-              {/* ── NEGOTIATION ── */}
               {tool.id === "negotiation-reply" && (
                 <div style={{ marginBottom: 16 }}>
                   {result.situation_read && (
@@ -2850,8 +2823,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                   />
                 </div>
               )}
-
-              {/* ── FOLLOW‑UP WRITER ── */}
               {tool.id === "follow-up-writer" && (
                 <div style={{ marginBottom: 16 }}>
                   <VariantPanel
@@ -2895,8 +2866,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     )}
                 </div>
               )}
-
-              {/* ── DIFFICULT EMAIL ── */}
               {tool.id === "difficult-email" && (
                 <div style={{ marginBottom: 16 }}>
                   <VariantPanel
@@ -2940,8 +2909,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     )}
                 </div>
               )}
-
-              {/* ── INTENT DETECTOR ── */}
               {tool.id === "intent-detector" && (
                 <div style={{ marginBottom: 16 }}>
                   <div
@@ -3198,13 +3165,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
           )}
         </div>
       </main>
-      <style>{`
-        @media (max-width: 480px) {
-          .tool-selects-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
+      <style>{`@media (max-width: 480px) { .tool-selects-grid { grid-template-columns: 1fr !important; } }`}</style>
     </div>
   );
 }
