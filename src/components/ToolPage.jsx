@@ -356,6 +356,22 @@ function ChipsField({ field, value, onChange }) {
 /* ─────────────────────────────── Pack Modal ───────────────────────────── */
 function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
   const navigate = useNavigate();
+
+  // Map API pack IDs to internal pack IDs used in packData.js
+  const packIdMap = {
+    personal: "personal",
+    customer_support: "customer_support",
+    work_corporate: "work",
+    sales_negotiation: "sales",
+    dating: "dating",
+    core_professional: "core_professional", // not in API but kept for completeness
+  };
+
+  // Convert availablePacks (API format) to internal IDs
+  const ownedPackIds = (availablePacks || [])
+    .map((apiId) => packIdMap[apiId])
+    .filter(Boolean);
+
   const [activePack, setActivePack] = useState(
     value?.packId
       ? PACKS.find((p) => p.id === value.packId) || PACKS[0]
@@ -367,9 +383,12 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
     userPlan.toLowerCase() !== "free" &&
     userPlan.toLowerCase() !== "trial";
 
-  const isPackOwned = availablePacks?.includes(activePack.id);
+  // Determine if the current active pack is owned
+  const isPackOwned = ownedPackIds.includes(activePack.id);
 
   function selectScenario(pack, scenario) {
+    // Only allow selection if pack is owned and scenario is not pro-locked
+    if (!isPackOwned) return;
     if (scenario.pro && !isPro) return;
     const next = {
       packId: pack.id,
@@ -491,7 +510,7 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
           >
             {PACKS.map((pack) => {
               const isActive = activePack?.id === pack.id;
-              const packOwned = availablePacks?.includes(pack.id);
+              const packOwned = ownedPackIds.includes(pack.id);
               return (
                 <button
                   key={pack.id}
@@ -541,7 +560,7 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
                       }}
                     />
                   )}
-                  {!packOwned && (
+                  {!packOwned && pack.id !== "core_professional" && (
                     <span
                       style={{
                         fontSize: 8,
@@ -553,7 +572,7 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
                         marginLeft: 6,
                       }}
                     >
-                      LOCKED
+                      PREMIUM
                     </span>
                   )}
                 </button>
@@ -629,49 +648,19 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
                             : isSelected
                               ? activePack.color
                               : "var(--ink-2)",
-                          opacity: locked ? 0.5 : 1,
                           transition: "all .15s",
                           display: "flex",
                           alignItems: "center",
                           gap: 6,
                         }}
-                        onMouseEnter={(e) => {
-                          if (!locked && !isSelected) {
-                            e.currentTarget.style.borderColor =
-                              activePack.color;
-                            e.currentTarget.style.color = activePack.color;
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!locked && !isSelected) {
-                            e.currentTarget.style.borderColor =
-                              "var(--border2)";
-                            e.currentTarget.style.color = "var(--ink-2)";
-                          }
-                        }}
                       >
                         {isSelected && <Check size={11} />}
                         {scenario.label}
-                        {locked && (
-                          <span
-                            style={{
-                              fontSize: 9.5,
-                              fontWeight: 700,
-                              color: "#f59e0b",
-                              background: "rgba(245,158,11,0.12)",
-                              border: "1px solid rgba(245,158,11,0.25)",
-                              padding: "1px 5px",
-                              borderRadius: 4,
-                            }}
-                          >
-                            {!isPackOwned ? "UPGRADE" : "PRO"}
-                          </span>
-                        )}
                       </button>
                     );
                   })}
                 </div>
-                {!isPackOwned && (
+                {!isPackOwned && activePack.id !== "core_professional" && (
                   <button
                     onClick={() => navigate("/pricing")}
                     className="btn-green"
@@ -1691,8 +1680,14 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const otherTextareas = allTextareas.filter(
     (f) => f !== firstRequiredTextarea,
   );
-  const optionFields = tool.fields.filter((f) => f.type !== "textarea");
+  //const optionFields = tool.fields.filter((f) => f.type !== "textarea");
 
+  // Filter out pack_scenario for intent detector
+  const allOptionFields = tool.fields.filter((f) => f.type !== "textarea");
+  const optionFields =
+    tool.id === "intent-detector"
+      ? allOptionFields.filter((f) => f.id !== "pack_scenario")
+      : allOptionFields;
   // Character limit (replacing word limit)
   const charLimit = subscription?.character_limits?.[tool.limitKey] || 2000;
   const mainText = fields[firstRequiredTextarea?.id] || "";
