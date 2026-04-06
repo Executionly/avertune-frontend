@@ -175,7 +175,6 @@ function TypingText({ text, speed = 34, onDone }) {
 
 /* Each row — copy only animates on the ONE active variant */
 function VariantRow({ variant, isActive }) {
-  // copyState only cycles when this row IS active
   const [copyState, setCopyState] = useState("idle");
   const timerRef = useRef([]);
 
@@ -186,7 +185,6 @@ function VariantRow({ variant, isActive }) {
       setCopyState("idle");
       return;
     }
-    // wait 900ms after becoming active, then flash
     timerRef.current.push(setTimeout(() => setCopyState("hover"), 900));
     timerRef.current.push(setTimeout(() => setCopyState("copied"), 1350));
     timerRef.current.push(setTimeout(() => setCopyState("idle"), 2600));
@@ -203,7 +201,6 @@ function VariantRow({ variant, isActive }) {
         transition: "border-color 0.35s, background 0.35s",
       }}
     >
-      {/* Header */}
       <div
         style={{
           padding: "7px 11px",
@@ -254,8 +251,6 @@ function VariantRow({ variant, isActive }) {
             </span>
           )}
         </div>
-
-        {/* Copy — only shows state on active; others stay grey/idle */}
         <div
           style={{
             display: "flex",
@@ -290,8 +285,6 @@ function VariantRow({ variant, isActive }) {
           </span>
         </div>
       </div>
-
-      {/* Text — only expanded on active */}
       {isActive && (
         <div
           style={{
@@ -338,7 +331,6 @@ function DemoCard({ demo, phase, onTypingDone }) {
         width: "100%",
       }}
     >
-      {/* Title bar */}
       <div
         style={{
           padding: "11px 16px",
@@ -374,8 +366,6 @@ function DemoCard({ demo, phase, onTypingDone }) {
         </span>
         <div style={{ width: 44 }} />
       </div>
-
-      {/* Message */}
       <div
         style={{
           padding: "14px 16px",
@@ -409,8 +399,6 @@ function DemoCard({ demo, phase, onTypingDone }) {
           />
         )}
       </div>
-
-      {/* Analyze button */}
       {phase === PHASE.ANALYZING && (
         <div
           style={{
@@ -433,8 +421,6 @@ function DemoCard({ demo, phase, onTypingDone }) {
           </div>
         </div>
       )}
-
-      {/* Analyzing loader */}
       {phase === PHASE.ANALYZING && (
         <div style={{ padding: "14px 16px" }}>
           <div
@@ -500,13 +486,10 @@ function DemoCard({ demo, phase, onTypingDone }) {
           ))}
         </div>
       )}
-
-      {/* Results */}
       {phase === PHASE.RESULT && (
         <div
           style={{ animation: "fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both" }}
         >
-          {/* Radar */}
           <div
             style={{
               padding: "12px 16px",
@@ -548,8 +531,6 @@ function DemoCard({ demo, phase, onTypingDone }) {
               </div>
             ))}
           </div>
-
-          {/* 4 variants */}
           <div
             style={{
               padding: "10px 12px 12px",
@@ -579,8 +560,6 @@ function DemoCard({ demo, phase, onTypingDone }) {
               />
             ))}
           </div>
-
-          {/* Share */}
           <div
             style={{
               borderTop: "1px solid var(--border)",
@@ -773,7 +752,6 @@ function TryItSection({ onSignup }) {
   const { data: subscription } = useMySubscription();
   const [msg, setMsg] = useState("");
 
-  // Get character limit from backend (reply_generator) or fallback to 600
   const charLimit = user
     ? subscription?.character_limits?.reply_generator || 2000
     : 600;
@@ -782,7 +760,6 @@ function TryItSection({ onSignup }) {
     if (!msg.trim()) return;
 
     if (!user) {
-      // Store message in sessionStorage before redirecting to login
       sessionStorage.setItem("pendingMessage", msg);
       navigate("/login");
       return;
@@ -1040,8 +1017,8 @@ export default function HeroDemo({ onSignup }) {
               alignItems: "flex-start",
             }}
           >
-            {/* left column */}
-            <div>
+            {/* left column – with hero-left class for mobile centering */}
+            <div className="hero-left">
               <div
                 className="anim-up d1"
                 style={{
@@ -1089,20 +1066,20 @@ export default function HeroDemo({ onSignup }) {
                 <span className="grad-text"> every conversation.</span>
               </h1>
               <div
-                className="anim-up d3"
+                className="anim-up d3 steps-container"
                 style={{ marginBottom: "clamp(12px,2vw,20px)" }}
               >
                 {[
                   "Paste the message.",
                   "See what it means.",
-                  "Send the right reply.",
+                  "Send the right response.",
                 ].map((l) => (
                   <p
                     key={l}
                     style={{
                       fontSize: "clamp(15px,2vw,17px)",
                       color: "var(--ink-2)",
-                      lineHeight: 2.05,
+
                       fontWeight: 400,
                     }}
                   >
@@ -1127,10 +1104,12 @@ export default function HeroDemo({ onSignup }) {
               <div
                 className="anim-up d5"
                 style={{
+                  marginTop: 20,
                   display: "flex",
                   gap: 10,
                   flexWrap: "wrap",
                   marginBottom: "clamp(18px,3vw,28px)",
+                  justifyContent: "flex-start",
                 }}
               >
                 <button
@@ -1159,7 +1138,12 @@ export default function HeroDemo({ onSignup }) {
               </div>
               <div
                 className="anim-up d6"
-                style={{ display: "flex", alignItems: "center", gap: 12 }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-start",
+                  gap: 12,
+                }}
               >
                 <div style={{ display: "flex" }}>
                   {["#22c55e", "#38bdf8", "#2dd4bf", "#16a34a", "#0ea5e9"].map(
@@ -1187,13 +1171,13 @@ export default function HeroDemo({ onSignup }) {
               </div>
             </div>
 
-            {/* right column – DemoCard container with fixed min-height */}
+            {/* right column – DemoCard container with fixed height */}
             <div
               style={{
                 position: "relative",
                 minWidth: 0,
                 width: "100%",
-                height: 670, // fixed height – left column never moves
+                height: 670,
                 background:
                   "linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)",
                 borderRadius: 28,
@@ -1205,7 +1189,6 @@ export default function HeroDemo({ onSignup }) {
                 justifyContent: "center",
               }}
             >
-              {/* Card container – vertically centered */}
               <div
                 style={{
                   width: "100%",
@@ -1219,12 +1202,10 @@ export default function HeroDemo({ onSignup }) {
                   onTypingDone={onTypingDone}
                 />
               </div>
-
-              {/* Dots always at the same fixed distance from the bottom */}
               <div
                 style={{
                   position: "absolute",
-                  bottom: 28, // consistent gap from container bottom
+                  bottom: 28,
                   left: 0,
                   right: 0,
                   display: "flex",
@@ -1249,6 +1230,39 @@ export default function HeroDemo({ onSignup }) {
             </div>
           </div>
         </div>
+        <style>{`
+         
+        @media (max-width: 860px) {
+  .hero-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .hero-left .grad-text {
+    display: inline-block;
+  }
+  .steps-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+  }
+  .hero-left .anim-up.d4 {
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+@media (min-width: 821px) {
+  .steps-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+        `}</style>
       </section>
       <TryItSection onSignup={onSignup} />
     </>
