@@ -364,13 +364,16 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
     work_corporate: "work",
     sales_negotiation: "sales",
     dating: "dating",
-    core_professional: "core_professional", // not in API but kept for completeness
+    core_professional: "core_professional",
   };
 
   // Convert availablePacks (API format) to internal IDs
   const ownedPackIds = (availablePacks || [])
     .map((apiId) => packIdMap[apiId])
     .filter(Boolean);
+
+  // Core Professional is always unlocked for everyone
+  const ALWAYS_UNLOCKED_PACKS = ["core_professional"];
 
   const [activePack, setActivePack] = useState(
     value?.packId
@@ -383,8 +386,10 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
     userPlan.toLowerCase() !== "free" &&
     userPlan.toLowerCase() !== "trial";
 
-  // Determine if the current active pack is owned
-  const isPackOwned = ownedPackIds.includes(activePack.id);
+  // Determine if the current active pack is owned (or always unlocked)
+  const isPackOwned =
+    ownedPackIds.includes(activePack.id) ||
+    ALWAYS_UNLOCKED_PACKS.includes(activePack.id);
 
   function selectScenario(pack, scenario) {
     // Only allow selection if pack is owned and scenario is not pro-locked
@@ -497,7 +502,7 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
             }
           `}</style>
 
-          {/* Left: Pack list */}
+          {/* Left: Pack list (no PREMIUM badges) */}
           <div
             className="pack-modal-left"
             style={{
@@ -510,7 +515,9 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
           >
             {PACKS.map((pack) => {
               const isActive = activePack?.id === pack.id;
-              const packOwned = ownedPackIds.includes(pack.id);
+              const packOwned =
+                ownedPackIds.includes(pack.id) ||
+                ALWAYS_UNLOCKED_PACKS.includes(pack.id);
               return (
                 <button
                   key={pack.id}
@@ -560,21 +567,7 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
                       }}
                     />
                   )}
-                  {!packOwned && pack.id !== "core_professional" && (
-                    <span
-                      style={{
-                        fontSize: 8,
-                        fontWeight: 700,
-                        color: "#f59e0b",
-                        background: "rgba(245,158,11,0.12)",
-                        padding: "1px 5px",
-                        borderRadius: 4,
-                        marginLeft: 6,
-                      }}
-                    >
-                      PREMIUM
-                    </span>
-                  )}
+                  {/* PREMIUM badge removed entirely */}
                 </button>
               );
             })}
@@ -591,6 +584,7 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
                   style={{
                     display: "flex",
                     alignItems: "center",
+                    justifyContent: "space-between",
                     gap: 10,
                     marginBottom: 14,
                     padding: "10px 14px",
@@ -616,9 +610,25 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
                         marginTop: 1,
                       }}
                     >
-                      {activePack.scenarios.length} scenarios available
+                      {activePack.scenarios.length} scenarios
+                      {ALWAYS_UNLOCKED_PACKS.includes(activePack.id) &&
+                        " · Included for free"}
                     </p>
                   </div>
+                  {ALWAYS_UNLOCKED_PACKS.includes(activePack.id) && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: "2px 8px",
+                        borderRadius: 20,
+                        background: "rgba(34,197,94,0.12)",
+                        color: "var(--green)",
+                      }}
+                    >
+                      Free
+                    </span>
+                  )}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {activePack.scenarios.map((scenario) => {
