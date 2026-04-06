@@ -31,4 +31,14 @@ export const subscriptionApi = {
     });
     return data;
   },
+
+  getPacks: async () => {
+    const { data } = await api.get("/subscription/packs");
+    return data;
+  },
+
+  buyPack: async (pack_id) => {
+    const { data } = await api.post("/subscription/pack/buy", { pack_id });
+    return data;
+  },
 };

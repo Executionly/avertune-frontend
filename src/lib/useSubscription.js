@@ -5,6 +5,7 @@ import { useAuth } from "../AuthContext";
 export const SUB_KEYS = {
   plans: ["subscription", "plans"],
   me: ["subscription", "me"],
+  packs: ["subscription", "packs"],
 };
 
 export function usePlans() {
@@ -35,7 +36,7 @@ export function useCheckout() {
       console.log("Checkout response:", data);
       const checkoutUrl = data?.url;
       if (checkoutUrl) {
-        window.location.replace(checkoutUrl); // use replace for immediate redirect
+        window.location.replace(checkoutUrl);
       } else {
         throw new Error("No checkout URL returned");
       }
@@ -71,6 +72,30 @@ export function useCancel() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: SUB_KEYS.me });
       qc.invalidateQueries({ queryKey: ["auth", "me"] });
+    },
+  });
+}
+
+export function usePacks() {
+  return useQuery({
+    queryKey: SUB_KEYS.packs,
+    queryFn: subscriptionApi.getPacks,
+    staleTime: 10 * 60 * 1000,
+    retry: false,
+  });
+}
+
+export function useBuyPack() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: subscriptionApi.buyPack,
+    onSuccess: (data) => {
+      const checkoutUrl = data?.url;
+      if (checkoutUrl) {
+        window.location.replace(checkoutUrl);
+      } else {
+        throw new Error("No checkout URL returned");
+      }
     },
   });
 }

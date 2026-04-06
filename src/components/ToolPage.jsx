@@ -354,7 +354,8 @@ function ChipsField({ field, value, onChange }) {
 }
 
 /* ─────────────────────────────── Pack Modal ───────────────────────────── */
-function PackModal({ value, onChange, onClose, userPlan }) {
+function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
+  const navigate = useNavigate();
   const [activePack, setActivePack] = useState(
     value?.packId
       ? PACKS.find((p) => p.id === value.packId) || PACKS[0]
@@ -365,6 +366,8 @@ function PackModal({ value, onChange, onClose, userPlan }) {
     userPlan &&
     userPlan.toLowerCase() !== "free" &&
     userPlan.toLowerCase() !== "trial";
+
+  const isPackOwned = availablePacks?.includes(activePack.id);
 
   function selectScenario(pack, scenario) {
     if (scenario.pro && !isPro) return;
@@ -418,6 +421,7 @@ function PackModal({ value, onChange, onClose, userPlan }) {
           boxShadow: "0 32px 80px rgba(0,0,0,0.4)",
         }}
       >
+        {/* Header */}
         <div
           style={{
             padding: "18px 24px",
@@ -461,6 +465,7 @@ function PackModal({ value, onChange, onClose, userPlan }) {
           </button>
         </div>
 
+        {/* Body */}
         <div
           className="pack-modal-body"
           style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}
@@ -473,6 +478,7 @@ function PackModal({ value, onChange, onClose, userPlan }) {
             }
           `}</style>
 
+          {/* Left: Pack list */}
           <div
             className="pack-modal-left"
             style={{
@@ -485,6 +491,7 @@ function PackModal({ value, onChange, onClose, userPlan }) {
           >
             {PACKS.map((pack) => {
               const isActive = activePack?.id === pack.id;
+              const packOwned = availablePacks?.includes(pack.id);
               return (
                 <button
                   key={pack.id}
@@ -534,11 +541,27 @@ function PackModal({ value, onChange, onClose, userPlan }) {
                       }}
                     />
                   )}
+                  {!packOwned && (
+                    <span
+                      style={{
+                        fontSize: 8,
+                        fontWeight: 700,
+                        color: "#f59e0b",
+                        background: "rgba(245,158,11,0.12)",
+                        padding: "1px 5px",
+                        borderRadius: 4,
+                        marginLeft: 6,
+                      }}
+                    >
+                      LOCKED
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
 
+          {/* Right: Scenarios */}
           <div
             className="pack-modal-right"
             style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}
@@ -583,11 +606,13 @@ function PackModal({ value, onChange, onClose, userPlan }) {
                     const isSelected =
                       selected?.packId === activePack.id &&
                       selected?.scenarioId === scenario.id;
-                    const locked = scenario.pro && !isPro;
+                    const locked = !isPackOwned || (scenario.pro && !isPro);
                     return (
                       <button
                         key={scenario.id}
-                        onClick={() => selectScenario(activePack, scenario)}
+                        onClick={() =>
+                          !locked && selectScenario(activePack, scenario)
+                        }
                         style={{
                           padding: "8px 14px",
                           borderRadius: 20,
@@ -639,18 +664,35 @@ function PackModal({ value, onChange, onClose, userPlan }) {
                               borderRadius: 4,
                             }}
                           >
-                            PRO
+                            {!isPackOwned ? "UPGRADE" : "PRO"}
                           </span>
                         )}
                       </button>
                     );
                   })}
                 </div>
+                {!isPackOwned && (
+                  <button
+                    onClick={() => navigate("/pricing")}
+                    className="btn-green"
+                    style={{
+                      marginTop: 16,
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: 10,
+                      fontSize: 13,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Upgrade to unlock this pack →
+                  </button>
+                )}
               </>
             )}
           </div>
         </div>
 
+        {/* Footer */}
         <div
           style={{
             padding: "14px 20px",
@@ -1629,6 +1671,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { data: subscription } = useMySubscription();
+  const availablePacks = subscription?.features?.available_packs || [];
 
   const displayName = user?.full_name || user?.email?.split("@")[0] || "User";
   const displayInitial = displayName[0].toUpperCase();
@@ -1802,6 +1845,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
           onChange={(v) => setField("pack_scenario", v)}
           onClose={() => setShowPackModal(false)}
           userPlan={planTier}
+          availablePacks={availablePacks}
         />
       )}
       {showShare && result && (
