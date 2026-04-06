@@ -95,30 +95,35 @@ export default function Dashboard() {
 
   const displayName = user.full_name || user.email?.split("@")[0] || "User";
   const displayPlan = getPlanLabel(subscription?.plan_tier || user.plan_tier);
-  const usageToday = user.usage_today ?? 0;
-  const limitToday = user.limit_today ?? 5;
-  const repliesRemaining = user.replies_remaining ?? limitToday - usageToday;
+
+  // Use monthly limits from subscription response
+  const usageMonth = subscription?.usage_month ?? 0;
+  const limitMonth = subscription?.limit_month ?? 300;
+  const remainingMonth = subscription?.remaining ?? limitMonth - usageMonth;
   const usagePct =
-    limitToday > 0 ? Math.min((usageToday / limitToday) * 100, 100) : 0;
+    limitMonth > 0 ? Math.min((usageMonth / limitMonth) * 100, 100) : 0;
+
+  // Optional: pack credits
+  const packCredits = subscription?.pack_credits ?? 0;
 
   const STATS = [
     {
-      label: "Replies used today",
-      value: String(usageToday),
+      label: "Replies used this month",
+      value: `${usageMonth} / ${limitMonth}`,
       icon: MessageSquare,
       color: "var(--green)",
       delta: null,
     },
     {
-      label: "Replies left today",
-      value: String(repliesRemaining),
+      label: "Replies left this month",
+      value: String(remainingMonth),
       icon: BarChart2,
       color: "#a78bfa",
       delta: displayPlan,
     },
     {
-      label: "Daily limit",
-      value: String(limitToday),
+      label: "Pack credits",
+      value: String(packCredits),
       icon: Zap,
       color: "var(--teal)",
       delta: null,
@@ -413,7 +418,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Usage bar */}
+          {/* Monthly usage bar */}
           <div
             style={{
               width: "100%",
@@ -432,9 +437,9 @@ export default function Dashboard() {
                 marginBottom: 10,
               }}
             >
-              <p style={{ fontSize: 13, fontWeight: 700 }}>Daily usage</p>
+              <p style={{ fontSize: 13, fontWeight: 700 }}>Monthly usage</p>
               <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
-                {usageToday} / {limitToday} replies used
+                {usageMonth} / {limitMonth} replies used
               </span>
             </div>
             <div
@@ -455,7 +460,7 @@ export default function Dashboard() {
               />
             </div>
             <p style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 8 }}>
-              Resets at midnight UTC · {displayPlan} plan
+              Resets on billing date · {displayPlan} plan
             </p>
           </div>
         </div>

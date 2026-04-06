@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
-import { useCheckout } from "../lib/useSubscription";
+import {
+  useCheckout,
+  usePlans,
+  usePacks,
+  useBuyPack,
+} from "../lib/useSubscription";
 import { useToast } from "../lib/Toast.jsx";
 import {
   ArrowLeft,
@@ -14,104 +19,6 @@ import {
   Briefcase,
   Battery,
 } from "lucide-react";
-
-const PLANS = [
-  {
-    id: "starter",
-    name: "Starter",
-    icon: MessageSquare,
-    desc: "For occasional messages",
-    bestFor:
-      "Students, early professionals, and occasional high-stakes messages.",
-    weeklyPrice: null,
-    monthlyPrice: 7.99,
-    yearlyPrice: 79,
-    yearlyNote: "or $79/year (save 2 months)",
-    color: "var(--ink-2)",
-    border: "var(--border)",
-    badge: null,
-    cta: "Start with Starter",
-    ctaStyle: "ghost",
-    repliesNote: "300 replies/month (~10/day typical use)",
-    tagline:
-      "Affordable support for everyday professional replies when you don't want to get it wrong.",
-    weeklyNote: null,
-    features: [
-      { text: "300 replies/month (~10/day)", included: true },
-      { text: "Core conversation pack", included: true },
-      { text: "Tone insights included", included: true },
-      { text: "Share receipts (watermarked)", included: true },
-    ],
-  },
-  {
-    id: "daily",
-    name: "Daily",
-    icon: Briefcase,
-    desc: "For professionals who communicate every day",
-    bestFor:
-      "Sales conversations, customer support, work situations, and dating.",
-    weeklyPrice: 5.99,
-    monthlyPrice: 14.99,
-    yearlyPrice: 149,
-    yearlyNote: "or $149/year (save 2 months)",
-    color: "#2dd4bf",
-    border: "#2dd4bf",
-    badge: "Most Popular",
-    cta: "Upgrade to Daily",
-    ctaStyle: "teal",
-    repliesNote: null, // Fixed: added missing repliesNote
-    tagline:
-      "Built for high-stakes conversations where tone, clarity, and outcome matter.",
-    weeklyNote: "Weekly Pass · billed every 7 days · 210 replies/week",
-    features: [
-      { text: "900 replies/month (~30/day)", included: true },
-      { text: "All conversation packs", included: true },
-      { text: "Tone insights and strategy analysis", included: true },
-      { text: "Share receipts (watermarked)", included: true },
-      { text: "Regional tone selector", included: true },
-      { text: "Saved replies", included: true },
-      {
-        text: "All 6 packs: Core Professional, Sales, Customer Support, Work / Corporate, Personal, Dating",
-        included: true,
-      },
-    ],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    icon: Battery,
-    desc: "For operators, founders, and teams",
-    bestFor:
-      "Operators, founders, agency owners, executives and revenue leaders.",
-    weeklyPrice: null,
-    monthlyPrice: 24.99,
-    yearlyPrice: 249,
-    yearlyNote: "or $249/year (save 2 months)",
-    color: "var(--ink-2)",
-    border: "var(--border)",
-    badge: null,
-    cta: "Get Pro",
-    ctaStyle: "ghost",
-    repliesNote: "2,000 replies/month (~60/day typical use)",
-    tagline:
-      "Advanced protection for high-stakes communication that drives results.",
-    weeklyNote: null,
-    features: [
-      { text: "2,000 replies/month (~60/day)", included: true },
-      { text: "Everything in Daily", included: true },
-      { text: "Advanced negotiation presets", included: true },
-      { text: "Escalation sequences", included: true },
-      { text: "Priority response generation", included: true },
-      { text: "Share Receipts (no watermark)", included: true },
-    ],
-  },
-];
-
-const TOPUPS = [
-  { replies: 200, price: 4.99 },
-  { replies: 500, price: 11.99 },
-  { replies: 1000, price: 19.99 },
-];
 
 const FAQS = [
   {
@@ -141,31 +48,39 @@ const FAQS = [
 ];
 
 function PlanCard({ plan, billing, onCheckout, checkingOut }) {
-  const Icon = plan.icon;
-  const isPopular = plan.badge === "Most Popular";
+  const getIcon = () => {
+    if (plan.tier === "starter") return MessageSquare;
+    if (plan.tier === "daily") return Briefcase;
+    return Battery;
+  };
+  const Icon = getIcon();
+  const isPopular = plan.most_popular === true;
   const isWeekly = billing === "weekly";
   const isYearly = billing === "annual";
+  const weeklyAvailable = plan.weekly_available === true;
 
-  const showWeekly = isWeekly && plan.weeklyPrice !== null;
+  const showWeekly = isWeekly && weeklyAvailable && plan.prices?.weekly != null;
   const price = showWeekly
-    ? plan.weeklyPrice
+    ? plan.prices.weekly
     : isYearly
-      ? plan.yearlyPrice
-      : plan.monthlyPrice;
+      ? plan.prices.yearly
+      : plan.prices.monthly;
   const priceUnit = showWeekly ? "/ week" : isYearly ? "/ year" : "/ month";
+
+  const repliesNote = `${plan.monthly_limit} replies/month (~${plan.daily_typical}/day typical use)`;
 
   return (
     <div
       style={{
         background: "var(--surface)",
-        border: `${isPopular ? "2px" : "1px"} solid ${isPopular ? plan.border : "var(--border)"}`,
+        border: `${isPopular ? "2px" : "1px"} solid ${isPopular ? "#2dd4bf" : "var(--border)"}`,
         borderRadius: 20,
         padding: "clamp(22px,3vw,28px)",
         position: "relative",
         display: "flex",
         flexDirection: "column",
         boxShadow: isPopular
-          ? `0 0 0 1px ${plan.color}20, 0 12px 40px rgba(0,0,0,0.15)`
+          ? `0 0 0 1px #2dd4bf20, 0 12px 40px rgba(0,0,0,0.15)`
           : "none",
         transition: "transform .2s, box-shadow .2s",
       }}
@@ -176,12 +91,11 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = "translateY(0)";
         e.currentTarget.style.boxShadow = isPopular
-          ? `0 0 0 1px ${plan.color}20, 0 12px 40px rgba(0,0,0,0.15)`
+          ? `0 0 0 1px #2dd4bf20, 0 12px 40px rgba(0,0,0,0.15)`
           : "none";
       }}
     >
-      {/* Badge */}
-      {plan.badge && (
+      {isPopular && (
         <div
           style={{
             position: "absolute",
@@ -190,7 +104,7 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
             transform: "translateX(-50%)",
             padding: "4px 16px",
             borderRadius: 20,
-            background: plan.color,
+            background: "#2dd4bf",
             color: "#000",
             fontSize: 11,
             fontWeight: 800,
@@ -198,11 +112,10 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
             whiteSpace: "nowrap",
           }}
         >
-          {plan.badge}
+          Most Popular
         </div>
       )}
 
-      {/* Header */}
       <div
         style={{
           display: "flex",
@@ -216,14 +129,14 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
             width: 34,
             height: 34,
             borderRadius: 9,
-            background: isPopular ? `${plan.color}18` : "var(--surface2)",
+            background: isPopular ? "#2dd4bf18" : "var(--surface2)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
           }}
         >
-          <Icon size={16} color={isPopular ? plan.color : "var(--ink-3)"} />
+          <Icon size={16} color={isPopular ? "#2dd4bf" : "var(--ink-3)"} />
         </div>
         <span
           style={{
@@ -233,7 +146,7 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
             color: "var(--ink)",
           }}
         >
-          {plan.name}
+          {plan.display_name}
         </span>
       </div>
       <p
@@ -244,10 +157,9 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
           marginBottom: 20,
         }}
       >
-        <em>{plan.desc}</em>
+        <em>{plan.tagline}</em>
       </p>
 
-      {/* Price */}
       <div style={{ marginBottom: 6 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
           <span
@@ -274,11 +186,6 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
             {priceUnit}
           </span>
         </div>
-        {showWeekly && plan.weeklyNote && (
-          <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>
-            {plan.weeklyNote}
-          </p>
-        )}
         {showWeekly && (
           <p
             style={{
@@ -288,18 +195,18 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
               marginTop: 6,
             }}
           >
-            210 replies / week
+            {plan.monthly_limit / 30} replies / week
           </p>
         )}
-        {!showWeekly && !isYearly && plan.yearlyNote && (
+        {!showWeekly && !isYearly && plan.prices.yearly && (
           <p
             style={{
               fontSize: 12,
-              color: isPopular ? plan.color : "var(--ink-4)",
+              color: isPopular ? "#2dd4bf" : "var(--ink-4)",
               marginTop: 3,
             }}
           >
-            {plan.yearlyNote}
+            or ${plan.prices.yearly}/year (save 2 months)
           </p>
         )}
         {isYearly && (
@@ -314,40 +221,22 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
             Save 2 months · Pay for 10, get 12
           </p>
         )}
-        {isWeekly && !plan.weeklyPrice && (
-          <p
-            style={{
-              fontSize: 12,
-              color: "var(--ink-4)",
-              fontStyle: "italic",
-              marginTop: 3,
-            }}
-          >
-            Weekly billing available on Daily plan only.
-          </p>
-        )}
       </div>
 
-      {/* Replies highlight - only if repliesNote exists */}
-      {plan.repliesNote && (
-        <>
-          <p
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: isPopular ? plan.color : "var(--ink)",
-              marginBottom: 6,
-            }}
-          >
-            {plan.repliesNote.split("(")[0].trim()}
-          </p>
-          <p style={{ fontSize: 12, color: "var(--ink-4)", marginBottom: 14 }}>
-            ({plan.repliesNote.split("(")[1]?.replace(")", "") || ""})
-          </p>
-        </>
-      )}
+      <p
+        style={{
+          fontSize: 13,
+          fontWeight: 700,
+          color: isPopular ? "#2dd4bf" : "var(--ink)",
+          marginBottom: 6,
+        }}
+      >
+        {repliesNote.split("(")[0].trim()}
+      </p>
+      <p style={{ fontSize: 12, color: "var(--ink-4)", marginBottom: 14 }}>
+        ({repliesNote.split("(")[1]?.replace(")", "") || ""})
+      </p>
 
-      {/* Tagline */}
       <p
         style={{
           fontSize: 13.5,
@@ -358,10 +247,9 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
           borderBottom: "1px solid var(--border)",
         }}
       >
-        {plan.tagline}
+        {plan.description}
       </p>
 
-      {/* Features */}
       <p
         style={{
           fontSize: 10.5,
@@ -383,9 +271,9 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
           flex: 1,
         }}
       >
-        {plan.features.map((f) => (
+        {plan.features.map((f, idx) => (
           <li
-            key={f.text}
+            key={idx}
             style={{ display: "flex", alignItems: "flex-start", gap: 9 }}
           >
             <div
@@ -395,7 +283,7 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
                 borderRadius: 5,
                 flexShrink: 0,
                 marginTop: 1,
-                background: `${isPopular ? plan.color : "var(--green)"}15`,
+                background: `${isPopular ? "#2dd4bf" : "var(--green)"}15`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -403,20 +291,19 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
             >
               <Check
                 size={10}
-                color={isPopular ? plan.color : "var(--green)"}
+                color={isPopular ? "#2dd4bf" : "var(--green)"}
                 strokeWidth={2.5}
               />
             </div>
             <span
               style={{ fontSize: 13.5, color: "var(--ink)", lineHeight: 1.45 }}
             >
-              {f.text}
+              {f}
             </span>
           </li>
         ))}
       </ul>
 
-      {/* Best for */}
       <p
         style={{
           fontSize: 12,
@@ -427,10 +314,9 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
         }}
       >
         <strong style={{ color: "var(--ink-2)" }}>Best for:</strong>{" "}
-        {plan.bestFor}
+        {plan.best_for}
       </p>
 
-      {/* CTA */}
       <button
         onClick={() => onCheckout(plan, billing)}
         disabled={checkingOut}
@@ -444,12 +330,8 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
           cursor: checkingOut ? "wait" : "pointer",
           transition: "opacity .15s, transform .12s",
           opacity: checkingOut ? 0.7 : 1,
-          ...(plan.ctaStyle === "teal"
-            ? {
-                background: plan.color,
-                color: "#000",
-                border: "none",
-              }
+          ...(plan.tier === "daily"
+            ? { background: "#2dd4bf", color: "#000", border: "none" }
             : {
                 background: "transparent",
                 color: "var(--ink-2)",
@@ -479,8 +361,12 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
             />
             Redirecting...
           </>
+        ) : plan.tier === "starter" ? (
+          "Start with Starter"
+        ) : plan.tier === "daily" ? (
+          "Upgrade to Daily"
         ) : (
-          plan.cta
+          "Get Pro"
         )}
       </button>
     </div>
@@ -562,30 +448,37 @@ export default function PricingPage() {
   const { isAuthenticated } = useAuth();
   const toast = useToast();
   const checkoutMutation = useCheckout();
+  const { data: plansData, isLoading: plansLoading } = usePlans();
+  const { data: packsData, isLoading: packsLoading } = usePacks();
+  const buyPackMutation = useBuyPack();
   const [billing, setBilling] = useState("monthly");
   const [activePlanId, setActivePlanId] = useState(null);
+  const [buyingPackId, setBuyingPackId] = useState(null);
 
   const onBack = () => navigate(-1);
+
+  const PLANS = plansData?.plans || [];
+  const comparison = plansData?.comparison || null;
+  const PACKS = packsData?.packs || []; // Assuming backend returns { packs: [...] }
 
   async function handleCheckout(plan, billingPeriod) {
     if (!isAuthenticated) {
       navigate("/signup");
       return;
     }
-    if (plan.id === "free") {
+    if (plan.tier === "free") {
       navigate("/dashboard");
       return;
     }
 
-    // Map UI billing period to backend expected values
     let period = billingPeriod;
     if (period === "annual") period = "yearly";
 
-    setActivePlanId(plan.id);
+    setActivePlanId(plan.tier);
     try {
       await checkoutMutation.mutateAsync({
-        plan: plan.id,
-        billing_period: period, // sends weekly, monthly, or yearly
+        plan: plan.tier,
+        billing_period: period,
       });
     } catch (err) {
       toast.error(err.message || "Checkout failed");
@@ -594,7 +487,108 @@ export default function PricingPage() {
     }
   }
 
+  async function handleBuyPack(packId) {
+    if (!isAuthenticated) {
+      navigate("/signup");
+      return;
+    }
+    setBuyingPackId(packId);
+    try {
+      await buyPackMutation.mutateAsync(packId);
+    } catch (err) {
+      toast.error(err.message || "Purchase failed");
+    } finally {
+      setBuyingPackId(null);
+    }
+  }
+
   const checkingOut = (planId) => activePlanId === planId;
+
+  if (plansLoading || packsLoading) {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
+        <header
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 50,
+            background: "var(--nav-bg)",
+            backdropFilter: "blur(20px)",
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          <div
+            className="container"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              height: 60,
+              gap: 12,
+            }}
+          >
+            <button
+              onClick={onBack}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                color: "var(--ink-3)",
+                fontSize: 13,
+              }}
+            >
+              <ArrowLeft size={15} /> Back
+            </button>
+            <div
+              style={{ width: 1, height: 20, background: "var(--border)" }}
+            />
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  background:
+                    "linear-gradient(135deg,var(--green),var(--teal))",
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
+                  <path
+                    d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
+                    stroke="#000"
+                    strokeWidth="2.2"
+                  />
+                </svg>
+              </div>
+              <span style={{ fontWeight: 800, fontSize: 15 }}>Avertune</span>
+            </div>
+            <span style={{ fontSize: 13, color: "var(--ink-4)" }}>/</span>
+            <span
+              style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-2)" }}
+            >
+              Pricing
+            </span>
+          </div>
+        </header>
+        <div
+          className="container"
+          style={{ padding: "clamp(40px,6vw,72px)", textAlign: "center" }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              background: "var(--surface2)",
+              margin: "0 auto 20px",
+              animation: "pulse 1s infinite",
+            }}
+          />
+          <p style={{ color: "var(--ink-3)" }}>Loading plans...</p>
+        </div>
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }`}</style>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
@@ -722,7 +716,6 @@ export default function PricingPage() {
             </span>
           </h1>
 
-          {/* Billing toggle */}
           <div
             style={{
               display: "flex",
@@ -788,126 +781,222 @@ export default function PricingPage() {
         >
           {PLANS.map((plan) => (
             <PlanCard
-              key={plan.id}
+              key={plan.tier}
               plan={plan}
               billing={billing}
               onCheckout={handleCheckout}
-              checkingOut={checkingOut(plan.id)}
+              checkingOut={checkingOut(plan.tier)}
             />
           ))}
         </div>
 
-        {/* Top-up packs */}
-        <div style={{ marginBottom: "clamp(56px,8vw,88px)" }}>
-          <div style={{ textAlign: "center", marginBottom: 32 }}>
+        {/* Plan Comparison Table */}
+        {comparison && comparison.rows && comparison.rows.length > 0 && (
+          <div style={{ marginBottom: "clamp(56px,8vw,88px)" }}>
             <h2
               style={{
-                fontSize: "clamp(22px,3.5vw,32px)",
+                fontSize: "clamp(28px,4vw,44px)",
                 fontWeight: 800,
-                letterSpacing: "-0.03em",
-                marginBottom: 8,
+                letterSpacing: "-0.04em",
+                textAlign: "center",
+                marginBottom: 12,
               }}
             >
-              Need more replies?
+              Compare plans
             </h2>
-            <p style={{ fontSize: 14.5, color: "var(--ink-3)" }}>
-              Buy extra reply packs when you run out early.
+            <p
+              style={{
+                textAlign: "center",
+                color: "var(--ink-3)",
+                marginBottom: 32,
+              }}
+            >
+              Find the perfect fit for your communication needs
             </p>
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit,minmax(min(100%,220px),1fr))",
-              gap: 14,
-              maxWidth: 720,
-              margin: "0 auto",
-            }}
-          >
-            {TOPUPS.map((t) => (
-              <div
-                key={t.replies}
+            <div style={{ overflowX: "auto" }}>
+              <table
                 style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
                   background: "var(--surface)",
+                  borderRadius: 20,
+                  overflow: "hidden",
                   border: "1px solid var(--border)",
-                  borderRadius: 16,
-                  padding: "24px 20px",
-                  textAlign: "center",
-                  transition: "border-color .2s",
                 }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.borderColor = "var(--teal)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.borderColor = "var(--border)")
-                }
               >
-                <p
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "#2dd4bf",
-                    marginBottom: 4,
-                  }}
-                >
-                  + {t.replies.toLocaleString()}
-                </p>
-                <p
-                  style={{
-                    fontSize: 13,
-                    color: "var(--ink-3)",
-                    marginBottom: 14,
-                  }}
-                >
-                  replies
-                </p>
-                <p
-                  style={{
-                    fontSize: 32,
-                    fontWeight: 800,
-                    letterSpacing: "-0.04em",
-                    color: "var(--ink)",
-                    marginBottom: 16,
-                  }}
-                >
-                  ${t.price}
-                </p>
-                <button
-                  onClick={() =>
-                    !isAuthenticated
-                      ? navigate("/signup")
-                      : toast.info(
-                          "Top-up packs coming soon — complete your plan upgrade first.",
-                        )
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: 10,
-                    fontSize: 13.5,
-                    fontWeight: 600,
-                    background: "transparent",
-                    color: "var(--ink-2)",
-                    border: "1.5px solid var(--border2)",
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                    transition: "all .15s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "#2dd4bf";
-                    e.currentTarget.style.color = "#2dd4bf";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "var(--border2)";
-                    e.currentTarget.style.color = "var(--ink-2)";
-                  }}
-                >
-                  Buy Pack
-                </button>
-              </div>
-            ))}
+                <thead>
+                  <tr
+                    style={{
+                      borderBottom: "1px solid var(--border)",
+                      background: "var(--surface2)",
+                    }}
+                  >
+                    {comparison.headers.map((header, idx) => (
+                      <th
+                        key={idx}
+                        style={{
+                          padding: "16px 20px",
+                          textAlign: "left",
+                          fontWeight: 700,
+                          fontSize: 14,
+                          color: "var(--ink)",
+                        }}
+                      >
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparison.rows.map((row, rowIdx) => (
+                    <tr
+                      key={rowIdx}
+                      style={{
+                        borderBottom:
+                          rowIdx < comparison.rows.length - 1
+                            ? "1px solid var(--border)"
+                            : "none",
+                      }}
+                    >
+                      {row.map((cell, cellIdx) => (
+                        <td
+                          key={cellIdx}
+                          style={{
+                            padding: "14px 20px",
+                            fontSize: 13.5,
+                            color:
+                              cellIdx === 0 ? "var(--ink)" : "var(--ink-2)",
+                            fontWeight: cellIdx === 0 ? 600 : 400,
+                          }}
+                        >
+                          {cell === "✓" ? (
+                            <Check size={14} color="var(--green)" />
+                          ) : cell === "—" ? (
+                            "—"
+                          ) : (
+                            cell
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Reply Packs (Top-ups) */}
+        {PACKS && PACKS.length > 0 && (
+          <div style={{ marginBottom: "clamp(56px,8vw,88px)" }}>
+            <div style={{ textAlign: "center", marginBottom: 32 }}>
+              <h2
+                style={{
+                  fontSize: "clamp(22px,3.5vw,32px)",
+                  fontWeight: 800,
+                  letterSpacing: "-0.03em",
+                  marginBottom: 8,
+                }}
+              >
+                Need more replies?
+              </h2>
+              <p style={{ fontSize: 14.5, color: "var(--ink-3)" }}>
+                Buy extra reply packs when you run out early.
+              </p>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(min(100%,220px),1fr))",
+                gap: 14,
+                maxWidth: 720,
+                margin: "0 auto",
+              }}
+            >
+              {PACKS.map((pack) => (
+                <div
+                  key={pack.id}
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 16,
+                    padding: "24px 20px",
+                    textAlign: "center",
+                    transition: "border-color .2s",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.borderColor = "var(--teal)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.borderColor = "var(--border)")
+                  }
+                >
+                  <p
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: "#2dd4bf",
+                      marginBottom: 4,
+                    }}
+                  >
+                    +{" "}
+                    {pack.replies?.toLocaleString() ||
+                      pack.credits?.toLocaleString()}
+                  </p>
+                  <p
+                    style={{
+                      fontSize: 13,
+                      color: "var(--ink-3)",
+                      marginBottom: 14,
+                    }}
+                  >
+                    replies
+                  </p>
+                  <p
+                    style={{
+                      fontSize: 32,
+                      fontWeight: 800,
+                      letterSpacing: "-0.04em",
+                      color: "var(--ink)",
+                      marginBottom: 16,
+                    }}
+                  >
+                    ${pack.price}
+                  </p>
+                  <button
+                    onClick={() => handleBuyPack(pack.id)}
+                    disabled={buyingPackId === pack.id}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: 10,
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      background: "transparent",
+                      color: "var(--ink-2)",
+                      border: "1.5px solid var(--border2)",
+                      fontFamily: "inherit",
+                      cursor: buyingPackId === pack.id ? "wait" : "pointer",
+                      transition: "all .15s",
+                      opacity: buyingPackId === pack.id ? 0.7 : 1,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "#2dd4bf";
+                      e.currentTarget.style.color = "#2dd4bf";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "var(--border2)";
+                      e.currentTarget.style.color = "var(--ink-2)";
+                    }}
+                  >
+                    {buyingPackId === pack.id ? "Redirecting..." : "Buy Pack"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* FAQ */}
         <div style={{ maxWidth: 700, margin: "0 auto" }}>

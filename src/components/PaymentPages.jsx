@@ -38,6 +38,14 @@ function StaticCard({ children }) {
 
 export function PaymentSuccessPage() {
   const navigate = useNavigate();
+  const urlParams = new URLSearchParams(window.location.search);
+  const type = urlParams.get("type"); // "subscription" or "pack"
+
+  const isPack = type === "pack";
+  const title = isPack ? "Pack Purchased! 🎉" : "Payment Successful! 🎉";
+  const message = isPack
+    ? "Your pack has been added. You can now access new scenarios in the tools."
+    : "Your subscription is now active. You can start using all Avertune tools immediately.";
 
   return (
     <StaticShell>
@@ -59,14 +67,11 @@ export function PaymentSuccessPage() {
           >
             <CheckCircle2 size={30} style={{ color: "var(--green)" }} />
           </div>
-          <h1 style={{ fontSize: 26, marginBottom: 10 }}>
-            Payment Successful! 🎉
-          </h1>
+          <h1 style={{ fontSize: 26, marginBottom: 10 }}>{title}</h1>
           <p
             style={{ color: "var(--ink-3)", marginBottom: 28, lineHeight: 1.6 }}
           >
-            Your subscription is now active. You can start using all Avertune
-            tools immediately.
+            {message}
           </p>
           <button
             onClick={() => navigate("/dashboard")}
