@@ -115,7 +115,7 @@ export default function Dashboard() {
       delta: null,
     },
     {
-      label: "Replies left this month",
+      label: "Total Replies",
       value: String(remainingMonth),
       icon: BarChart2,
       color: "#a78bfa",
