@@ -30,6 +30,7 @@ import { useAuth } from "../AuthContext.jsx";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import { generateApi } from "../lib/generateApi.js";
+import { api } from "../lib/apiClient.js"; // ✅ add this import
 import { PACKS } from "../lib/packData.js";
 import { useToast } from "../lib/Toast.jsx";
 import Sidebar from "./Sidebar.jsx";
@@ -359,7 +360,6 @@ function ChipsField({ field, value, onChange }) {
 function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
   const navigate = useNavigate();
 
-  // Map API pack IDs to internal pack IDs used in packData.js
   const packIdMap = {
     personal: "personal",
     customer_support: "customer_support",
@@ -369,7 +369,6 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
     core_professional: "core_professional",
   };
 
-  // Convert availablePacks (API format) to internal IDs
   const ownedPackIds = (availablePacks || [])
     .map((apiId) => packIdMap[apiId])
     .filter(Boolean);
@@ -385,7 +384,6 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
     userPlan.toLowerCase() !== "free" &&
     userPlan.toLowerCase() !== "trial";
 
-  // Determine if the current active pack is owned (based solely on availablePacks)
   const isPackOwned = ownedPackIds.includes(activePack.id);
 
   function selectScenario(pack, scenario) {
@@ -441,7 +439,6 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
           boxShadow: "0 32px 80px rgba(0,0,0,0.4)",
         }}
       >
-        {/* Header */}
         <div
           style={{
             padding: "18px 24px",
@@ -485,7 +482,6 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
           </button>
         </div>
 
-        {/* Body */}
         <div
           className="pack-modal-body"
           style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}
@@ -498,7 +494,6 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
             }
           `}</style>
 
-          {/* Left: Pack list */}
           <div
             className="pack-modal-left"
             style={{
@@ -581,7 +576,6 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
             })}
           </div>
 
-          {/* Right: Scenarios */}
           <div
             className="pack-modal-right"
             style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}
@@ -683,7 +677,6 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
           </div>
         </div>
 
-        {/* Footer */}
         <div
           style={{
             padding: "14px 20px",
@@ -1695,14 +1688,12 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const mainText = fields[firstRequiredTextarea?.id] || "";
   const charCount = mainText.length;
 
-  // Check if user can save replies (Daily or Pro)
   const canSaveReplies =
     user &&
     (planTier === "daily" || planTier === "pro") &&
     phase === "done" &&
     result?._generationId;
 
-  // Reset when tool changes
   useEffect(() => {
     setFields({});
     setResult(null);
@@ -1714,7 +1705,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
     setSavedVariants(new Set());
   }, [tool.id]);
 
-  // Pre‑fill message from sessionStorage (after login)
   useEffect(() => {
     const pendingMessage = sessionStorage.getItem("pendingMessage");
     if (pendingMessage && tool.id === "reply-generator") {
@@ -1726,7 +1716,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
     }
   }, [tool.id]);
 
-  // Pre‑fill message from navigation state (already logged in)
   const hasPrefilled = useRef(false);
   useEffect(() => {
     const prefillMessage = location.state?.message;
@@ -1848,11 +1837,9 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
     }
     setSavingVariant(variant);
     try {
-      const { data } = await import("../lib/apiClient.js").then((mod) =>
-        mod.api.post("/generate/reply/save", {
-          generation_id: result._generationId,
-        }),
-      );
+      await api.post("/generate/reply/save", {
+        generation_id: result._generationId,
+      });
       setSavedVariants((prev) => new Set(prev).add(variant));
       toast.success(`Reply (${variant}) saved!`);
     } catch (err) {
