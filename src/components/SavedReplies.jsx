@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
 import { useMySubscription } from "../lib/useSubscription.js";
 import { api } from "../lib/apiClient.js";
-import { ArrowLeft, Copy, Check, MessageSquare, Filter, X } from "lucide-react";
+import { Copy, Check, Filter, X, Menu, Bookmark } from "lucide-react";
 import { useToast } from "../lib/Toast.jsx";
+import Sidebar from "./Sidebar.jsx";
 
 const TOOL_FILTERS = [
   { value: "", label: "All tools" },
@@ -53,6 +54,7 @@ export default function SavedReplies() {
   const navigate = useNavigate();
   const toast = useToast();
   const { data: subscription } = useMySubscription();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [replies, setReplies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -60,7 +62,6 @@ export default function SavedReplies() {
   const [toolFilter, setToolFilter] = useState("");
   const [toneFilter, setToneFilter] = useState("");
 
-  // Check if user has access (Daily or Pro)
   const canAccess =
     user &&
     (subscription?.plan_tier === "daily" || subscription?.plan_tier === "pro");
@@ -101,332 +102,358 @@ export default function SavedReplies() {
     navigate("/login");
     return null;
   }
-  if (!canAccess) {
-    return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-        <div
-          className="container"
-          style={{ paddingTop: 80, textAlign: "center" }}
-        >
-          <h1 style={{ fontSize: 28, marginBottom: 12 }}>
-            Upgrade to access saved replies
-          </h1>
-          <p style={{ color: "var(--ink-3)", marginBottom: 24 }}>
-            Saved replies are available on Daily and Pro plans.
-          </p>
-          <button
-            onClick={() => navigate("/pricing")}
-            className="btn-green"
-            style={{ padding: "12px 28px", borderRadius: 12 }}
-          >
-            View plans
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-      <header
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-          background: "var(--nav-bg)",
-          backdropFilter: "blur(20px)",
-          borderBottom: "1px solid var(--border)",
-        }}
+    <div
+      style={{ minHeight: "100vh", background: "var(--bg)", display: "flex" }}
+    >
+      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+      <main
+        className="main-content"
+        style={{ flex: 1, marginLeft: 240, minWidth: 0 }}
       >
-        <div
-          className="container"
-          style={{ display: "flex", alignItems: "center", height: 60, gap: 12 }}
-        >
-          <button
-            onClick={() => navigate(-1)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              color: "var(--ink-3)",
-              fontSize: 13,
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            <ArrowLeft size={15} /> Back
-          </button>
-          <div style={{ width: 1, height: 20, background: "var(--border)" }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                background: "linear-gradient(135deg,var(--green),var(--teal))",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
-                <path
-                  d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
-                  stroke="#000"
-                  strokeWidth="2.2"
-                />
-              </svg>
-            </div>
-            <span style={{ fontWeight: 800, fontSize: 15 }}>Avertune</span>
-          </div>
-          <span style={{ fontSize: 13, color: "var(--ink-4)" }}>/</span>
-          <span
-            style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-2)" }}
-          >
-            Saved Replies
-          </span>
-        </div>
-      </header>
-
-      <div
-        className="container"
-        style={{ paddingTop: 40, paddingBottom: 80, maxWidth: 900 }}
-      >
-        <div
+        <header
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 24,
-            flexWrap: "wrap",
-            gap: 12,
+            position: "sticky",
+            top: 0,
+            zIndex: 30,
+            background: "var(--nav-bg)",
+            backdropFilter: "blur(20px)",
+            borderBottom: "1px solid var(--border)",
           }}
         >
-          <h1
-            style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.03em" }}
+          <div
+            style={{
+              padding: "0 clamp(16px,3vw,32px)",
+              display: "flex",
+              alignItems: "center",
+              height: 58,
+              gap: 10,
+              justifyContent: "space-between",
+            }}
           >
-            Saved Replies
-          </h1>
-          <div style={{ display: "flex", gap: 8 }}>
-            <select
-              value={toolFilter}
-              onChange={(e) => {
-                setToolFilter(e.target.value);
-                setPage(1);
-              }}
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                onClick={() => setSidebarOpen(true)}
+                style={{
+                  color: "var(--ink-2)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "none",
+                }}
+                className="saved-hamburger"
+              >
+                <Menu size={21} />
+              </button>
+              <style>{`@media (max-width: 900px) { .saved-hamburger { display: flex !important; } }`}</style>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: "var(--green)",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    color: "var(--ink)",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Saved Replies
+                </span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div
+          style={{
+            padding: "clamp(24px,4vw,48px) clamp(16px,4vw,48px)",
+            maxWidth: 960,
+            margin: "0 auto",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 24,
+              flexWrap: "wrap",
+              gap: 12,
+            }}
+          >
+            <h1
               style={{
-                padding: "8px 12px",
-                borderRadius: 10,
-                border: "1px solid var(--border2)",
-                background: "var(--surface2)",
-                color: "var(--ink)",
-                fontSize: 13,
-                fontFamily: "inherit",
+                fontSize: "clamp(24px,4vw,32px)",
+                fontWeight: 800,
+                letterSpacing: "-0.03em",
               }}
             >
-              {TOOL_FILTERS.map((f) => (
-                <option key={f.value} value={f.value}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
-            {toneFilter && (
-              <button
-                onClick={() => {
-                  setToneFilter("");
+              Saved Replies
+            </h1>
+            <div style={{ display: "flex", gap: 8 }}>
+              <select
+                value={toolFilter}
+                onChange={(e) => {
+                  setToolFilter(e.target.value);
                   setPage(1);
                 }}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
                   padding: "8px 12px",
                   borderRadius: 10,
                   border: "1px solid var(--border2)",
                   background: "var(--surface2)",
-                  fontSize: 12,
-                  color: "var(--ink-3)",
-                  cursor: "pointer",
+                  color: "var(--ink)",
+                  fontSize: 13,
+                  fontFamily: "inherit",
                 }}
               >
-                Clear tone <X size={12} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {loading ? (
-          <div style={{ textAlign: "center", padding: 60 }}>
-            <div className="dot-loader" style={{ justifyContent: "center" }}>
-              <span />
-              <span />
-              <span />
-            </div>
-            <p style={{ marginTop: 16, color: "var(--ink-3)" }}>
-              Loading saved replies...
-            </p>
-          </div>
-        ) : replies.length === 0 ? (
-          <div
-            style={{
-              textAlign: "center",
-              padding: 60,
-              background: "var(--surface)",
-              borderRadius: 20,
-            }}
-          >
-            <MessageSquare
-              size={40}
-              color="var(--ink-4)"
-              style={{ marginBottom: 16 }}
-            />
-            <h3 style={{ fontSize: 18, marginBottom: 8 }}>
-              No saved replies yet
-            </h3>
-            <p style={{ color: "var(--ink-3)", marginBottom: 24 }}>
-              Generate a reply and click "Save" to keep it here.
-            </p>
-            <button
-              onClick={() => navigate("/tool/reply-generator")}
-              className="btn-green"
-              style={{ padding: "10px 20px", borderRadius: 10 }}
-            >
-              Generate a reply
-            </button>
-          </div>
-        ) : (
-          <>
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {replies.map((item) => (
-                <div
-                  key={item.id}
+                {TOOL_FILTERS.map((f) => (
+                  <option key={f.value} value={f.value}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+              {toneFilter && (
+                <button
+                  onClick={() => {
+                    setToneFilter("");
+                    setPage(1);
+                  }}
                   style={{
-                    background: "var(--surface)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "8px 12px",
+                    borderRadius: 10,
                     border: "1px solid var(--border2)",
-                    borderRadius: 16,
-                    padding: 18,
+                    background: "var(--surface2)",
+                    fontSize: 12,
+                    color: "var(--ink-3)",
+                    cursor: "pointer",
                   }}
                 >
+                  Clear tone <X size={12} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {!canAccess ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: 60,
+                background: "var(--surface)",
+                borderRadius: 20,
+              }}
+            >
+              <Bookmark
+                size={40}
+                color="var(--ink-4)"
+                style={{ marginBottom: 16 }}
+              />
+              <h3 style={{ fontSize: 18, marginBottom: 8 }}>
+                Upgrade to access saved replies
+              </h3>
+              <p style={{ color: "var(--ink-3)", marginBottom: 24 }}>
+                Saved replies are available on Daily and Pro plans.
+              </p>
+              <button
+                onClick={() => navigate("/pricing")}
+                className="btn-green"
+                style={{ padding: "12px 28px", borderRadius: 12 }}
+              >
+                View plans
+              </button>
+            </div>
+          ) : loading ? (
+            <div style={{ textAlign: "center", padding: 60 }}>
+              <div className="dot-loader" style={{ justifyContent: "center" }}>
+                <span />
+                <span />
+                <span />
+              </div>
+              <p style={{ marginTop: 16, color: "var(--ink-3)" }}>
+                Loading saved replies...
+              </p>
+            </div>
+          ) : replies.length === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: 60,
+                background: "var(--surface)",
+                borderRadius: 20,
+              }}
+            >
+              <Bookmark
+                size={40}
+                color="var(--ink-4)"
+                style={{ marginBottom: 16 }}
+              />
+              <h3 style={{ fontSize: 18, marginBottom: 8 }}>
+                No saved replies yet
+              </h3>
+              <p style={{ color: "var(--ink-3)", marginBottom: 24 }}>
+                Generate a reply and click "Save" to keep it here.
+              </p>
+              <button
+                onClick={() => navigate("/tool/reply-generator")}
+                className="btn-green"
+                style={{ padding: "10px 20px", borderRadius: 10 }}
+              >
+                Generate a reply
+              </button>
+            </div>
+          ) : (
+            <>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 16 }}
+              >
+                {replies.map((item) => (
                   <div
+                    key={item.id}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      gap: 12,
-                      flexWrap: "wrap",
-                      marginBottom: 12,
+                      background: "var(--surface)",
+                      border: "1px solid var(--border2)",
+                      borderRadius: 16,
+                      padding: 18,
                     }}
                   >
-                    <div>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: "var(--ink-4)",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                        }}
-                      >
-                        {item.tool_label || item.tool}
-                      </span>
-                      {item.variant && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        gap: 12,
+                        flexWrap: "wrap",
+                        marginBottom: 12,
+                      }}
+                    >
+                      <div>
                         <span
                           style={{
-                            marginLeft: 8,
                             fontSize: 11,
-                            color: "var(--green)",
+                            fontWeight: 700,
+                            color: "var(--ink-4)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
                           }}
                         >
-                          · {item.variant}
+                          {item.tool_label || item.tool}
                         </span>
-                      )}
+                        {item.variant && (
+                          <span
+                            style={{
+                              marginLeft: 8,
+                              fontSize: 11,
+                              color: "var(--green)",
+                            }}
+                          >
+                            · {item.variant}
+                          </span>
+                        )}
+                      </div>
+                      <CopyBtn text={item.reply_text} />
                     </div>
-                    <CopyBtn text={item.reply_text} />
-                  </div>
-                  <p
-                    style={{
-                      fontSize: 14,
-                      color: "var(--ink)",
-                      lineHeight: 1.7,
-                      whiteSpace: "pre-wrap",
-                    }}
-                  >
-                    {item.reply_text}
-                  </p>
-                  {item.insight && (
+                    <p
+                      style={{
+                        fontSize: 14,
+                        color: "var(--ink)",
+                        lineHeight: 1.7,
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {item.reply_text}
+                    </p>
+                    {item.insight && (
+                      <div
+                        style={{
+                          marginTop: 12,
+                          padding: 8,
+                          background: "var(--surface2)",
+                          borderRadius: 8,
+                          fontSize: 12,
+                          color: "var(--ink-3)",
+                        }}
+                      >
+                        💡 {item.insight}
+                      </div>
+                    )}
                     <div
                       style={{
                         marginTop: 12,
-                        padding: 8,
-                        background: "var(--surface2)",
-                        borderRadius: 8,
-                        fontSize: 12,
-                        color: "var(--ink-3)",
+                        fontSize: 11,
+                        color: "var(--ink-4)",
                       }}
                     >
-                      💡 {item.insight}
+                      Saved on {new Date(item.created_at).toLocaleDateString()}
                     </div>
-                  )}
-                  <div
+                  </div>
+                ))}
+              </div>
+              {totalPages > 1 && (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    gap: 8,
+                    marginTop: 32,
+                  }}
+                >
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
                     style={{
-                      marginTop: 12,
-                      fontSize: 11,
-                      color: "var(--ink-4)",
+                      padding: "8px 16px",
+                      borderRadius: 8,
+                      border: "1px solid var(--border2)",
+                      background: "transparent",
+                      color: "var(--ink-3)",
+                      cursor: page === 1 ? "not-allowed" : "pointer",
+                      opacity: page === 1 ? 0.5 : 1,
                     }}
                   >
-                    Saved on {new Date(item.created_at).toLocaleDateString()}
-                  </div>
+                    Previous
+                  </button>
+                  <span style={{ padding: "8px 16px", color: "var(--ink)" }}>
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    style={{
+                      padding: "8px 16px",
+                      borderRadius: 8,
+                      border: "1px solid var(--border2)",
+                      background: "transparent",
+                      color: "var(--ink-3)",
+                      cursor: page === totalPages ? "not-allowed" : "pointer",
+                      opacity: page === totalPages ? 0.5 : 1,
+                    }}
+                  >
+                    Next
+                  </button>
                 </div>
-              ))}
-            </div>
-            {totalPages > 1 && (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  gap: 8,
-                  marginTop: 32,
-                }}
-              >
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: 8,
-                    border: "1px solid var(--border2)",
-                    background: "transparent",
-                    color: "var(--ink-3)",
-                    cursor: page === 1 ? "not-allowed" : "pointer",
-                    opacity: page === 1 ? 0.5 : 1,
-                  }}
-                >
-                  Previous
-                </button>
-                <span style={{ padding: "8px 16px", color: "var(--ink)" }}>
-                  Page {page} of {totalPages}
-                </span>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: 8,
-                    border: "1px solid var(--border2)",
-                    background: "transparent",
-                    color: "var(--ink-3)",
-                    cursor: page === totalPages ? "not-allowed" : "pointer",
-                    opacity: page === totalPages ? 0.5 : 1,
-                  }}
-                >
-                  Next
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+              )}
+            </>
+          )}
+        </div>
+      </main>
+      <style>{`
+        @media (max-width: 900px) {
+          .main-content {
+            margin-left: 0 !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
