@@ -23,6 +23,8 @@ import {
   Home,
   LogOut,
   Menu,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import { useAuth } from "../AuthContext.jsx";
 import { useQueryClient } from "@tanstack/react-query";
@@ -372,9 +374,6 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
     .map((apiId) => packIdMap[apiId])
     .filter(Boolean);
 
-  // Core Professional is always unlocked for everyone
-  const ALWAYS_UNLOCKED_PACKS = ["core_professional"];
-
   const [activePack, setActivePack] = useState(
     value?.packId
       ? PACKS.find((p) => p.id === value.packId) || PACKS[0]
@@ -386,13 +385,10 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
     userPlan.toLowerCase() !== "free" &&
     userPlan.toLowerCase() !== "trial";
 
-  // Determine if the current active pack is owned (or always unlocked)
-  const isPackOwned =
-    ownedPackIds.includes(activePack.id) ||
-    ALWAYS_UNLOCKED_PACKS.includes(activePack.id);
+  // Determine if the current active pack is owned (based solely on availablePacks)
+  const isPackOwned = ownedPackIds.includes(activePack.id);
 
   function selectScenario(pack, scenario) {
-    // Only allow selection if pack is owned and scenario is not pro-locked
     if (!isPackOwned) return;
     if (scenario.pro && !isPro) return;
     const next = {
@@ -502,7 +498,7 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
             }
           `}</style>
 
-          {/* Left: Pack list (no PREMIUM badges) */}
+          {/* Left: Pack list */}
           <div
             className="pack-modal-left"
             style={{
@@ -515,9 +511,7 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
           >
             {PACKS.map((pack) => {
               const isActive = activePack?.id === pack.id;
-              const packOwned =
-                ownedPackIds.includes(pack.id) ||
-                ALWAYS_UNLOCKED_PACKS.includes(pack.id);
+              const packOwned = ownedPackIds.includes(pack.id);
               return (
                 <button
                   key={pack.id}
@@ -567,7 +561,21 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
                       }}
                     />
                   )}
-                  {/* PREMIUM badge removed entirely */}
+                  {!packOwned && (
+                    <span
+                      style={{
+                        fontSize: 8,
+                        fontWeight: 700,
+                        color: "#f59e0b",
+                        background: "rgba(245,158,11,0.12)",
+                        padding: "1px 5px",
+                        borderRadius: 4,
+                        marginLeft: 6,
+                      }}
+                    >
+                      PREMIUM
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -611,24 +619,8 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
                       }}
                     >
                       {activePack.scenarios.length} scenarios
-                      {ALWAYS_UNLOCKED_PACKS.includes(activePack.id) &&
-                        " · Included for free"}
                     </p>
                   </div>
-                  {ALWAYS_UNLOCKED_PACKS.includes(activePack.id) && (
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        padding: "2px 8px",
-                        borderRadius: 20,
-                        background: "rgba(34,197,94,0.12)",
-                        color: "var(--green)",
-                      }}
-                    >
-                      Free
-                    </span>
-                  )}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {activePack.scenarios.map((scenario) => {
@@ -670,7 +662,7 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
                     );
                   })}
                 </div>
-                {!isPackOwned && activePack.id !== "core_professional" && (
+                {!isPackOwned && (
                   <button
                     onClick={() => navigate("/pricing")}
                     className="btn-green"
@@ -1409,6 +1401,8 @@ function VariantPanel({
   activeTab,
   setActiveTab,
   onShare,
+  onSave,
+  isSaved,
   insights,
   descriptors,
   recommendedVariant,
@@ -1568,6 +1562,52 @@ function VariantPanel({
                       gap: 8,
                     }}
                   >
+                    {onSave && (
+                      <button
+                        onClick={() => onSave(v)}
+                        disabled={isSaved}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 5,
+                          padding: "7px 14px",
+                          borderRadius: 9,
+                          border: `1px solid ${isSaved ? "rgba(34,197,94,0.3)" : "var(--border2)"}`,
+                          background: isSaved
+                            ? "rgba(34,197,94,0.08)"
+                            : "transparent",
+                          color: isSaved ? "var(--green)" : "var(--ink-3)",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: isSaved ? "default" : "pointer",
+                          transition: "all .15s",
+                          fontFamily: "inherit",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSaved) {
+                            e.currentTarget.style.borderColor = "var(--green)";
+                            e.currentTarget.style.color = "var(--green)";
+                            e.currentTarget.style.background =
+                              "rgba(34,197,94,0.05)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSaved) {
+                            e.currentTarget.style.borderColor =
+                              "var(--border2)";
+                            e.currentTarget.style.color = "var(--ink-3)";
+                            e.currentTarget.style.background = "transparent";
+                          }
+                        }}
+                      >
+                        {isSaved ? (
+                          <BookmarkCheck size={12} />
+                        ) : (
+                          <Bookmark size={12} />
+                        )}
+                        {isSaved ? "Saved" : "Save"}
+                      </button>
+                    )}
                     <button
                       onClick={onShare}
                       style={{
@@ -1614,57 +1654,11 @@ function VariantPanel({
   );
 }
 
-/* ─────────────────────────────── Sidebar nav ─────────────────────────── */
-const TOOL_NAV = [
-  {
-    icon: MessageSquare,
-    slug: "reply-generator",
-    label: "Reply Generator",
-    color: "var(--green)",
-  },
-  {
-    icon: Activity,
-    slug: "tone-checker",
-    label: "Tone Checker",
-    color: "var(--teal)",
-  },
-  {
-    icon: ShieldCheck,
-    slug: "boundary-builder",
-    label: "Boundaries",
-    color: "var(--green)",
-  },
-  {
-    icon: Swords,
-    slug: "negotiation-reply",
-    label: "Sales & Negotiation",
-    color: "var(--teal)",
-  },
-  {
-    icon: Clock,
-    slug: "follow-up-writer",
-    label: "Follow-Up",
-    color: "var(--blue)",
-  },
-  {
-    icon: AlertTriangle,
-    slug: "difficult-email",
-    label: "Difficult Email",
-    color: "#f59e0b",
-  },
-  {
-    icon: Lightbulb,
-    slug: "intent-detector",
-    label: "Intent Detector",
-    color: "#a78bfa",
-  },
-];
-
 /* ═══════════════════════════════════════════════════════════════════════
    MAIN TOOL PAGE
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ToolPage({ tool, onBack, onLogin, onTool }) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const toast = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -1684,26 +1678,31 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const [showShare, setShowShare] = useState(false);
   const [showPackModal, setShowPackModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [savingVariant, setSavingVariant] = useState(null);
+  const [savedVariants, setSavedVariants] = useState(new Set());
 
   const allTextareas = tool.fields.filter((f) => f.type === "textarea");
   const firstRequiredTextarea = allTextareas.find((f) => f.required);
   const otherTextareas = allTextareas.filter(
     (f) => f !== firstRequiredTextarea,
   );
-  //const optionFields = tool.fields.filter((f) => f.type !== "textarea");
-
-  // Filter out pack_scenario for intent detector
   const allOptionFields = tool.fields.filter((f) => f.type !== "textarea");
   const optionFields =
     tool.id === "intent-detector"
       ? allOptionFields.filter((f) => f.id !== "pack_scenario")
       : allOptionFields;
-  // Character limit (replacing word limit)
   const charLimit = subscription?.character_limits?.[tool.limitKey] || 2000;
   const mainText = fields[firstRequiredTextarea?.id] || "";
   const charCount = mainText.length;
 
-  // Reset fields when tool changes
+  // Check if user can save replies (Daily or Pro)
+  const canSaveReplies =
+    user &&
+    (planTier === "daily" || planTier === "pro") &&
+    phase === "done" &&
+    result?._generationId;
+
+  // Reset when tool changes
   useEffect(() => {
     setFields({});
     setResult(null);
@@ -1712,6 +1711,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
     setActiveTab(tool.outputVariants?.[0] || "");
     setShowShare(false);
     setShowPackModal(false);
+    setSavedVariants(new Set());
   }, [tool.id]);
 
   // Pre‑fill message from sessionStorage (after login)
@@ -1769,6 +1769,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
     setResult(null);
     setErrorMessage("");
     setActiveTab(tool.outputVariants?.[0] || "");
+    setSavedVariants(new Set());
     try {
       let parsed;
       if (tool.backendRoute && generateApi[tool.backendRoute]) {
@@ -1837,6 +1838,34 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
         setErrorMessage(msg);
         toast.error(msg);
       }
+    }
+  }
+
+  async function handleSaveReply(variant) {
+    if (!result?._generationId) {
+      toast.error("No generation ID found. Please regenerate.");
+      return;
+    }
+    setSavingVariant(variant);
+    try {
+      const { data } = await import("../lib/apiClient.js").then((mod) =>
+        mod.api.post("/generate/reply/save", {
+          generation_id: result._generationId,
+        }),
+      );
+      setSavedVariants((prev) => new Set(prev).add(variant));
+      toast.success(`Reply (${variant}) saved!`);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message || err?.message || "Failed to save reply.";
+      if (msg.toLowerCase().includes("already saved")) {
+        toast.warning("This reply was already saved.");
+        setSavedVariants((prev) => new Set(prev).add(variant));
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setSavingVariant(null);
     }
   }
 
@@ -2616,6 +2645,8 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     activeTab={activeTab}
                     setActiveTab={(v) => setActiveTab(v)}
                     onShare={() => setShowShare(true)}
+                    onSave={canSaveReplies ? handleSaveReply : null}
+                    isSaved={savedVariants.has(activeTab)}
                     insights={result._replyInsights}
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
@@ -2796,6 +2827,8 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     activeTab={activeTab}
                     setActiveTab={(v) => setActiveTab(v)}
                     onShare={() => setShowShare(true)}
+                    onSave={canSaveReplies ? handleSaveReply : null}
+                    isSaved={savedVariants.has(activeTab)}
                     insights={result._replyInsights}
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
@@ -2885,6 +2918,8 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     activeTab={activeTab}
                     setActiveTab={(v) => setActiveTab(v)}
                     onShare={() => setShowShare(true)}
+                    onSave={canSaveReplies ? handleSaveReply : null}
+                    isSaved={savedVariants.has(activeTab)}
                     insights={result._replyInsights}
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
@@ -2903,6 +2938,8 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     activeTab={activeTab}
                     setActiveTab={(v) => setActiveTab(v)}
                     onShare={() => setShowShare(true)}
+                    onSave={canSaveReplies ? handleSaveReply : null}
+                    isSaved={savedVariants.has(activeTab)}
                     insights={result._replyInsights}
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
@@ -2946,6 +2983,8 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     activeTab={activeTab}
                     setActiveTab={(v) => setActiveTab(v)}
                     onShare={() => setShowShare(true)}
+                    onSave={canSaveReplies ? handleSaveReply : null}
+                    isSaved={savedVariants.has(activeTab)}
                     insights={result._replyInsights}
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}

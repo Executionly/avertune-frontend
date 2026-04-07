@@ -6,7 +6,7 @@ import {
   useCancel,
 } from "../lib/useSubscription";
 import { useToast } from "../lib/Toast";
-import { Home, LogOut, X, MoreHorizontal } from "lucide-react";
+import { Home, LogOut, X, MoreHorizontal, Bookmark } from "lucide-react";
 import { TOOL_CONFIGS } from "../toolConfigs";
 import { useState } from "react";
 
@@ -117,7 +117,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         >
           <X size={20} />
         </button>
-
         {/* Logo – clickable to home */}
         <button
           onClick={() => {
@@ -168,7 +167,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             Avertune
           </span>
         </button>
-
         {/* Dashboard link */}
         <div style={{ padding: "12px 10px" }}>
           <button
@@ -203,7 +201,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             Dashboard
           </button>
         </div>
-
         {/* Tools section */}
         <div style={{ padding: "12px 10px" }}>
           <p
@@ -253,6 +250,59 @@ export default function Sidebar({ isOpen, setIsOpen }) {
               {tool.label}
             </button>
           ))}
+        </div>
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* Saved Replies */}
+        <div style={{ padding: "12px 10px" }}>
+          <p
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: "var(--ink-4)",
+              textTransform: "uppercase",
+              letterSpacing: "0.09em",
+              marginBottom: 6,
+              paddingLeft: 8,
+            }}
+          >
+            Library
+          </p>
+          <button
+            onClick={() => {
+              navigate("/saved-replies");
+              setIsOpen(false);
+            }}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
+              padding: "9px 10px",
+              borderRadius: 9,
+              background: "transparent",
+              color: "var(--ink-3)",
+              fontFamily: "inherit",
+              fontWeight: 500,
+              fontSize: 13.5,
+              cursor: "pointer",
+              textAlign: "left",
+              border: "none",
+              transition: "all .15s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--surface2)";
+              e.currentTarget.style.color = "var(--ink)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--ink-3)";
+            }}
+          >
+            <Bookmark size={15} strokeWidth={1.8} />
+            Saved Replies
+          </button>
         </div>
 
         {/* Spacer */}
@@ -309,7 +359,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             </p>
           </div>
         </div>
-
         {/* Billing dropdown */}
         <div style={{ padding: "12px 10px", position: "relative" }}>
           <button
@@ -440,7 +489,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             </div>
           )}
         </div>
-
         {/* Sign out */}
         <div style={{ padding: "12px 10px" }}>
           <button

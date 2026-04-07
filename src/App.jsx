@@ -44,6 +44,7 @@ import AffiliateProgram from "./components/AffiliateProgram.jsx";
 import PrivacyPolicy from "./components/PrivacyPolicy.jsx";
 import TermsOfService from "./components/TermsOfService.jsx";
 import ResponsibleUse from "./components/ResponsibleUse.jsx";
+import SavedReplies from "./components/SavedReplies.jsx";
 
 // ── Protected route ───────────────────────────────────────────────────────────
 function Protected({ children }) {
@@ -192,6 +193,14 @@ export default function App() {
         element={
           <Protected>
             <Dashboard />
+          </Protected>
+        }
+      />
+      <Route
+        path="/saved-replies"
+        element={
+          <Protected>
+            <SavedReplies />
           </Protected>
         }
       />

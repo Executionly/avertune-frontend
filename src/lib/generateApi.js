@@ -42,7 +42,7 @@ function capitalize(str) {
     .join(" ");
 }
 
-// ── Request builders (unchanged) ──────────────────────────────────────────
+// ── Request builders ──────────────────────────────────────────────────────────
 function buildRepliesRequest(fields) {
   const ps = fields.pack_scenario || {};
   const chips = parseChips(fields.context);
@@ -124,7 +124,7 @@ function buildIntentRequest(fields) {
   };
 }
 
-// ── Response normalizers (corrected: do NOT overwrite `replies` with raw data) ──
+// ── Response normalizers (all include _generationId) ─────────────────────────
 
 function normalizeRepliesResponse(raw) {
   const data = raw.data || raw;
@@ -143,7 +143,6 @@ function normalizeRepliesResponse(raw) {
     });
   }
 
-  // Spread all data except the original `replies` array
   const { replies: _, ...rest } = data;
   return {
     replies,
@@ -154,6 +153,7 @@ function normalizeRepliesResponse(raw) {
     _remaining: raw.remaining,
     _limit: raw.limit,
     _raw: raw,
+    _generationId: raw.generation_id || data.generation_id || raw.id || data.id,
   };
 }
 
@@ -167,6 +167,7 @@ function normalizeToneResponse(raw) {
     interpretation: data.interpretation || "",
     _remaining: raw.remaining,
     _raw: raw,
+    _generationId: raw.generation_id || data.generation_id || raw.id || data.id,
   };
 }
 
@@ -194,6 +195,7 @@ function normalizeBoundaryResponse(raw) {
     ...rest,
     _remaining: raw.remaining,
     _raw: raw,
+    _generationId: raw.generation_id || data.generation_id || raw.id || data.id,
   };
 }
 
@@ -226,6 +228,7 @@ function normalizeNegotiationResponse(raw) {
     ...rest,
     _remaining: raw.remaining,
     _raw: raw,
+    _generationId: raw.generation_id || data.generation_id || raw.id || data.id,
   };
 }
 
@@ -262,6 +265,7 @@ function normalizeFollowupResponse(raw) {
     ...rest,
     _remaining: raw.remaining,
     _raw: raw,
+    _generationId: raw.generation_id || data.generation_id || raw.id || data.id,
   };
 }
 
@@ -286,6 +290,7 @@ function normalizeDifficultEmailResponse(raw) {
     ...rest,
     _remaining: raw.remaining,
     _raw: raw,
+    _generationId: raw.generation_id || data.generation_id || raw.id || data.id,
   };
 }
 
@@ -306,6 +311,7 @@ function normalizeIntentResponse(raw) {
     ...data,
     _remaining: raw.remaining,
     _raw: raw,
+    _generationId: raw.generation_id || data.generation_id || raw.id || data.id,
   };
 }
 
