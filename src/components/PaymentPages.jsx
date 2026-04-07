@@ -47,6 +47,15 @@ export function PaymentSuccessPage() {
     ? "Your pack has been added. You can now access new scenarios in the tools."
     : "Your subscription is now active. You can start using all Avertune tools immediately.";
 
+  const handleGoToDashboard = () => {
+    try {
+      navigate("/dashboard");
+    } catch (e) {
+      // Fallback if navigate fails
+      window.location.href = "/dashboard";
+    }
+  };
+
   return (
     <StaticShell>
       <StaticCard>
@@ -74,13 +83,14 @@ export function PaymentSuccessPage() {
             {message}
           </p>
           <button
-            onClick={() => navigate("/dashboard")}
+            onClick={handleGoToDashboard}
             className="btn-green"
             style={{
               padding: "12px 28px",
               borderRadius: 12,
               fontWeight: 700,
               fontSize: 15,
+              cursor: "pointer",
             }}
           >
             Go to Dashboard
@@ -93,6 +103,22 @@ export function PaymentSuccessPage() {
 
 export function PaymentFailurePage() {
   const navigate = useNavigate();
+
+  const handleTryAgain = () => {
+    try {
+      navigate("/pricing");
+    } catch (e) {
+      window.location.href = "/pricing";
+    }
+  };
+
+  const handleGoToDashboard = () => {
+    try {
+      navigate("/dashboard");
+    } catch (e) {
+      window.location.href = "/dashboard";
+    }
+  };
 
   return (
     <StaticShell>
@@ -122,25 +148,27 @@ export function PaymentFailurePage() {
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
             <button
-              onClick={() => navigate("/pricing")}
+              onClick={handleTryAgain}
               className="btn-green"
               style={{
                 padding: "12px 24px",
                 borderRadius: 12,
                 fontWeight: 700,
                 fontSize: 15,
+                cursor: "pointer",
               }}
             >
               Try Again
             </button>
             <button
-              onClick={() => navigate("/dashboard")}
+              onClick={handleGoToDashboard}
               className="btn-ghost"
               style={{
                 padding: "12px 24px",
                 borderRadius: 12,
                 fontWeight: 600,
                 fontSize: 15,
+                cursor: "pointer",
               }}
             >
               Go to Dashboard
