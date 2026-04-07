@@ -42,11 +42,27 @@ function capitalize(str) {
     .join(" ");
 }
 
+// ── Pack ID mapping (internal → backend) ───────────────────────────────────
+const PACK_ID_TO_BACKEND = {
+  personal: "personal",
+  customer_support: "customer_support",
+  work: "work_corporate", // internal "work" → backend "work_corporate"
+  sales: "sales_negotiation", // internal "sales" → backend "sales_negotiation"
+  dating: "dating",
+  core_professional: "core_professional",
+};
+
 // ── Request builders ──────────────────────────────────────────────────────────
 function buildRepliesRequest(fields) {
   const ps = fields.pack_scenario || {};
   const chips = parseChips(fields.context);
   if (ps.scenarioLabel) chips.push(ps.scenarioLabel);
+
+  // Map internal pack ID to backend enum
+  const backendPack = ps.packId
+    ? PACK_ID_TO_BACKEND[ps.packId] || ps.packId
+    : "";
+
   return {
     message: fields.message || "",
     thread_context: "",
@@ -56,7 +72,7 @@ function buildRepliesRequest(fields) {
     goal: fields.goal || "",
     audience: fields.audience || "",
     context_chips: chips,
-    pack: ps.packId || "",
+    pack: backendPack,
   };
 }
 
