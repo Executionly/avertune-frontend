@@ -10,6 +10,7 @@ import {
   Bookmark,
   Lightbulb,
   Menu,
+  Lock,
 } from "lucide-react";
 import { useToast } from "../lib/Toast.jsx";
 import Sidebar from "./Sidebar.jsx";
@@ -990,30 +991,6 @@ export default function SavedReplies() {
     navigate("/login");
     return null;
   }
-  if (!canAccess) {
-    return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-        <div
-          className="container"
-          style={{ paddingTop: 80, textAlign: "center" }}
-        >
-          <h1 style={{ fontSize: 28, marginBottom: 12 }}>
-            Upgrade to access saved replies
-          </h1>
-          <p style={{ color: "var(--ink-3)", marginBottom: 24 }}>
-            Saved replies are available on Daily and Pro plans.
-          </p>
-          <button
-            onClick={() => navigate("/pricing")}
-            className="btn-green"
-            style={{ padding: "12px 28px", borderRadius: 12 }}
-          >
-            View plans
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div
@@ -1028,7 +1005,7 @@ export default function SavedReplies() {
           style={{
             position: "sticky",
             top: 0,
-            zIndex: 40, // lower than sidebar (50) so close button is clickable
+            zIndex: 40,
             background: "var(--nav-bg)",
             backdropFilter: "blur(20px)",
             borderBottom: "1px solid var(--border)",
@@ -1088,50 +1065,62 @@ export default function SavedReplies() {
           className="container"
           style={{ paddingTop: 40, paddingBottom: 80, maxWidth: 1000 }}
         >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
-              flexWrap: "wrap",
-              gap: 12,
-            }}
-          >
-            <h1
+          {!canAccess ? (
+            // Upgrade prompt - consistent UI with sidebar and header
+            <div
               style={{
-                fontSize: 28,
-                fontWeight: 800,
-                letterSpacing: "-0.03em",
-              }}
-            >
-              Saved Replies
-            </h1>
-            <select
-              value={toolFilter}
-              onChange={(e) => {
-                setToolFilter(e.target.value);
-                setPage(1);
-              }}
-              style={{
-                padding: "8px 12px",
-                borderRadius: 10,
+                textAlign: "center",
+                padding: "clamp(40px,8vw,80px) 20px",
+                background: "var(--surface)",
                 border: "1px solid var(--border2)",
-                background: "var(--surface2)",
-                color: "var(--ink)",
-                fontSize: 13,
-                fontFamily: "inherit",
+                borderRadius: 24,
+                maxWidth: 500,
+                margin: "0 auto",
               }}
             >
-              {TOOL_FILTERS.map((f) => (
-                <option key={f.value} value={f.value}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {loading ? (
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 20,
+                  background: "rgba(34,197,94,0.08)",
+                  border: "1px solid rgba(34,197,94,0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 24px",
+                }}
+              >
+                <Lock size={28} color="var(--green)" />
+              </div>
+              <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>
+                Upgrade to access saved replies
+              </h2>
+              <p
+                style={{
+                  color: "var(--ink-3)",
+                  marginBottom: 24,
+                  lineHeight: 1.6,
+                }}
+              >
+                Saved replies are available on <strong>Daily</strong> and{" "}
+                <strong>Pro</strong> plans. Upgrade now to save and revisit your
+                best replies anytime.
+              </p>
+              <button
+                onClick={() => navigate("/pricing")}
+                className="btn-green"
+                style={{
+                  padding: "12px 28px",
+                  borderRadius: 12,
+                  fontSize: 15,
+                  fontWeight: 600,
+                }}
+              >
+                View plans →
+              </button>
+            </div>
+          ) : loading ? (
             <div style={{ textAlign: "center", padding: 60 }}>
               <div className="dot-loader" style={{ justifyContent: "center" }}>
                 <span />
@@ -1173,12 +1162,56 @@ export default function SavedReplies() {
           ) : (
             <>
               <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 24,
+                  flexWrap: "wrap",
+                  gap: 12,
+                }}
+              >
+                <h1
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 800,
+                    letterSpacing: "-0.03em",
+                  }}
+                >
+                  Saved Replies
+                </h1>
+                <select
+                  value={toolFilter}
+                  onChange={(e) => {
+                    setToolFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 10,
+                    border: "1px solid var(--border2)",
+                    background: "var(--surface2)",
+                    color: "var(--ink)",
+                    fontSize: 13,
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {TOOL_FILTERS.map((f) => (
+                    <option key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div
                 style={{ display: "flex", flexDirection: "column", gap: 24 }}
               >
                 {replies.map((item) => (
                   <SavedReplyCard key={item.id} item={item} />
                 ))}
               </div>
+
               {totalPages > 1 && (
                 <div
                   style={{
