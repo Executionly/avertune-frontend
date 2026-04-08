@@ -12,22 +12,25 @@ import {
   Camera,
   Sparkles,
   Heart,
+  Shield,
+  CheckCircle,
+  Lock,
 } from "lucide-react";
 
-export default function AffliliateProgram() {
+export default function AffiliateProgram() {
   const navigate = useNavigate();
 
   const stats = [
     {
       icon: TrendingUp,
-      value: "1.5M+",
-      label: "video views",
+      value: "$5,000+",
+      label: "monthly earning potential",
       color: "var(--green)",
     },
     {
       icon: DollarSign,
-      value: "$5,000+",
-      label: "monthly earning potential",
+      value: "Unlimited",
+      label: "earnings scale with performance",
       color: "var(--teal)",
     },
   ];
@@ -35,94 +38,112 @@ export default function AffliliateProgram() {
   const steps = [
     {
       icon: Camera,
-      title: "Record a testing video",
-      desc: "Create a short video using Avertune – show how you use the Reply Generator, Tone Checker or any of our tools.",
+      title: "Create a test video",
+      desc: "Record a short video showing how Avertune works — paste a message, show the analysis, and highlight the improved reply.",
     },
     {
       icon: Mail,
-      title: "Send an email to us",
-      desc: "Email your video to ugc@avertune.com with your name and social handles.",
+      title: "Send your video",
+      desc: "Email your video to creators@avertune.com with your name and social handles.",
     },
     {
       icon: Zap,
-      title: "Get an offer",
-      desc: "If we love your style, we’ll send you a paid collaboration offer. Earn up to $5,000+ per month!",
+      title: "Get approved & earn",
+      desc: "If we love your style, we'll send you a paid collaboration offer. Earn up to $5,000+ per month!",
     },
   ];
 
   const benefits = [
     {
       icon: Sparkles,
-      title: "Fast earnings",
-      desc: "Get paid quickly for every approved video.",
+      title: "Performance-based pay",
+      desc: "Base pay per approved video + bonuses for views and performance.",
     },
     {
       icon: Users,
       title: "No follower minimum",
-      desc: "We care about creativity, not just numbers.",
+      desc: "We care about content quality and creativity, not just numbers.",
     },
     {
       icon: Briefcase,
       title: "Build your portfolio",
-      desc: "Work with a top AI brand and grow your reel.",
+      desc: "Work with a fast‑growing global brand and grow your reel.",
     },
     {
       icon: Heart,
-      title: "Full product access",
-      desc: "Get free Avertune Pro while you create.",
+      title: "Free Pro access",
+      desc: "Get Avertune Pro while you create – analyze and reply like a pro.",
     },
+  ];
+
+  const whatWeLookFor = [
+    "clear, simple explanations",
+    "relatable message examples",
+    "engaging storytelling",
+    "natural delivery (not scripted)",
+  ];
+
+  const contentIdeas = [
+    "“This message could cost you”",
+    "Before vs after replies",
+    "Difficult conversations",
+    "Workplace communication",
+    "Negotiation scenarios",
   ];
 
   const testimonials = [
     {
       name: "Maria S.",
       role: "Content Creator",
-      text: "Working with Avertune has been a genuinely great experience. Communication is clear, earnings are solid, and I feel valued. This job has helped me grow my creative skills and build a stronger portfolio. I honestly recommend Avertune to other creators – it’s a comfortable and motivating place to work!",
+      text: "Working with Avertune has been a genuinely great experience. Communication is clear, earnings are solid, and I feel valued. This job has helped me grow my creative skills and build a stronger portfolio. I honestly recommend Avertune to other creators – it's a comfortable and motivating place to work!",
       rating: 5,
     },
     {
       name: "Jeremy L.",
       role: "YouTuber",
-      text: "Overall, I’ve really enjoyed working with Avertune. The communication is smooth, expectations are clear, and the process is easy. Earnings are solid and definitely appreciated. This collaboration has helped me grow my creative skills and add more to my portfolio. I’d definitely recommend Avertune to other creators.",
+      text: "Overall, I've really enjoyed working with Avertune. The communication is smooth, expectations are clear, and the process is easy. Earnings are solid and definitely appreciated. This collaboration has helped me grow my creative skills and add more to my portfolio. I'd definitely recommend Avertune to other creators.",
       rating: 5,
     },
     {
       name: "Sofie K.",
       role: "TikTok Creator",
-      text: "Firstly yes I love working with you!! Such a great brand to work with and very efficient. Earnings are great. Satisfied. This collab has certainly helped me grow!! 100% recommend working with Avertune!! You’re actually one of my favourite brands I currently work with! Can’t wait to create even more content for you :)",
+      text: "Firstly yes I love working with you!! Such a great brand to work with and very efficient. Earnings are great. Satisfied. This collab has certainly helped me grow!! 100% recommend working with Avertune!! You're actually one of my favourite brands I currently work with! Can't wait to create even more content for you :)",
       rating: 5,
     },
   ];
 
   const faqs = [
     {
-      q: "Are there any payout limits?",
-      a: "No – you can earn as much as your content drives. We pay per accepted video and offer performance bonuses.",
+      q: "Is there a follower requirement?",
+      a: "No. We care about content quality, not follower count.",
     },
-    {
-      q: "How will you pay me?",
-      a: "We pay via PayPal, Stripe, or bank transfer (depending on your region).",
-    },
-    { q: "Which currency do you pay in?", a: "USD (US dollars)." },
     {
       q: "When do I get paid?",
-      a: "Payouts are processed monthly, within 15 days after the end of each month.",
+      a: "Payments are made based on approved content and performance cycles.",
     },
     {
-      q: "Can I come up with my own content ideas?",
-      a: "Absolutely! We encourage creativity. While we provide inspiration videos and guidelines, you are welcome to pitch your own ideas as long as they align with our brand.",
+      q: "Can I create my own content ideas?",
+      a: "Yes. We encourage originality. We provide inspiration and proven formats, but you are free to test your own ideas.",
     },
     {
-      q: "When will I receive a response after submitting my application?",
-      a: "We typically respond within 3-5 business days.",
+      q: "Is there a limit to earnings?",
+      a: "No. Earnings scale with performance. The more you create and the better your content performs, the more you earn.",
     },
     {
-      q: "How many posts do I need to publish per month?",
-      a: "We have flexible commitments – from 2 to 10+ posts per month depending on your availability and our needs.",
+      q: "What kind of content performs best?",
+      a: "Real message examples, before/after comparisons, and emotional or high-stakes scenarios tend to perform very well.",
     },
     {
-      q: "What kind of posts should I make?",
-      a: "Short-form videos (TikTok, Reels, Shorts) demonstrating Avertune in action – replying to messages, analyzing tone, setting boundaries, etc. Authenticity works best!",
+      q: "How is Avertune different from writing tools?",
+      a: "Most tools help you rewrite text. Avertune helps you understand what a message really means, avoid miscommunication, and respond strategically. It's communication decision support, not just writing.",
+    },
+    {
+      q: "Is Avertune free to use?",
+      a: "Yes. You can try Avertune with a limited number of replies per day. Paid plans unlock more replies, advanced response strategies, and negotiation tools.",
+    },
+    {
+      q: "Is my data private?",
+      a: "Yes. We do not sell your data. We use your inputs only to provide and improve the service.",
     },
   ];
 
@@ -200,7 +221,7 @@ export default function AffliliateProgram() {
           <span
             style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-2)" }}
           >
-            UGC Creator Program
+            Creator Program
           </span>
         </div>
       </header>
@@ -241,9 +262,9 @@ export default function AffliliateProgram() {
               marginBottom: 14,
             }}
           >
-            Become a UGC Creator
+            Become an Avertune Creator
             <br />
-            <span className="grad-text">for Avertune</span>
+            <span className="grad-text">Create. Help. Get paid.</span>
           </h1>
           <p
             style={{
@@ -254,9 +275,10 @@ export default function AffliliateProgram() {
               lineHeight: 1.6,
             }}
           >
-            Are you a talented creator who wants to grow, make content, and get
-            paid for your creativity? We're looking for YOU! Post videos,
-            inspire your audience, and earn up to $5,000 and more!
+            Avertune is building a global network of creators who show how to
+            handle real conversations — from work emails to difficult messages.
+            If you enjoy creating content and want to grow your influence while
+            earning, we want to work with you.
           </p>
         </div>
 
@@ -309,7 +331,7 @@ export default function AffliliateProgram() {
               marginBottom: 12,
             }}
           >
-            How to join?
+            How to Join
           </h2>
           <div
             style={{
@@ -361,7 +383,7 @@ export default function AffliliateProgram() {
           </div>
           <div style={{ textAlign: "center", marginTop: 32 }}>
             <a
-              href="mailto:ugc@avertune.com?subject=UGC%20Creator%20Application&body=Hi%2C%20I%27d%20like%20to%20join%20the%20Avertune%20UGC%20program.%20Here%20is%20my%20video%20and%20information%3A%0A%0AName%3A%0ASocial%20handles%3A%0AVideo%20link%3A"
+              href="mailto:creators@avertune.com?subject=Creator%20Application&body=Hi%2C%20I%27d%20like%20to%20join%20the%20Avertune%20Creator%20Program.%20Here%20is%20my%20video%20and%20information%3A%0A%0AName%3A%0ASocial%20handles%3A%0AVideo%20link%3A"
               className="btn-green"
               style={{
                 padding: "12px 28px",
@@ -391,7 +413,7 @@ export default function AffliliateProgram() {
               marginBottom: 12,
             }}
           >
-            Why Join?
+            Why Join Avertune?
           </h2>
           <div
             style={{
@@ -434,7 +456,137 @@ export default function AffliliateProgram() {
           </div>
         </div>
 
-        {/* What our creators say */}
+        {/* What We Look For + Content Ideas */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: 24,
+            marginBottom: "clamp(56px,8vw,88px)",
+          }}
+        >
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 20,
+              padding: "clamp(24px,3vw,32px)",
+            }}
+          >
+            <h3
+              style={{
+                fontSize: 20,
+                fontWeight: 700,
+                marginBottom: 16,
+                color: "var(--green)",
+              }}
+            >
+              What We Look For
+            </h3>
+            <ul
+              style={{
+                listStyle: "none",
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              {whatWeLookFor.map((item, i) => (
+                <li
+                  key={i}
+                  style={{ display: "flex", alignItems: "center", gap: 10 }}
+                >
+                  <CheckCircle size={16} color="var(--green)" />
+                  <span style={{ fontSize: 14, color: "var(--ink-2)" }}>
+                    {item}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 20,
+              padding: "clamp(24px,3vw,32px)",
+            }}
+          >
+            <h3
+              style={{
+                fontSize: 20,
+                fontWeight: 700,
+                marginBottom: 16,
+                color: "var(--teal)",
+              }}
+            >
+              Content Ideas
+            </h3>
+            <ul
+              style={{
+                listStyle: "none",
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              {contentIdeas.map((item, i) => (
+                <li
+                  key={i}
+                  style={{ display: "flex", alignItems: "center", gap: 10 }}
+                >
+                  <Sparkles size={16} color="var(--teal)" />
+                  <span style={{ fontSize: 14, color: "var(--ink-2)" }}>
+                    {item}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* What makes this different */}
+        <div
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(34,197,94,0.05), rgba(45,212,191,0.05))",
+            borderRadius: 24,
+            padding: "clamp(32px,4vw,48px)",
+            marginBottom: "clamp(56px,8vw,88px)",
+            textAlign: "center",
+          }}
+        >
+          <h2
+            style={{
+              fontSize: "clamp(24px,3.5vw,32px)",
+              fontWeight: 800,
+              marginBottom: 12,
+            }}
+          >
+            What Makes This Different
+          </h2>
+          <p
+            style={{
+              fontSize: 16,
+              color: "var(--ink-3)",
+              maxWidth: 600,
+              margin: "0 auto",
+              lineHeight: 1.6,
+            }}
+          >
+            Most tools help people write.
+            <br />
+            <strong style={{ color: "var(--green)" }}>
+              Avertune helps people understand messages, avoid mistakes, and
+              respond correctly.
+            </strong>
+            <br />
+            This makes your content more relatable, more shareable, and more
+            likely to go viral.
+          </p>
+        </div>
+
+        {/* Testimonials */}
         <div style={{ marginBottom: "clamp(56px,8vw,88px)" }}>
           <h2
             style={{
@@ -505,7 +657,7 @@ export default function AffliliateProgram() {
               marginBottom: 32,
             }}
           >
-            FAQ – UGC Program
+            Frequently Asked Questions
           </h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {faqs.map((f, i) => (
@@ -538,7 +690,7 @@ export default function AffliliateProgram() {
         {/* Bottom CTA */}
         <div style={{ marginTop: "clamp(56px,8vw,88px)", textAlign: "center" }}>
           <a
-            href="mailto:ugc@avertune.com?subject=UGC%20Creator%20Application"
+            href="mailto:creators@avertune.com?subject=Creator%20Application"
             className="btn-green"
             style={{
               padding: "14px 36px",
@@ -550,7 +702,7 @@ export default function AffliliateProgram() {
               color: "#000",
             }}
           >
-            Send your video and join our team →
+            Create your first video and apply today →
           </a>
         </div>
       </div>

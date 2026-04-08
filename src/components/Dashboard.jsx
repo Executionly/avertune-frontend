@@ -65,7 +65,7 @@ const TOOLS = [
     icon: Clock,
     slug: "difficult-email",
     label: "Difficult Email",
-    desc: "Rewrite sensitive emails safely",
+    desc: "Reply confidently to difficult emails or messages",
     color: "#f59e0b",
     bg: "rgba(245,158,11,0.08)",
     border: "rgba(245,158,11,0.2)",
