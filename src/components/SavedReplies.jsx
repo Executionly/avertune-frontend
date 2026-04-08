@@ -7,23 +7,12 @@ import {
   ArrowLeft,
   Copy,
   Check,
-  MessageSquare,
-  Filter,
-  X,
   Bookmark,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useToast } from "../lib/Toast.jsx";
-
-const TOOL_FILTERS = [
-  { value: "", label: "All tools" },
-  { value: "reply_generator", label: "Reply Generator" },
-  { value: "tone_checker", label: "Tone Checker" },
-  { value: "boundary_builder", label: "Boundary Builder" },
-  { value: "negotiation", label: "Sales & Negotiation" },
-  { value: "follow_up", label: "Follow-Up" },
-  { value: "difficult_email", label: "Difficult Email" },
-  { value: "intent_detector", label: "Intent Detector" },
-];
+import Sidebar from "./Sidebar.jsx";
 
 function CopyBtn({ text }) {
   const [copied, setCopied] = useState(false);
@@ -56,6 +45,327 @@ function CopyBtn({ text }) {
   );
 }
 
+function SavedReplyCard({ reply }) {
+  const [expanded, setExpanded] = useState(false);
+  const resultJson = reply.generations?.result_json || {};
+  const repliesObj = resultJson.replies || {};
+  const recommendedVariant =
+    resultJson.recommended_reply || Object.keys(repliesObj)[0];
+  const selectedReply = repliesObj[recommendedVariant] || {};
+  const replyText = selectedReply.text || "";
+  const insight = selectedReply.insight || "";
+  const analysis = resultJson.analysis || {};
+  const allVariants = Object.keys(repliesObj);
+
+  const variantColors = {
+    balanced: "var(--green)",
+    firm: "var(--teal)",
+    calm: "var(--blue)",
+    delay: "#a78bfa",
+  };
+  const varColor = variantColors[recommendedVariant] || "var(--green)";
+
+  return (
+    <div
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--border2)",
+        borderRadius: 18,
+        overflow: "hidden",
+        marginBottom: 16,
+      }}
+    >
+      {/* Header with pack and tone */}
+      <div
+        style={{
+          padding: "12px 16px",
+          borderBottom: "1px solid var(--border)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 8,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: varColor,
+            }}
+          />
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: varColor,
+              textTransform: "uppercase",
+              letterSpacing: "0.07em",
+            }}
+          >
+            {reply.pack || "General"} · {reply.tone || "professional"}
+          </span>
+          {recommendedVariant && (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                padding: "2px 8px",
+                borderRadius: 12,
+                background: `${varColor}18`,
+                color: varColor,
+              }}
+            >
+              {recommendedVariant}
+            </span>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <CopyBtn text={replyText} />
+          <button
+            onClick={() => setExpanded(!expanded)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "5px 10px",
+              borderRadius: 7,
+              border: "1px solid var(--border2)",
+              background: "transparent",
+              color: "var(--ink-3)",
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            {expanded ? "Less" : "More"}
+          </button>
+        </div>
+      </div>
+
+      {/* Reply text */}
+      <div style={{ padding: "16px 18px" }}>
+        <div
+          style={{
+            fontSize: 14,
+            color: "var(--ink)",
+            lineHeight: 1.7,
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {replyText}
+        </div>
+      </div>
+
+      {/* Expanded details */}
+      {expanded && (
+        <div
+          style={{
+            padding: "12px 18px 18px",
+            borderTop: "1px solid var(--border)",
+            animation: "fadeIn 0.2s ease",
+          }}
+        >
+          {insight && (
+            <div
+              style={{
+                padding: "10px 14px",
+                background: `${varColor}0D`,
+                border: `1px solid ${varColor}25`,
+                borderRadius: 10,
+                marginBottom: 14,
+              }}
+            >
+              <p
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: varColor,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  marginBottom: 4,
+                }}
+              >
+                Insight
+              </p>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "var(--ink-2)",
+                  lineHeight: 1.55,
+                }}
+              >
+                {insight}
+              </p>
+            </div>
+          )}
+
+          {analysis.tone && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 10,
+                marginBottom: 14,
+              }}
+            >
+              <div>
+                <p
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 700,
+                    color: "var(--ink-4)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    marginBottom: 3,
+                  }}
+                >
+                  Tone
+                </p>
+                <p style={{ fontSize: 12, color: "var(--ink)" }}>
+                  {analysis.tone}
+                </p>
+              </div>
+              <div>
+                <p
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 700,
+                    color: "var(--ink-4)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    marginBottom: 3,
+                  }}
+                >
+                  Risk Level
+                </p>
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color:
+                      analysis.risk_level === "high"
+                        ? "#ef4444"
+                        : analysis.risk_level === "medium"
+                          ? "#f59e0b"
+                          : "var(--green)",
+                  }}
+                >
+                  {analysis.risk_level || "—"}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {analysis.intent && (
+            <div style={{ marginBottom: 12 }}>
+              <p
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: "var(--ink-4)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  marginBottom: 3,
+                }}
+              >
+                Intent
+              </p>
+              <p style={{ fontSize: 12, color: "var(--ink-2)" }}>
+                {analysis.intent}
+              </p>
+            </div>
+          )}
+
+          {analysis.strategy && (
+            <div>
+              <p
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: "var(--ink-4)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  marginBottom: 3,
+                }}
+              >
+                Strategy
+              </p>
+              <p style={{ fontSize: 12, color: "var(--ink-2)" }}>
+                {analysis.strategy}
+              </p>
+            </div>
+          )}
+
+          {allVariants.length > 1 && (
+            <div
+              style={{
+                marginTop: 14,
+                paddingTop: 12,
+                borderTop: "1px solid var(--border)",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "var(--ink-4)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  marginBottom: 8,
+                }}
+              >
+                Other variants
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {allVariants.map((variant) => {
+                  if (variant === recommendedVariant) return null;
+                  const variantData = repliesObj[variant];
+                  if (!variantData?.text) return null;
+                  return (
+                    <button
+                      key={variant}
+                      onClick={() => {
+                        navigator.clipboard.writeText(variantData.text);
+                      }}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 16,
+                        fontSize: 11,
+                        fontWeight: 500,
+                        border: `1px solid ${variantColors[variant] || "var(--border2)"}`,
+                        background: "transparent",
+                        color: variantColors[variant] || "var(--ink-3)",
+                        cursor: "pointer",
+                        transition: "all .15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = `${variantColors[variant] || "var(--green)"}10`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      {variant}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginTop: 14, fontSize: 10, color: "var(--ink-4)" }}>
+            Saved on {new Date(reply.created_at).toLocaleDateString()}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SavedReplies() {
   const { user, authLoading } = useAuth();
   const navigate = useNavigate();
@@ -65,7 +375,7 @@ export default function SavedReplies() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [toolFilter, setToolFilter] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const canAccess =
     user &&
@@ -78,7 +388,7 @@ export default function SavedReplies() {
       return;
     }
     fetchReplies();
-  }, [user, page, toolFilter]);
+  }, [user, page]);
 
   async function fetchReplies() {
     setLoading(true);
@@ -86,9 +396,7 @@ export default function SavedReplies() {
       const params = new URLSearchParams();
       params.append("page", page);
       params.append("limit", 20);
-      if (toolFilter) params.append("pack", toolFilter);
       const { data } = await api.get(`/generate/replies?${params.toString()}`);
-      // Response structure: { saved_replies: [...], pagination: {...} }
       setReplies(data.saved_replies || []);
       setTotalPages(data.pagination?.total_pages || 1);
     } catch (err) {
@@ -109,355 +417,276 @@ export default function SavedReplies() {
   }
   if (!canAccess) {
     return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-        <div
-          className="container"
-          style={{ paddingTop: 80, textAlign: "center" }}
+      <div
+        style={{ minHeight: "100vh", background: "var(--bg)", display: "flex" }}
+      >
+        <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+        <main
+          className="main-content"
+          style={{ flex: 1, marginLeft: 240, minWidth: 0 }}
         >
-          <h1 style={{ fontSize: 28, marginBottom: 12 }}>
-            Upgrade to access saved replies
-          </h1>
-          <p style={{ color: "var(--ink-3)", marginBottom: 24 }}>
-            Saved replies are available on Daily and Pro plans.
-          </p>
-          <button
-            onClick={() => navigate("/pricing")}
-            className="btn-green"
-            style={{ padding: "12px 28px", borderRadius: 12 }}
+          <div
+            className="container"
+            style={{ paddingTop: 80, textAlign: "center" }}
           >
-            View plans
-          </button>
-        </div>
+            <h1 style={{ fontSize: 28, marginBottom: 12 }}>
+              Upgrade to access saved replies
+            </h1>
+            <p style={{ color: "var(--ink-3)", marginBottom: 24 }}>
+              Saved replies are available on Daily and Pro plans.
+            </p>
+            <button
+              onClick={() => navigate("/pricing")}
+              className="btn-green"
+              style={{ padding: "12px 28px", borderRadius: 12 }}
+            >
+              View plans
+            </button>
+          </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-      <header
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-          background: "var(--nav-bg)",
-          backdropFilter: "blur(20px)",
-          borderBottom: "1px solid var(--border)",
-        }}
+    <div
+      style={{ minHeight: "100vh", background: "var(--bg)", display: "flex" }}
+    >
+      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+      <main
+        className="main-content"
+        style={{ flex: 1, marginLeft: 240, minWidth: 0 }}
       >
-        <div
-          className="container"
-          style={{ display: "flex", alignItems: "center", height: 60, gap: 12 }}
-        >
-          <button
-            onClick={() => navigate(-1)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              color: "var(--ink-3)",
-              fontSize: 13,
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            <ArrowLeft size={15} /> Back
-          </button>
-          <div style={{ width: 1, height: 20, background: "var(--border)" }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                background: "linear-gradient(135deg,var(--green),var(--teal))",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
-                <path
-                  d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
-                  stroke="#000"
-                  strokeWidth="2.2"
-                />
-              </svg>
-            </div>
-            <span style={{ fontWeight: 800, fontSize: 15 }}>Avertune</span>
-          </div>
-          <span style={{ fontSize: 13, color: "var(--ink-4)" }}>/</span>
-          <span
-            style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-2)" }}
-          >
-            Saved Replies
-          </span>
-        </div>
-      </header>
-
-      <div
-        className="container"
-        style={{ paddingTop: 40, paddingBottom: 80, maxWidth: 900 }}
-      >
-        <div
+        <header
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 24,
-            flexWrap: "wrap",
-            gap: 12,
+            position: "sticky",
+            top: 0,
+            zIndex: 30,
+            background: "var(--nav-bg)",
+            backdropFilter: "blur(20px)",
+            borderBottom: "1px solid var(--border)",
           }}
         >
-          <h1
-            style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.03em" }}
-          >
-            Saved Replies
-          </h1>
-          <select
-            value={toolFilter}
-            onChange={(e) => {
-              setToolFilter(e.target.value);
-              setPage(1);
-            }}
+          <div
             style={{
-              padding: "8px 12px",
-              borderRadius: 10,
-              border: "1px solid var(--border2)",
-              background: "var(--surface2)",
-              color: "var(--ink)",
-              fontSize: 13,
-              fontFamily: "inherit",
+              padding: "0 clamp(16px,3vw,32px)",
+              display: "flex",
+              alignItems: "center",
+              height: 58,
+              gap: 10,
+              justifyContent: "space-between",
             }}
           >
-            {TOOL_FILTERS.map((f) => (
-              <option key={f.value} value={f.value}>
-                {f.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {loading ? (
-          <div style={{ textAlign: "center", padding: 60 }}>
-            <div className="dot-loader" style={{ justifyContent: "center" }}>
-              <span />
-              <span />
-              <span />
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                onClick={() => setSidebarOpen(true)}
+                style={{
+                  color: "var(--ink-2)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "none",
+                }}
+                className="saved-hamburger"
+              >
+                <Bookmark size={21} />
+              </button>
+              <style>{`@media (max-width: 900px) { .saved-hamburger { display: flex !important; } .main-content { margin-left: 0 !important; } }`}</style>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: "var(--green)",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    color: "var(--ink)",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Saved Replies
+                </span>
+              </div>
             </div>
-            <p style={{ marginTop: 16, color: "var(--ink-3)" }}>
-              Loading saved replies...
-            </p>
           </div>
-        ) : replies.length === 0 ? (
+        </header>
+
+        <div
+          style={{
+            padding: "clamp(24px,4vw,48px) clamp(16px,4vw,48px)",
+            maxWidth: 960,
+            margin: "0 auto",
+          }}
+        >
           <div
             style={{
               textAlign: "center",
-              padding: 60,
-              background: "var(--surface)",
-              borderRadius: 20,
+              marginBottom: "clamp(28px,4vw,48px)",
             }}
           >
-            <Bookmark
-              size={40}
-              color="var(--ink-4)"
-              style={{ marginBottom: 16 }}
-            />
-            <h3 style={{ fontSize: 18, marginBottom: 8 }}>
-              No saved replies yet
-            </h3>
-            <p style={{ color: "var(--ink-3)", marginBottom: 24 }}>
-              Generate a reply and click "Save" to keep it here.
-            </p>
-            <button
-              onClick={() => navigate("/tool/reply-generator")}
-              className="btn-green"
-              style={{ padding: "10px 20px", borderRadius: 10 }}
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                padding: "5px 14px",
+                borderRadius: 999,
+                background: "rgba(34,197,94,0.08)",
+                border: "1px solid rgba(34,197,94,0.2)",
+                marginBottom: 14,
+              }}
             >
-              Generate a reply
-            </button>
-          </div>
-        ) : (
-          <>
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              {replies.map((item) => {
-                const resultJson = item.generations?.result_json;
-                const repliesObj = resultJson?.replies || {};
-                const recommended = resultJson?.recommended_reply;
-                const analysis = resultJson?.analysis || {};
-
-                // Get all reply variants
-                const variants = Object.keys(repliesObj);
-                // Display the first variant (or recommended if exists)
-                const displayVariant =
-                  recommended && repliesObj[recommended]
-                    ? recommended
-                    : variants[0];
-                const replyText = repliesObj[displayVariant]?.text || "";
-                const replyInsight = repliesObj[displayVariant]?.insight || "";
-
-                return (
-                  <div
-                    key={item.id}
-                    style={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border2)",
-                      borderRadius: 16,
-                      padding: 18,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        gap: 12,
-                        flexWrap: "wrap",
-                        marginBottom: 12,
-                      }}
-                    >
-                      <div>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: "var(--ink-4)",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.08em",
-                          }}
-                        >
-                          {item.pack || "General"}
-                        </span>
-                        {analysis.tone && (
-                          <span
-                            style={{
-                              marginLeft: 8,
-                              fontSize: 11,
-                              color: "var(--teal)",
-                            }}
-                          >
-                            · {analysis.tone}
-                          </span>
-                        )}
-                      </div>
-                      <CopyBtn text={replyText} />
-                    </div>
-
-                    {/* Display all variants as tabs or a dropdown? For simplicity, show the main one + note */}
-                    <p
-                      style={{
-                        fontSize: 14,
-                        color: "var(--ink)",
-                        lineHeight: 1.7,
-                        whiteSpace: "pre-wrap",
-                        marginBottom: 12,
-                      }}
-                    >
-                      {replyText}
-                    </p>
-
-                    {replyInsight && (
-                      <div
-                        style={{
-                          marginBottom: 12,
-                          padding: 8,
-                          background: "var(--surface2)",
-                          borderRadius: 8,
-                          fontSize: 12,
-                          color: "var(--ink-3)",
-                        }}
-                      >
-                        💡 {replyInsight}
-                      </div>
-                    )}
-
-                    {analysis.strategy && (
-                      <div
-                        style={{
-                          marginBottom: 12,
-                          padding: 8,
-                          background: "rgba(34,197,94,0.05)",
-                          borderRadius: 8,
-                          fontSize: 12,
-                          color: "var(--ink-2)",
-                        }}
-                      >
-                        🎯 Strategy: {analysis.strategy}
-                      </div>
-                    )}
-
-                    <div
-                      style={{
-                        marginTop: 12,
-                        fontSize: 11,
-                        color: "var(--ink-4)",
-                        display: "flex",
-                        gap: 12,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <span>
-                        Saved on{" "}
-                        {new Date(item.created_at).toLocaleDateString()}
-                      </span>
-                      {variants.length > 0 && (
-                        <span>
-                          {variants.length} variant
-                          {variants.length !== 1 ? "s" : ""}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {totalPages > 1 && (
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  gap: 8,
-                  marginTop: 32,
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: "var(--green)",
+                }}
+              />
+              <span
+                style={{
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  color: "var(--green)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
                 }}
               >
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: 8,
-                    border: "1px solid var(--border2)",
-                    background: "transparent",
-                    color: "var(--ink-3)",
-                    cursor: page === 1 ? "not-allowed" : "pointer",
-                    opacity: page === 1 ? 0.5 : 1,
-                  }}
-                >
-                  Previous
-                </button>
-                <span style={{ padding: "8px 16px", color: "var(--ink)" }}>
-                  Page {page} of {totalPages}
-                </span>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: 8,
-                    border: "1px solid var(--border2)",
-                    background: "transparent",
-                    color: "var(--ink-3)",
-                    cursor: page === totalPages ? "not-allowed" : "pointer",
-                    opacity: page === totalPages ? 0.5 : 1,
-                  }}
-                >
-                  Next
-                </button>
+                Your Library
+              </span>
+            </div>
+            <h1
+              style={{
+                fontSize: "clamp(26px,4vw,44px)",
+                fontWeight: 800,
+                letterSpacing: "-0.04em",
+                marginBottom: 10,
+                lineHeight: 1.1,
+              }}
+            >
+              Saved Replies
+            </h1>
+            <p
+              style={{
+                fontSize: "clamp(14px,1.6vw,16px)",
+                color: "var(--ink-3)",
+                maxWidth: 500,
+                margin: "0 auto",
+                lineHeight: 1.65,
+              }}
+            >
+              All your saved replies in one place. Quickly copy and reuse them
+              anytime.
+            </p>
+          </div>
+
+          {loading ? (
+            <div
+              style={{
+                padding: "60px",
+                background: "var(--surface)",
+                borderRadius: 18,
+                textAlign: "center",
+              }}
+            >
+              <div className="dot-loader" style={{ justifyContent: "center" }}>
+                <span />
+                <span />
+                <span />
               </div>
-            )}
-          </>
-        )}
-      </div>
+              <p style={{ marginTop: 16, color: "var(--ink-3)" }}>
+                Loading saved replies...
+              </p>
+            </div>
+          ) : replies.length === 0 ? (
+            <div
+              style={{
+                padding: "60px",
+                background: "var(--surface)",
+                borderRadius: 18,
+                textAlign: "center",
+              }}
+            >
+              <Bookmark
+                size={40}
+                color="var(--ink-4)"
+                style={{ marginBottom: 16 }}
+              />
+              <h3 style={{ fontSize: 18, marginBottom: 8 }}>
+                No saved replies yet
+              </h3>
+              <p style={{ color: "var(--ink-3)", marginBottom: 24 }}>
+                Generate a reply and click "Save" to keep it here.
+              </p>
+              <button
+                onClick={() => navigate("/tool/reply-generator")}
+                className="btn-green"
+                style={{ padding: "10px 20px", borderRadius: 10 }}
+              >
+                Generate a reply
+              </button>
+            </div>
+          ) : (
+            <>
+              <div>
+                {replies.map((reply) => (
+                  <SavedReplyCard key={reply.id} reply={reply} />
+                ))}
+              </div>
+              {totalPages > 1 && (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    gap: 8,
+                    marginTop: 32,
+                  }}
+                >
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    style={{
+                      padding: "8px 16px",
+                      borderRadius: 8,
+                      border: "1px solid var(--border2)",
+                      background: "transparent",
+                      color: "var(--ink-3)",
+                      cursor: page === 1 ? "not-allowed" : "pointer",
+                      opacity: page === 1 ? 0.5 : 1,
+                    }}
+                  >
+                    Previous
+                  </button>
+                  <span style={{ padding: "8px 16px", color: "var(--ink)" }}>
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    style={{
+                      padding: "8px 16px",
+                      borderRadius: 8,
+                      border: "1px solid var(--border2)",
+                      background: "transparent",
+                      color: "var(--ink-3)",
+                      cursor: page === totalPages ? "not-allowed" : "pointer",
+                      opacity: page === totalPages ? 0.5 : 1,
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </main>
     </div>
   );
 }
