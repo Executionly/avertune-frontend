@@ -17,16 +17,14 @@ import Sidebar from "./Sidebar.jsx";
 // Helper to convert snake_case or kebab-case to Title Case
 function formatPackName(str) {
   if (!str) return "General";
-  // Replace underscores and hyphens with spaces
   const withSpaces = str.replace(/[_-]/g, " ");
-  // Capitalize each word
   return withSpaces
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
 }
 
-// Explicit mapping for special cases (overrides the formatter)
+// Explicit mapping for special cases
 const PACK_LABELS = {
   general: "General",
   core_professional: "Core Professional",
@@ -44,7 +42,7 @@ const PACK_LABELS = {
   intent_detector: "Intent Detector",
 };
 
-// Tool filters (using formatted labels)
+// Tool filters
 const TOOL_FILTERS = [
   { value: "", label: "All tools" },
   { value: "reply_generator", label: "Reply Generator" },
@@ -79,6 +77,7 @@ const VARIANT_COLORS = {
   urgent: "#f59e0b",
   brief: "var(--blue)",
   soft: "var(--green)",
+  softened: "var(--green)",
   value_reinforcement: "var(--green)",
   calm_pushback: "var(--teal)",
   strategic_positioning: "var(--blue)",
@@ -117,7 +116,7 @@ function CopyBtn({ text }) {
   );
 }
 
-// Generic Variant Panel for any tool that has a variants object (replies, responses, follow_ups)
+// Generic Variant Panel (handles replies, responses, follow_ups, emails)
 function GenericVariantPanel({
   variantsObj,
   activeTab,
@@ -288,7 +287,7 @@ function GenericVariantPanel({
   );
 }
 
-// Component for displaying Intent Detector saved results
+// Intent Detector Card
 function IntentDetectorCard({ resultJson }) {
   const copyText = `
 Surface meaning: ${resultJson.surface_meaning || "—"}
@@ -493,7 +492,7 @@ Trust signal: ${resultJson.trust_signal || "—"}
   );
 }
 
-// Component for displaying Tone Checker saved results
+// Tone Checker Card
 function ToneCheckerCard({ resultJson }) {
   const copyText = `
 Tone: ${resultJson.primary_tone || "—"}
@@ -642,7 +641,7 @@ Interpretation: ${resultJson.interpretation || "—"}
   );
 }
 
-// Component for displaying Analysis-only tools (boundary builder, negotiation insight)
+// Analysis Card (boundary, negotiation insight, etc.)
 function AnalysisCard({ resultJson, situationRead, insight }) {
   const copyText = `
 Situation: ${situationRead || "—"}
@@ -771,11 +770,10 @@ ${resultJson.power_note ? `Power note: ${resultJson.power_note}` : ""}
   );
 }
 
-// Individual saved reply card component
+// Individual saved reply card
 function SavedReplyCard({ item }) {
   const resultJson = item.generations?.result_json || {};
   const pack = item.pack || "general";
-  // Use mapping or fallback to formatted name
   const toolLabel = PACK_LABELS[pack] || formatPackName(pack);
   const [activeTab, setActiveTab] = useState(null);
 
@@ -785,7 +783,7 @@ function SavedReplyCard({ item }) {
   let situationRead = null;
   let insight = null;
 
-  // Check for reply generators (replies object)
+  // 1) replies object (reply generator, negotiation, etc.)
   if (
     resultJson.replies &&
     typeof resultJson.replies === "object" &&
@@ -799,7 +797,7 @@ function SavedReplyCard({ item }) {
       Object.keys(variantsObj)[0];
     if (!activeTab && recommendedVariant) setActiveTab(recommendedVariant);
   }
-  // Check for boundary builder (responses object)
+  // 2) responses object (boundary builder)
   else if (
     resultJson.responses &&
     typeof resultJson.responses === "object" &&
@@ -811,7 +809,7 @@ function SavedReplyCard({ item }) {
     situationRead = resultJson.situation_read;
     if (!activeTab && recommendedVariant) setActiveTab(recommendedVariant);
   }
-  // Check for follow-up writer (follow_ups object)
+  // 3) follow_ups object (follow-up writer)
   else if (
     resultJson.follow_ups &&
     typeof resultJson.follow_ups === "object" &&
@@ -822,15 +820,26 @@ function SavedReplyCard({ item }) {
     recommendedVariant = resultJson.recommended || Object.keys(variantsObj)[0];
     if (!activeTab && recommendedVariant) setActiveTab(recommendedVariant);
   }
-  // Check for tone checker
+  // 4) emails object (difficult email)
+  else if (
+    resultJson.emails &&
+    typeof resultJson.emails === "object" &&
+    Object.keys(resultJson.emails).length > 0
+  ) {
+    renderMode = "variants";
+    variantsObj = resultJson.emails;
+    recommendedVariant = resultJson.recommended || Object.keys(variantsObj)[0];
+    if (!activeTab && recommendedVariant) setActiveTab(recommendedVariant);
+  }
+  // 5) tone checker
   else if (resultJson.primary_tone) {
     renderMode = "tone_checker";
   }
-  // Check for intent detector
+  // 6) intent detector
   else if (resultJson.primary_intent || resultJson.surface_meaning) {
     renderMode = "intent_detector";
   }
-  // Fallback: analysis card (situation_read, insight, strategy)
+  // 7) analysis card (situation_read, insight, strategy)
   else if (
     resultJson.situation_read ||
     resultJson.insight ||
@@ -850,7 +859,7 @@ function SavedReplyCard({ item }) {
         overflow: "hidden",
       }}
     >
-      {/* Header with pack and tone (only show tone if not null) */}
+      {/* Header */}
       <div
         style={{
           padding: "12px 20px",
@@ -892,7 +901,7 @@ function SavedReplyCard({ item }) {
         </span>
       </div>
 
-      {/* Content based on tool type */}
+      {/* Render content */}
       {renderMode === "variants" && variantsObj && (
         <GenericVariantPanel
           variantsObj={variantsObj}
@@ -1019,7 +1028,7 @@ export default function SavedReplies() {
           style={{
             position: "sticky",
             top: 0,
-            zIndex: 50,
+            zIndex: 40, // lower than sidebar (50) so close button is clickable
             background: "var(--nav-bg)",
             backdropFilter: "blur(20px)",
             borderBottom: "1px solid var(--border)",
