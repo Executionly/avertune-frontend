@@ -101,203 +101,13 @@ export default function PrivacyPolicy() {
           Privacy Policy
         </h1>
         <p style={{ color: "var(--ink-3)", marginBottom: 32 }}>
-          Last updated: April 5, 2026
+          Last updated: April 8, 2026
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           <section>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
-              Information We Collect
-            </h2>
-            <p
-              style={{
-                color: "var(--ink-2)",
-                lineHeight: 1.6,
-                marginBottom: 12,
-              }}
-            >
-              We collect information you provide directly:
-            </p>
-            <ul
-              style={{
-                marginLeft: 20,
-                color: "var(--ink-2)",
-                lineHeight: 1.6,
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-              }}
-            >
-              <li>
-                <strong>Account Information:</strong> Name, email, password when
-                you register.
-              </li>
-              <li>
-                <strong>Usage Data:</strong> Messages you paste into our tools
-                for reply generation, tone analysis, etc.
-              </li>
-              <li>
-                <strong>Communications:</strong> Any messages you send through
-                support or feedback forms.
-              </li>
-            </ul>
-            <p
-              style={{ color: "var(--ink-2)", lineHeight: 1.6, marginTop: 12 }}
-            >
-              We also collect certain information automatically: IP address,
-              browser type, operating system, device identifiers, pages viewed,
-              features used, and time spent.
-            </p>
-          </section>
-
-          <section>
-            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
-              How We Use Your Information
-            </h2>
-            <ul
-              style={{
-                marginLeft: 20,
-                color: "var(--ink-2)",
-                lineHeight: 1.6,
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-              }}
-            >
-              <li>
-                To provide and maintain our Services – process your requests and
-                deliver AI‑generated replies.
-              </li>
-              <li>
-                To improve our Services – analyze usage to optimize user
-                experience and model performance.
-              </li>
-              <li>
-                To communicate – send service announcements, updates, and
-                security alerts.
-              </li>
-              <li>
-                For compliance – enforce our Terms of Service and comply with
-                legal obligations.
-              </li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
-              Sharing Your Information
-            </h2>
-            <p style={{ color: "var(--ink-2)", lineHeight: 1.6 }}>
-              We do not sell your personal information. We may share information
-              with:
-            </p>
-            <ul
-              style={{
-                marginLeft: 20,
-                color: "var(--ink-2)",
-                lineHeight: 1.6,
-                marginTop: 8,
-              }}
-            >
-              <li>
-                <strong>Service Providers:</strong> Third parties who perform
-                services (e.g., hosting, analytics, AI providers) under
-                confidentiality agreements.
-              </li>
-              <li>
-                <strong>Legal Requirements:</strong> When required by law or to
-                protect rights, safety, or property.
-              </li>
-              <li>
-                <strong>Business Transfers:</strong> In connection with a
-                merger, acquisition, or sale of assets.
-              </li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
-              Cookies and Tracking
-            </h2>
-            <p style={{ color: "var(--ink-2)", lineHeight: 1.6 }}>
-              We and our partners use cookies and similar technologies to
-              collect information about your activity and preferences. You can
-              control cookies via your browser settings; however, disabling
-              cookies may limit functionality.
-            </p>
-          </section>
-
-          <section>
-            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
-              Security
-            </h2>
-            <p style={{ color: "var(--ink-2)", lineHeight: 1.6 }}>
-              We implement industry‑standard measures to protect your
-              information. However, no method of transmission or storage is 100%
-              secure. We cannot guarantee absolute security.
-            </p>
-          </section>
-
-          <section>
-            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
-              Your Choices
-            </h2>
-            <ul
-              style={{ marginLeft: 20, color: "var(--ink-2)", lineHeight: 1.6 }}
-            >
-              <li>
-                You can access, update, or delete your account information in
-                your account settings.
-              </li>
-              <li>
-                You may unsubscribe from marketing emails via the link in those
-                emails. Essential service emails cannot be unsubscribed.
-              </li>
-              <li>
-                You can disable cookies in your browser, though some features
-                may not work.
-              </li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
-              Children’s Privacy
-            </h2>
-            <p style={{ color: "var(--ink-2)", lineHeight: 1.6 }}>
-              Our Services are not directed to children under 18. We do not
-              knowingly collect personal data from minors. If you believe we
-              have, please contact us and we will delete it.
-            </p>
-          </section>
-
-          <section>
-            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
-              International Transfers
-            </h2>
-            <p style={{ color: "var(--ink-2)", lineHeight: 1.6 }}>
-              Your information may be transferred to and processed in countries
-              outside your residence, including the United States. By using our
-              Services, you consent to such transfers.
-            </p>
-          </section>
-
-          <section>
-            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
-              Data Retention
-            </h2>
-            <p style={{ color: "var(--ink-2)", lineHeight: 1.6 }}>
-              We retain your personal data for as long as your account remains
-              active. If you delete your account, we will delete or anonymize
-              your personal data within a reasonable period, except where
-              retention is required for legal, tax, fraud prevention, or
-              legitimate business purposes.
-            </p>
-          </section>
-
-          <section>
-            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
-              Subprocessors
+              1. Information We Collect
             </h2>
             <p
               style={{
@@ -306,93 +116,105 @@ export default function PrivacyPolicy() {
                 marginBottom: 8,
               }}
             >
-              We use trusted third‑party service providers (“subprocessors”) to
-              help us operate, provide, and improve our services. These
-              subprocessors include:
+              <strong>Information you provide:</strong>
             </p>
+            <ul
+              style={{
+                marginLeft: 20,
+                color: "var(--ink-2)",
+                lineHeight: 1.6,
+                marginBottom: 12,
+              }}
+            >
+              <li>account details (name, email)</li>
+              <li>messages you submit for analysis</li>
+              <li>support or feedback communication</li>
+            </ul>
+            <p style={{ color: "var(--ink-2)", lineHeight: 1.6 }}>
+              <strong>Automatically collected:</strong> device and browser
+              information, usage data and feature interaction.
+            </p>
+          </section>
+
+          <section>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
+              2. How We Use Your Information
+            </h2>
+            <p style={{ color: "var(--ink-2)", lineHeight: 1.6 }}>
+              We use your data to: provide Avertune services, generate responses
+              and analysis, improve system performance and accuracy, and
+              communicate important updates.
+            </p>
+          </section>
+
+          <section>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
+              3. Data Protection Commitment
+            </h2>
             <ul
               style={{ marginLeft: 20, color: "var(--ink-2)", lineHeight: 1.6 }}
             >
-              <li>
-                <strong>Stripe, Inc.</strong> – payment processing and billing
-              </li>
-              <li>
-                <strong>Amplitude, Inc.</strong> – product analytics and usage
-                analytics
-              </li>
-              <li>
-                <strong>Hetzner Online GmbH</strong> – cloud infrastructure and
-                hosting
-              </li>
-              <li>
-                <strong>OpenAI / Anthropic</strong> – AI model providers
-                (message processing)
-              </li>
+              <li>We do not sell your personal data</li>
+              <li>We do not use your messages for advertising targeting</li>
+              <li>Your content is processed securely</li>
             </ul>
           </section>
 
           <section>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
-              GDPR Rights (EEA residents)
+              4. Data Storage and Retention
             </h2>
             <p style={{ color: "var(--ink-2)", lineHeight: 1.6 }}>
-              You have the right to access, rectify, erase, restrict, port, and
-              object to processing of your personal data. To exercise these
-              rights, contact us at{" "}
-              <a
-                href="mailto:privacy@avertune.com"
-                style={{ color: "var(--green)" }}
-              >
-                privacy@avertune.com
-              </a>
-              .
+              We retain data only as long as necessary to provide services, meet
+              legal obligations, and improve system performance.
             </p>
           </section>
 
           <section>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
-              California Privacy Rights (CCPA)
+              5. Third-Party Services
             </h2>
             <p style={{ color: "var(--ink-2)", lineHeight: 1.6 }}>
-              If you are a California resident, you have the right to know what
-              personal information we collect, request deletion, request access,
-              and non‑discrimination for exercising your rights. Avertune does
-              not sell your personal information. To exercise your rights,
-              contact us at{" "}
-              <a
-                href="mailto:privacy@avertune.com"
-                style={{ color: "var(--green)" }}
-              >
-                privacy@avertune.com
-              </a>
-              .
+              We may use trusted providers for payments (e.g., Stripe), hosting,
+              and analytics. These providers are required to protect your data.
             </p>
           </section>
 
           <section>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
-              Changes to This Policy
+              6. Your Rights
             </h2>
             <p style={{ color: "var(--ink-2)", lineHeight: 1.6 }}>
-              We may update this Privacy Policy. We will post the updated date
-              at the top. Continued use after changes constitutes acceptance.
+              You may: access your data, request deletion, and opt out of
+              marketing.
             </p>
           </section>
 
           <section>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
-              Contact Us
+              7. Security
             </h2>
             <p style={{ color: "var(--ink-2)", lineHeight: 1.6 }}>
-              If you have questions about this Privacy Policy, please contact us
-              at{" "}
-              <a
-                href="mailto:privacy@avertune.com"
-                style={{ color: "var(--green)" }}
-              >
-                privacy@avertune.com
-              </a>
-              .
+              We use industry-standard safeguards. However, no system is 100%
+              secure.
+            </p>
+          </section>
+
+          <section>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
+              8. Updates
+            </h2>
+            <p style={{ color: "var(--ink-2)", lineHeight: 1.6 }}>
+              We may update this policy. Continued use means acceptance.
+            </p>
+          </section>
+
+          <section>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
+              9. Contact
+            </h2>
+            <p style={{ color: "var(--ink-2)", lineHeight: 1.6 }}>
+              support@avertune.com
             </p>
           </section>
         </div>

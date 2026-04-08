@@ -430,7 +430,7 @@ export const TOOL_CONFIGS = {
   "difficult-email": {
     id: "difficult-email",
     label: "Difficult Email",
-    tagline: "Rewrite sensitive workplace emails safely.",
+    tagline: "Reply confidently to difficult emails or messages",
     description:
       "Turn tricky, sensitive, or high-stakes messages into two polished versions — one safe, one direct.",
     color: "#f59e0b",
