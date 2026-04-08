@@ -3,11 +3,30 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
 import { useMySubscription } from "../lib/useSubscription.js";
 import { api } from "../lib/apiClient.js";
-import { Copy, Check, MessageSquare, Bookmark, Lightbulb } from "lucide-react";
+import {
+  Copy,
+  Check,
+  MessageSquare,
+  Bookmark,
+  Lightbulb,
+  Menu,
+} from "lucide-react";
 import { useToast } from "../lib/Toast.jsx";
 import Sidebar from "./Sidebar.jsx";
 
-// Pack ID to readable label mapping
+// Helper to convert snake_case or kebab-case to Title Case
+function formatPackName(str) {
+  if (!str) return "General";
+  // Replace underscores and hyphens with spaces
+  const withSpaces = str.replace(/[_-]/g, " ");
+  // Capitalize each word
+  return withSpaces
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
+// Explicit mapping for special cases (overrides the formatter)
 const PACK_LABELS = {
   general: "General",
   core_professional: "Core Professional",
@@ -16,21 +35,28 @@ const PACK_LABELS = {
   work_corporate: "Work / Corporate",
   sales_negotiation: "Sales & Negotiation",
   dating: "Dating",
+  reply_generator: "Reply Generator",
+  tone_checker: "Tone Checker",
+  boundary_builder: "Boundary Builder",
+  negotiation: "Sales & Negotiation",
+  follow_up: "Follow Up",
+  difficult_email: "Difficult Email",
+  intent_detector: "Intent Detector",
 };
 
-// Tool filters (for pack query param)
+// Tool filters (using formatted labels)
 const TOOL_FILTERS = [
   { value: "", label: "All tools" },
   { value: "reply_generator", label: "Reply Generator" },
   { value: "tone_checker", label: "Tone Checker" },
   { value: "boundary_builder", label: "Boundary Builder" },
   { value: "negotiation", label: "Sales & Negotiation" },
-  { value: "follow_up", label: "Follow-Up" },
+  { value: "follow_up", label: "Follow Up" },
   { value: "difficult_email", label: "Difficult Email" },
   { value: "intent_detector", label: "Intent Detector" },
 ];
 
-// Variant colors (same as in ToolPage)
+// Variant colors
 const VARIANT_COLORS = {
   balanced: "var(--green)",
   firm: "var(--teal)",
@@ -52,6 +78,12 @@ const VARIANT_COLORS = {
   friendly: "var(--teal)",
   urgent: "#f59e0b",
   brief: "var(--blue)",
+  soft: "var(--green)",
+  value_reinforcement: "var(--green)",
+  calm_pushback: "var(--teal)",
+  strategic_positioning: "var(--blue)",
+  friendly_reminder: "var(--teal)",
+  value_driven: "var(--green)",
 };
 
 function CopyBtn({ text }) {
@@ -85,14 +117,14 @@ function CopyBtn({ text }) {
   );
 }
 
-// Variant Panel component (same as ToolPage)
-function VariantPanel({
-  variants,
-  replies,
+// Generic Variant Panel for any tool that has a variants object (replies, responses, follow_ups)
+function GenericVariantPanel({
+  variantsObj,
   activeTab,
   setActiveTab,
   recommendedVariant,
 }) {
+  const variants = Object.keys(variantsObj);
   return (
     <div
       style={{
@@ -113,6 +145,10 @@ function VariantPanel({
         }}
       >
         {variants.map((v) => {
+          const displayName = v
+            .split("_")
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(" ");
           const c = VARIANT_COLORS[v.toLowerCase()] || "var(--green)";
           const isActive = activeTab === v;
           return (
@@ -140,7 +176,7 @@ function VariantPanel({
                 gap: 5,
               }}
             >
-              {v.charAt(0).toUpperCase() + v.slice(1)}
+              {displayName}
               {recommendedVariant === v && (
                 <span
                   style={{
@@ -165,8 +201,11 @@ function VariantPanel({
         .filter((v) => v === activeTab)
         .map((v) => {
           const c = VARIANT_COLORS[v.toLowerCase()] || "var(--green)";
-          const text = replies?.[v]?.text || replies?.[v] || "";
-          const insight = replies?.[v]?.insight || "";
+          const data = variantsObj[v];
+          const text =
+            typeof data === "string" ? data : data?.text || data?.body || "";
+          const insight = data?.insight || "";
+          const subject = data?.subject || "";
           return (
             <div
               key={v}
@@ -175,14 +214,28 @@ function VariantPanel({
                 animation: "fadeIn 0.2s ease both",
               }}
             >
-              {text ? (
+              {subject && (
+                <div
+                  style={{
+                    marginBottom: 12,
+                    padding: "8px 12px",
+                    background: "var(--surface2)",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    color: "var(--ink-2)",
+                  }}
+                >
+                  Subject: {subject}
+                </div>
+              )}
+              {text && (
                 <>
                   <div
                     style={{
                       fontSize: 15.5,
                       color: "var(--ink)",
                       lineHeight: 1.8,
-                      marginBottom: 14,
+                      marginBottom: insight ? 14 : 0,
                       whiteSpace: "pre-wrap",
                     }}
                   >
@@ -216,22 +269,18 @@ function VariantPanel({
                       </p>
                     </div>
                   )}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "flex-end",
-                      gap: 8,
-                    }}
-                  >
-                    <CopyBtn text={text} />
-                  </div>
                 </>
-              ) : (
-                <p style={{ color: "var(--ink-3)", fontSize: 14 }}>
-                  No reply for this variant.
-                </p>
               )}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  gap: 8,
+                }}
+              >
+                <CopyBtn text={text || JSON.stringify(data)} />
+              </div>
             </div>
           );
         })}
@@ -239,14 +288,558 @@ function VariantPanel({
   );
 }
 
-// Individual saved reply card component (so hooks are stable)
+// Component for displaying Intent Detector saved results
+function IntentDetectorCard({ resultJson }) {
+  const copyText = `
+Surface meaning: ${resultJson.surface_meaning || "—"}
+Primary intent: ${resultJson.primary_intent || "—"}
+Emotional tone: ${resultJson.emotional_tone || "—"}
+Subtext: ${resultJson.subtext || "—"}
+What they want: ${resultJson.what_they_want || "—"}
+What they expect next: ${resultJson.what_they_expect_next || "—"}
+Strategy: ${resultJson.recommended_response_strategy || "—"}
+Confidence: ${Math.round((resultJson.confidence || 0) * 100)}%
+Trust signal: ${resultJson.trust_signal || "—"}
+  `.trim();
+
+  return (
+    <div style={{ padding: "20px 24px" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "12px 20px",
+          marginBottom: 20,
+        }}
+      >
+        {resultJson.surface_meaning && (
+          <div style={{ gridColumn: "span 2" }}>
+            <p
+              style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                color: "var(--ink-4)",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: 4,
+              }}
+            >
+              Surface meaning
+            </p>
+            <p style={{ fontSize: 14, color: "var(--ink)" }}>
+              {resultJson.surface_meaning}
+            </p>
+          </div>
+        )}
+        {resultJson.primary_intent && (
+          <div>
+            <p
+              style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                color: "var(--ink-4)",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: 4,
+              }}
+            >
+              Primary intent
+            </p>
+            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--teal)" }}>
+              {resultJson.primary_intent}
+            </p>
+          </div>
+        )}
+        {resultJson.emotional_tone && (
+          <div>
+            <p
+              style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                color: "var(--ink-4)",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: 4,
+              }}
+            >
+              Emotional tone
+            </p>
+            <p style={{ fontSize: 14, color: "var(--ink)" }}>
+              {resultJson.emotional_tone}
+            </p>
+          </div>
+        )}
+        {resultJson.subtext && (
+          <div style={{ gridColumn: "span 2" }}>
+            <p
+              style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                color: "var(--ink-4)",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: 4,
+              }}
+            >
+              Subtext
+            </p>
+            <p style={{ fontSize: 14, color: "var(--ink-2)", lineHeight: 1.6 }}>
+              {resultJson.subtext}
+            </p>
+          </div>
+        )}
+        {resultJson.what_they_want && (
+          <div>
+            <p
+              style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                color: "var(--ink-4)",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: 4,
+              }}
+            >
+              What they want
+            </p>
+            <p style={{ fontSize: 13, color: "var(--ink-2)" }}>
+              {resultJson.what_they_want}
+            </p>
+          </div>
+        )}
+        {resultJson.what_they_expect_next && (
+          <div>
+            <p
+              style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                color: "var(--ink-4)",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: 4,
+              }}
+            >
+              What they expect next
+            </p>
+            <p style={{ fontSize: 13, color: "var(--ink-2)" }}>
+              {resultJson.what_they_expect_next}
+            </p>
+          </div>
+        )}
+        {resultJson.risk_indicators &&
+          resultJson.risk_indicators.length > 0 && (
+            <div style={{ gridColumn: "span 2" }}>
+              <p
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  color: "var(--ink-4)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  marginBottom: 4,
+                }}
+              >
+                Risk indicators
+              </p>
+              <ul
+                style={{ marginLeft: 20, color: "var(--ink-2)", fontSize: 13 }}
+              >
+                {resultJson.risk_indicators.map((ind, i) => (
+                  <li key={i}>{ind}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        {resultJson.recommended_response_strategy && (
+          <div
+            style={{
+              gridColumn: "span 2",
+              marginTop: 8,
+              padding: "10px 14px",
+              background: "rgba(34,197,94,0.05)",
+              borderRadius: 10,
+            }}
+          >
+            <p
+              style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                color: "var(--green)",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: 4,
+              }}
+            >
+              Recommended response strategy
+            </p>
+            <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.6 }}>
+              {resultJson.recommended_response_strategy}
+            </p>
+          </div>
+        )}
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gap: 8,
+          marginTop: 8,
+        }}
+      >
+        <CopyBtn text={copyText} />
+      </div>
+    </div>
+  );
+}
+
+// Component for displaying Tone Checker saved results
+function ToneCheckerCard({ resultJson }) {
+  const copyText = `
+Tone: ${resultJson.primary_tone || "—"}
+Secondary signals: ${(resultJson.secondary_signals || []).join(", ")}
+Emotional intensity: ${resultJson.emotional_intensity || "—"}
+Risk level: ${resultJson.risk_level || "—"}
+Interpretation: ${resultJson.interpretation || "—"}
+  `.trim();
+
+  return (
+    <div style={{ padding: "20px 24px" }}>
+      <div style={{ marginBottom: 16 }}>
+        <p
+          style={{
+            fontSize: 10.5,
+            fontWeight: 700,
+            color: "var(--ink-4)",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            marginBottom: 4,
+          }}
+        >
+          Detected tone
+        </p>
+        <p
+          style={{
+            fontSize: "clamp(24px,3vw,28px)",
+            fontWeight: 800,
+            color: "var(--green)",
+            marginBottom: 8,
+          }}
+        >
+          {resultJson.primary_tone || "—"}
+        </p>
+      </div>
+      {resultJson.secondary_signals &&
+        resultJson.secondary_signals.length > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <p
+              style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                color: "var(--ink-4)",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: 4,
+              }}
+            >
+              Secondary signals
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {resultJson.secondary_signals.map((signal) => (
+                <span
+                  key={signal}
+                  style={{
+                    padding: "2px 8px",
+                    borderRadius: 12,
+                    background: "var(--surface2)",
+                    fontSize: 12,
+                  }}
+                >
+                  {signal}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      {resultJson.emotional_intensity && (
+        <div style={{ marginBottom: 12 }}>
+          <p
+            style={{
+              fontSize: 10.5,
+              fontWeight: 700,
+              color: "var(--ink-4)",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              marginBottom: 4,
+            }}
+          >
+            Emotional intensity
+          </p>
+          <p style={{ fontSize: 13, color: "var(--ink)" }}>
+            {resultJson.emotional_intensity}
+          </p>
+        </div>
+      )}
+      {resultJson.risk_level && (
+        <div style={{ marginBottom: 12 }}>
+          <p
+            style={{
+              fontSize: 10.5,
+              fontWeight: 700,
+              color: "var(--ink-4)",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              marginBottom: 4,
+            }}
+          >
+            Risk level
+          </p>
+          <p
+            style={{
+              fontSize: 13,
+              color:
+                resultJson.risk_level === "High"
+                  ? "#ef4444"
+                  : resultJson.risk_level === "Medium"
+                    ? "#f59e0b"
+                    : "var(--green)",
+            }}
+          >
+            {resultJson.risk_level}
+          </p>
+        </div>
+      )}
+      {resultJson.interpretation && (
+        <div style={{ marginBottom: 16 }}>
+          <p
+            style={{
+              fontSize: 10.5,
+              fontWeight: 700,
+              color: "var(--ink-4)",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              marginBottom: 4,
+            }}
+          >
+            Interpretation
+          </p>
+          <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.6 }}>
+            {resultJson.interpretation}
+          </p>
+        </div>
+      )}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gap: 8,
+        }}
+      >
+        <CopyBtn text={copyText} />
+      </div>
+    </div>
+  );
+}
+
+// Component for displaying Analysis-only tools (boundary builder, negotiation insight)
+function AnalysisCard({ resultJson, situationRead, insight }) {
+  const copyText = `
+Situation: ${situationRead || "—"}
+${insight ? `Insight: ${insight}` : ""}
+${resultJson.strategy ? `Strategy: ${resultJson.strategy}` : ""}
+${resultJson.power_note ? `Power note: ${resultJson.power_note}` : ""}
+  `.trim();
+
+  return (
+    <div style={{ padding: "20px 24px" }}>
+      {situationRead && (
+        <div
+          style={{
+            marginBottom: 16,
+            padding: "10px 14px",
+            background: "rgba(34,197,94,0.05)",
+            borderRadius: 10,
+          }}
+        >
+          <p
+            style={{
+              fontSize: 10.5,
+              fontWeight: 700,
+              color: "var(--green)",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              marginBottom: 4,
+            }}
+          >
+            Situation
+          </p>
+          <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.6 }}>
+            {situationRead}
+          </p>
+        </div>
+      )}
+      {insight && (
+        <div
+          style={{
+            marginBottom: 16,
+            padding: "10px 14px",
+            background: "rgba(45,212,191,0.05)",
+            borderRadius: 10,
+          }}
+        >
+          <p
+            style={{
+              fontSize: 10.5,
+              fontWeight: 700,
+              color: "var(--teal)",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              marginBottom: 4,
+            }}
+          >
+            Insight
+          </p>
+          <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.6 }}>
+            {insight}
+          </p>
+        </div>
+      )}
+      {resultJson.strategy && (
+        <div
+          style={{
+            marginBottom: 16,
+            padding: "10px 14px",
+            background: "rgba(167,139,250,0.05)",
+            borderRadius: 10,
+          }}
+        >
+          <p
+            style={{
+              fontSize: 10.5,
+              fontWeight: 700,
+              color: "#a78bfa",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              marginBottom: 4,
+            }}
+          >
+            Strategy
+          </p>
+          <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.6 }}>
+            {resultJson.strategy}
+          </p>
+        </div>
+      )}
+      {resultJson.power_note && (
+        <div
+          style={{
+            marginBottom: 16,
+            padding: "10px 14px",
+            background: "rgba(34,197,94,0.03)",
+            borderRadius: 10,
+          }}
+        >
+          <p
+            style={{
+              fontSize: 10.5,
+              fontWeight: 700,
+              color: "var(--green)",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              marginBottom: 4,
+            }}
+          >
+            Power note
+          </p>
+          <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.6 }}>
+            {resultJson.power_note}
+          </p>
+        </div>
+      )}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gap: 8,
+        }}
+      >
+        <CopyBtn text={copyText} />
+      </div>
+    </div>
+  );
+}
+
+// Individual saved reply card component
 function SavedReplyCard({ item }) {
   const resultJson = item.generations?.result_json || {};
-  const repliesObj = resultJson.replies || {};
-  const variants = Object.keys(repliesObj);
-  const recommendedVariant = resultJson.recommended_reply || variants[0];
-  const analysis = resultJson.analysis || {};
-  const [activeTab, setActiveTab] = useState(recommendedVariant);
+  const pack = item.pack || "general";
+  // Use mapping or fallback to formatted name
+  const toolLabel = PACK_LABELS[pack] || formatPackName(pack);
+  const [activeTab, setActiveTab] = useState(null);
+
+  let renderMode = "unknown";
+  let variantsObj = null;
+  let recommendedVariant = null;
+  let situationRead = null;
+  let insight = null;
+
+  // Check for reply generators (replies object)
+  if (
+    resultJson.replies &&
+    typeof resultJson.replies === "object" &&
+    Object.keys(resultJson.replies).length > 0
+  ) {
+    renderMode = "variants";
+    variantsObj = resultJson.replies;
+    recommendedVariant =
+      resultJson.recommended_reply ||
+      resultJson.recommended ||
+      Object.keys(variantsObj)[0];
+    if (!activeTab && recommendedVariant) setActiveTab(recommendedVariant);
+  }
+  // Check for boundary builder (responses object)
+  else if (
+    resultJson.responses &&
+    typeof resultJson.responses === "object" &&
+    Object.keys(resultJson.responses).length > 0
+  ) {
+    renderMode = "variants";
+    variantsObj = resultJson.responses;
+    recommendedVariant = resultJson.recommended || Object.keys(variantsObj)[0];
+    situationRead = resultJson.situation_read;
+    if (!activeTab && recommendedVariant) setActiveTab(recommendedVariant);
+  }
+  // Check for follow-up writer (follow_ups object)
+  else if (
+    resultJson.follow_ups &&
+    typeof resultJson.follow_ups === "object" &&
+    Object.keys(resultJson.follow_ups).length > 0
+  ) {
+    renderMode = "variants";
+    variantsObj = resultJson.follow_ups;
+    recommendedVariant = resultJson.recommended || Object.keys(variantsObj)[0];
+    if (!activeTab && recommendedVariant) setActiveTab(recommendedVariant);
+  }
+  // Check for tone checker
+  else if (resultJson.primary_tone) {
+    renderMode = "tone_checker";
+  }
+  // Check for intent detector
+  else if (resultJson.primary_intent || resultJson.surface_meaning) {
+    renderMode = "intent_detector";
+  }
+  // Fallback: analysis card (situation_read, insight, strategy)
+  else if (
+    resultJson.situation_read ||
+    resultJson.insight ||
+    resultJson.strategy
+  ) {
+    renderMode = "analysis";
+    situationRead = resultJson.situation_read;
+    insight = resultJson.insight;
+  }
 
   return (
     <div
@@ -257,7 +850,7 @@ function SavedReplyCard({ item }) {
         overflow: "hidden",
       }}
     >
-      {/* Header with pack and tone */}
+      {/* Header with pack and tone (only show tone if not null) */}
       <div
         style={{
           padding: "12px 20px",
@@ -280,31 +873,17 @@ function SavedReplyCard({ item }) {
               borderRadius: 20,
             }}
           >
-            {PACK_LABELS[item.pack] || item.pack || "General"}
+            {toolLabel}
           </span>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: "var(--ink-3)",
-            }}
-          >
-            Tone: {analysis.tone || item.tone || "professional"}
-          </span>
-          {analysis.risk_level && (
+          {item.tone && item.tone !== null && (
             <span
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color:
-                  analysis.risk_level === "high"
-                    ? "#ef4444"
-                    : analysis.risk_level === "medium"
-                      ? "#f59e0b"
-                      : "var(--green)",
+                color: "var(--ink-3)",
               }}
             >
-              Risk: {analysis.risk_level}
+              Tone: {item.tone}
             </span>
           )}
         </div>
@@ -313,39 +892,38 @@ function SavedReplyCard({ item }) {
         </span>
       </div>
 
-      {/* Variant Panel */}
-      <VariantPanel
-        variants={variants}
-        replies={repliesObj}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        recommendedVariant={recommendedVariant}
-      />
-
-      {/* Analysis section (strategy) */}
-      {analysis.strategy && (
+      {/* Content based on tool type */}
+      {renderMode === "variants" && variantsObj && (
+        <GenericVariantPanel
+          variantsObj={variantsObj}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          recommendedVariant={recommendedVariant}
+        />
+      )}
+      {renderMode === "intent_detector" && (
+        <IntentDetectorCard resultJson={resultJson} />
+      )}
+      {renderMode === "tone_checker" && (
+        <ToneCheckerCard resultJson={resultJson} />
+      )}
+      {renderMode === "analysis" && (
+        <AnalysisCard
+          resultJson={resultJson}
+          situationRead={situationRead}
+          insight={insight}
+        />
+      )}
+      {renderMode === "unknown" && (
         <div
           style={{
-            padding: "12px 20px",
-            borderTop: "1px solid var(--border)",
-            background: "rgba(34,197,94,0.03)",
+            padding: "20px 24px",
+            color: "var(--ink-3)",
+            textAlign: "center",
           }}
         >
-          <p
-            style={{
-              fontSize: 10.5,
-              fontWeight: 700,
-              color: "var(--ink-4)",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              marginBottom: 6,
-            }}
-          >
-            Strategy
-          </p>
-          <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.6 }}>
-            {analysis.strategy}
-          </p>
+          <p>Unable to display this saved item.</p>
+          <CopyBtn text={JSON.stringify(resultJson, null, 2)} />
         </div>
       )}
     </div>
@@ -467,9 +1045,14 @@ export default function SavedReplies() {
               }}
               className="mobile-menu-btn"
             >
-              <Bookmark size={20} />
+              <Menu size={21} />
             </button>
-            <style>{`@media (max-width: 900px) { .mobile-menu-btn { display: flex !important; } .main-content { margin-left: 0 !important; } }`}</style>
+            <style>{`
+              @media (max-width: 900px) {
+                .mobile-menu-btn { display: flex !important; }
+                .main-content { margin-left: 0 !important; }
+              }
+            `}</style>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div
                 style={{
