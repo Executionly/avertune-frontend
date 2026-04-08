@@ -3,17 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
 import { useMySubscription } from "../lib/useSubscription.js";
 import { api } from "../lib/apiClient.js";
-import {
-  ArrowLeft,
-  Copy,
-  Check,
-  MessageSquare,
-  Filter,
-  X,
-  Bookmark,
-  Lightbulb,
-  Share2,
-} from "lucide-react";
+import { Copy, Check, MessageSquare, Bookmark, Lightbulb } from "lucide-react";
 import { useToast } from "../lib/Toast.jsx";
 import Sidebar from "./Sidebar.jsx";
 
@@ -99,7 +89,6 @@ function CopyBtn({ text }) {
 function VariantPanel({
   variants,
   replies,
-  insights,
   activeTab,
   setActiveTab,
   recommendedVariant,
@@ -177,7 +166,7 @@ function VariantPanel({
         .map((v) => {
           const c = VARIANT_COLORS[v.toLowerCase()] || "var(--green)";
           const text = replies?.[v]?.text || replies?.[v] || "";
-          const insight = insights?.[v]?.insight || "";
+          const insight = replies?.[v]?.insight || "";
           return (
             <div
               key={v}
@@ -246,6 +235,119 @@ function VariantPanel({
             </div>
           );
         })}
+    </div>
+  );
+}
+
+// Individual saved reply card component (so hooks are stable)
+function SavedReplyCard({ item }) {
+  const resultJson = item.generations?.result_json || {};
+  const repliesObj = resultJson.replies || {};
+  const variants = Object.keys(repliesObj);
+  const recommendedVariant = resultJson.recommended_reply || variants[0];
+  const analysis = resultJson.analysis || {};
+  const [activeTab, setActiveTab] = useState(recommendedVariant);
+
+  return (
+    <div
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--border2)",
+        borderRadius: 20,
+        overflow: "hidden",
+      }}
+    >
+      {/* Header with pack and tone */}
+      <div
+        style={{
+          padding: "12px 20px",
+          borderBottom: "1px solid var(--border)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 8,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--green)",
+              background: "rgba(34,197,94,0.1)",
+              padding: "2px 8px",
+              borderRadius: 20,
+            }}
+          >
+            {PACK_LABELS[item.pack] || item.pack || "General"}
+          </span>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: "var(--ink-3)",
+            }}
+          >
+            Tone: {analysis.tone || item.tone || "professional"}
+          </span>
+          {analysis.risk_level && (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color:
+                  analysis.risk_level === "high"
+                    ? "#ef4444"
+                    : analysis.risk_level === "medium"
+                      ? "#f59e0b"
+                      : "var(--green)",
+              }}
+            >
+              Risk: {analysis.risk_level}
+            </span>
+          )}
+        </div>
+        <span style={{ fontSize: 11, color: "var(--ink-4)" }}>
+          Saved on {new Date(item.created_at).toLocaleDateString()}
+        </span>
+      </div>
+
+      {/* Variant Panel */}
+      <VariantPanel
+        variants={variants}
+        replies={repliesObj}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        recommendedVariant={recommendedVariant}
+      />
+
+      {/* Analysis section (strategy) */}
+      {analysis.strategy && (
+        <div
+          style={{
+            padding: "12px 20px",
+            borderTop: "1px solid var(--border)",
+            background: "rgba(34,197,94,0.03)",
+          }}
+        >
+          <p
+            style={{
+              fontSize: 10.5,
+              fontWeight: 700,
+              color: "var(--ink-4)",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              marginBottom: 6,
+            }}
+          >
+            Strategy
+          </p>
+          <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.6 }}>
+            {analysis.strategy}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -481,142 +583,9 @@ export default function SavedReplies() {
               <div
                 style={{ display: "flex", flexDirection: "column", gap: 24 }}
               >
-                {replies.map((item) => {
-                  const resultJson = item.generations?.result_json || {};
-                  const repliesObj = resultJson.replies || {};
-                  const variants = Object.keys(repliesObj);
-                  const recommendedVariant =
-                    resultJson.recommended_reply || variants[0];
-                  const analysis = resultJson.analysis || {};
-
-                  // State for active variant per card
-                  const [activeTab, setActiveTab] =
-                    useState(recommendedVariant);
-
-                  // Reset active tab when item changes (key forces re-mount? We'll use key properly)
-                  // Use useEffect to reset when item.id changes
-                  useEffect(() => {
-                    setActiveTab(recommendedVariant);
-                  }, [item.id]);
-
-                  return (
-                    <div
-                      key={item.id}
-                      style={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--border2)",
-                        borderRadius: 20,
-                        overflow: "hidden",
-                      }}
-                    >
-                      {/* Header with pack and tone */}
-                      <div
-                        style={{
-                          padding: "12px 20px",
-                          borderBottom: "1px solid var(--border)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          flexWrap: "wrap",
-                          gap: 8,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 12,
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              color: "var(--green)",
-                              background: "rgba(34,197,94,0.1)",
-                              padding: "2px 8px",
-                              borderRadius: 20,
-                            }}
-                          >
-                            {PACK_LABELS[item.pack] || item.pack || "General"}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 600,
-                              color: "var(--ink-3)",
-                            }}
-                          >
-                            Tone: {analysis.tone || item.tone || "professional"}
-                          </span>
-                          {analysis.risk_level && (
-                            <span
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 600,
-                                color:
-                                  analysis.risk_level === "high"
-                                    ? "#ef4444"
-                                    : analysis.risk_level === "medium"
-                                      ? "#f59e0b"
-                                      : "var(--green)",
-                              }}
-                            >
-                              Risk: {analysis.risk_level}
-                            </span>
-                          )}
-                        </div>
-                        <span style={{ fontSize: 11, color: "var(--ink-4)" }}>
-                          Saved on{" "}
-                          {new Date(item.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-
-                      {/* Variant Panel */}
-                      <VariantPanel
-                        variants={variants}
-                        replies={repliesObj}
-                        insights={repliesObj}
-                        activeTab={activeTab}
-                        setActiveTab={setActiveTab}
-                        recommendedVariant={recommendedVariant}
-                      />
-
-                      {/* Analysis section (optional) */}
-                      {analysis.strategy && (
-                        <div
-                          style={{
-                            padding: "12px 20px",
-                            borderTop: "1px solid var(--border)",
-                            background: "rgba(34,197,94,0.03)",
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              color: "var(--ink-4)",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.08em",
-                              marginBottom: 6,
-                            }}
-                          >
-                            Strategy
-                          </p>
-                          <p
-                            style={{
-                              fontSize: 13,
-                              color: "var(--ink-2)",
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            {analysis.strategy}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {replies.map((item) => (
+                  <SavedReplyCard key={item.id} item={item} />
+                ))}
               </div>
               {totalPages > 1 && (
                 <div
