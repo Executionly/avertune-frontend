@@ -25,6 +25,7 @@ import {
   Menu,
   Bookmark,
   BookmarkCheck,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "../AuthContext.jsx";
 import { useQueryClient } from "@tanstack/react-query";
@@ -1000,6 +1001,9 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
         >
           Your insight card
         </p>
+
+        {/* ── FIX 1: overflow changed from "hidden" to "visible" so content never clips ── */}
+        {/* ── FIX 2: top logo/branding block removed entirely ── */}
         <div
           ref={cardRef}
           style={{
@@ -1009,7 +1013,7 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
             padding: "clamp(20px,3vw,28px)",
             marginBottom: 16,
             position: "relative",
-            overflow: "hidden",
+            overflow: "visible",
             border: "1px solid rgba(34,197,94,0.15)",
           }}
         >
@@ -1036,67 +1040,8 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
               pointerEvents: "none",
             }}
           />
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 20,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 8,
-                  background: "linear-gradient(135deg,#22c55e,#2dd4bf)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
-                  <path
-                    d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
-                    stroke="#000"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-              <span
-                style={{
-                  fontWeight: 800,
-                  fontSize: 14,
-                  letterSpacing: "-0.03em",
-                  color: "#F4F4F6",
-                }}
-              >
-                Avertune
-              </span>
-            </div>
-            <div
-              style={{
-                padding: "3px 10px",
-                borderRadius: 20,
-                background: `${varColor}20`,
-                border: `1px solid ${varColor}40`,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: varColor,
-                  letterSpacing: "0.04em",
-                }}
-              >
-                {activeVariant}
-              </span>
-            </div>
-          </div>
+
+          {/* ── FIX 3: stat boxes — removed whiteSpace/textOverflow so long values wrap ── */}
           <div
             style={{
               display: "grid",
@@ -1145,10 +1090,9 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
                     fontSize: 12.5,
                     fontWeight: 700,
                     color: r.c,
-                    lineHeight: 1.2,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
+                    lineHeight: 1.3,
+                    wordBreak: "break-word",
+                    whiteSpace: "normal",
                   }}
                 >
                   {r.v}
@@ -1156,6 +1100,7 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
               </div>
             ))}
           </div>
+
           {stratText && (
             <div
               style={{
@@ -1262,6 +1207,7 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
             </div>
           )}
         </div>
+
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           <button
             onClick={copyImage}
@@ -1388,6 +1334,7 @@ const VARIANT_COLORS = {
   Brief: "var(--blue)",
 };
 
+/* ── FIX 4: savingVariant prop added so the button shows a spinner while saving ── */
 function VariantPanel({
   variants,
   replies,
@@ -1396,6 +1343,7 @@ function VariantPanel({
   onShare,
   onSave,
   isSaved,
+  savingVariant,
   insights,
   descriptors,
   recommendedVariant,
@@ -1473,6 +1421,7 @@ function VariantPanel({
         .map((v) => {
           const c = VARIANT_COLORS[v] || "var(--green)";
           const text = replies?.[v];
+          const isSaving = savingVariant === v;
           return (
             <div
               key={v}
@@ -1557,8 +1506,8 @@ function VariantPanel({
                   >
                     {onSave && (
                       <button
-                        onClick={() => onSave(v)}
-                        disabled={isSaved}
+                        onClick={() => !isSaved && !isSaving && onSave(v)}
+                        disabled={isSaved || isSaving}
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -1572,12 +1521,12 @@ function VariantPanel({
                           color: isSaved ? "var(--green)" : "var(--ink-3)",
                           fontSize: 13,
                           fontWeight: 600,
-                          cursor: isSaved ? "default" : "pointer",
+                          cursor: isSaved || isSaving ? "default" : "pointer",
                           transition: "all .15s",
                           fontFamily: "inherit",
                         }}
                         onMouseEnter={(e) => {
-                          if (!isSaved) {
+                          if (!isSaved && !isSaving) {
                             e.currentTarget.style.borderColor = "var(--green)";
                             e.currentTarget.style.color = "var(--green)";
                             e.currentTarget.style.background =
@@ -1585,7 +1534,7 @@ function VariantPanel({
                           }
                         }}
                         onMouseLeave={(e) => {
-                          if (!isSaved) {
+                          if (!isSaved && !isSaving) {
                             e.currentTarget.style.borderColor =
                               "var(--border2)";
                             e.currentTarget.style.color = "var(--ink-3)";
@@ -1593,12 +1542,27 @@ function VariantPanel({
                           }
                         }}
                       >
-                        {isSaved ? (
-                          <BookmarkCheck size={12} />
+                        {isSaving ? (
+                          <>
+                            <Loader2
+                              size={12}
+                              style={{
+                                animation: "spin .7s linear infinite",
+                              }}
+                            />
+                            Saving…
+                          </>
+                        ) : isSaved ? (
+                          <>
+                            <BookmarkCheck size={12} />
+                            Saved
+                          </>
                         ) : (
-                          <Bookmark size={12} />
+                          <>
+                            <Bookmark size={12} />
+                            Save
+                          </>
                         )}
-                        {isSaved ? "Saved" : "Save"}
                       </button>
                     )}
                     <button
@@ -1686,7 +1650,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const mainText = fields[firstRequiredTextarea?.id] || "";
   const charCount = mainText.length;
 
-  // Save is available for ALL tools when user is on Daily/Pro and generation ID exists
   const canSave =
     user &&
     (planTier === "daily" || planTier === "pro") &&
@@ -1855,7 +1818,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
     }
   }
 
-  // Helper to get display text for copy button in non-reply tools
   const getAnalysisText = () => {
     if (!result) return "";
     if (tool.id === "tone-checker") {
@@ -1864,9 +1826,69 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
     if (tool.id === "intent-detector") {
       return `Primary intent: ${result.primary_intent || "—"}\nSurface meaning: ${result.surface_meaning || "—"}\nSubtext: ${result.subtext || "—"}\nStrategy: ${result.recommended_response_strategy || "—"}`;
     }
-    // For reply tools, we'll use the active variant text in the VariantPanel
     return "";
   };
+
+  /* ── shared save button renderer for tone-checker / intent-detector ── */
+  function SaveBtn({ key: _k, variantKey }) {
+    const isSaving = savingVariant === variantKey;
+    const isSaved = savedVariants.has(variantKey);
+    return (
+      <button
+        onClick={() => !isSaved && !isSaving && handleSaveReply(variantKey)}
+        disabled={isSaved || isSaving}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+          padding: "7px 14px",
+          borderRadius: 9,
+          border: `1px solid ${isSaved ? "rgba(34,197,94,0.3)" : "var(--border2)"}`,
+          background: isSaved ? "rgba(34,197,94,0.08)" : "transparent",
+          color: isSaved ? "var(--green)" : "var(--ink-3)",
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: isSaved || isSaving ? "default" : "pointer",
+          transition: "all .15s",
+          fontFamily: "inherit",
+        }}
+        onMouseEnter={(e) => {
+          if (!isSaved && !isSaving) {
+            e.currentTarget.style.borderColor = "var(--green)";
+            e.currentTarget.style.color = "var(--green)";
+            e.currentTarget.style.background = "rgba(34,197,94,0.05)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isSaved && !isSaving) {
+            e.currentTarget.style.borderColor = "var(--border2)";
+            e.currentTarget.style.color = "var(--ink-3)";
+            e.currentTarget.style.background = "transparent";
+          }
+        }}
+      >
+        {isSaving ? (
+          <>
+            <Loader2
+              size={12}
+              style={{ animation: "spin .7s linear infinite" }}
+            />
+            Saving…
+          </>
+        ) : isSaved ? (
+          <>
+            <BookmarkCheck size={12} />
+            Saved
+          </>
+        ) : (
+          <>
+            <Bookmark size={12} />
+            Save
+          </>
+        )}
+      </button>
+    );
+  }
 
   return (
     <div
@@ -2646,6 +2668,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     onShare={() => setShowShare(true)}
                     onSave={canSave ? handleSaveReply : null}
                     isSaved={savedVariants.has(activeTab)}
+                    savingVariant={savingVariant}
                     insights={result._replyInsights}
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
@@ -2798,59 +2821,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                         borderTop: "1px solid var(--border)",
                       }}
                     >
-                      {canSave && (
-                        <button
-                          onClick={() => handleSaveReply("tone-analysis")}
-                          disabled={savedVariants.has("tone-analysis")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 5,
-                            padding: "7px 14px",
-                            borderRadius: 9,
-                            border: `1px solid ${savedVariants.has("tone-analysis") ? "rgba(34,197,94,0.3)" : "var(--border2)"}`,
-                            background: savedVariants.has("tone-analysis")
-                              ? "rgba(34,197,94,0.08)"
-                              : "transparent",
-                            color: savedVariants.has("tone-analysis")
-                              ? "var(--green)"
-                              : "var(--ink-3)",
-                            fontSize: 13,
-                            fontWeight: 600,
-                            cursor: savedVariants.has("tone-analysis")
-                              ? "default"
-                              : "pointer",
-                            transition: "all .15s",
-                            fontFamily: "inherit",
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!savedVariants.has("tone-analysis")) {
-                              e.currentTarget.style.borderColor =
-                                "var(--green)";
-                              e.currentTarget.style.color = "var(--green)";
-                              e.currentTarget.style.background =
-                                "rgba(34,197,94,0.05)";
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!savedVariants.has("tone-analysis")) {
-                              e.currentTarget.style.borderColor =
-                                "var(--border2)";
-                              e.currentTarget.style.color = "var(--ink-3)";
-                              e.currentTarget.style.background = "transparent";
-                            }
-                          }}
-                        >
-                          {savedVariants.has("tone-analysis") ? (
-                            <BookmarkCheck size={12} />
-                          ) : (
-                            <Bookmark size={12} />
-                          )}
-                          {savedVariants.has("tone-analysis")
-                            ? "Saved"
-                            : "Save"}
-                        </button>
-                      )}
+                      {canSave && <SaveBtn variantKey="tone-analysis" />}
                       <button
                         onClick={() => setShowShare(true)}
                         style={{
@@ -2925,6 +2896,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     onShare={() => setShowShare(true)}
                     onSave={canSave ? handleSaveReply : null}
                     isSaved={savedVariants.has(activeTab)}
+                    savingVariant={savingVariant}
                     insights={result._replyInsights}
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
@@ -3016,6 +2988,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     onShare={() => setShowShare(true)}
                     onSave={canSave ? handleSaveReply : null}
                     isSaved={savedVariants.has(activeTab)}
+                    savingVariant={savingVariant}
                     insights={result._replyInsights}
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
@@ -3036,6 +3009,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     onShare={() => setShowShare(true)}
                     onSave={canSave ? handleSaveReply : null}
                     isSaved={savedVariants.has(activeTab)}
+                    savingVariant={savingVariant}
                     insights={result._replyInsights}
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
@@ -3080,6 +3054,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     onShare={() => setShowShare(true)}
                     onSave={canSave ? handleSaveReply : null}
                     isSaved={savedVariants.has(activeTab)}
+                    savingVariant={savingVariant}
                     insights={result._replyInsights}
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
@@ -3370,59 +3345,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                         borderTop: "1px solid var(--border)",
                       }}
                     >
-                      {canSave && (
-                        <button
-                          onClick={() => handleSaveReply("intent-analysis")}
-                          disabled={savedVariants.has("intent-analysis")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 5,
-                            padding: "7px 14px",
-                            borderRadius: 9,
-                            border: `1px solid ${savedVariants.has("intent-analysis") ? "rgba(34,197,94,0.3)" : "var(--border2)"}`,
-                            background: savedVariants.has("intent-analysis")
-                              ? "rgba(34,197,94,0.08)"
-                              : "transparent",
-                            color: savedVariants.has("intent-analysis")
-                              ? "var(--green)"
-                              : "var(--ink-3)",
-                            fontSize: 13,
-                            fontWeight: 600,
-                            cursor: savedVariants.has("intent-analysis")
-                              ? "default"
-                              : "pointer",
-                            transition: "all .15s",
-                            fontFamily: "inherit",
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!savedVariants.has("intent-analysis")) {
-                              e.currentTarget.style.borderColor =
-                                "var(--green)";
-                              e.currentTarget.style.color = "var(--green)";
-                              e.currentTarget.style.background =
-                                "rgba(34,197,94,0.05)";
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!savedVariants.has("intent-analysis")) {
-                              e.currentTarget.style.borderColor =
-                                "var(--border2)";
-                              e.currentTarget.style.color = "var(--ink-3)";
-                              e.currentTarget.style.background = "transparent";
-                            }
-                          }}
-                        >
-                          {savedVariants.has("intent-analysis") ? (
-                            <BookmarkCheck size={12} />
-                          ) : (
-                            <Bookmark size={12} />
-                          )}
-                          {savedVariants.has("intent-analysis")
-                            ? "Saved"
-                            : "Save"}
-                        </button>
-                      )}
+                      {canSave && <SaveBtn variantKey="intent-analysis" />}
                       <button
                         onClick={() => setShowShare(true)}
                         style={{
