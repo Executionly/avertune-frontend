@@ -30,7 +30,7 @@ import { useAuth } from "../AuthContext.jsx";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import { generateApi } from "../lib/generateApi.js";
-import { api } from "../lib/apiClient.js"; // ✅ add this import
+import { api } from "../lib/apiClient.js";
 import { PACKS } from "../lib/packData.js";
 import { useToast } from "../lib/Toast.jsx";
 import Sidebar from "./Sidebar.jsx";
@@ -1659,8 +1659,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const { data: subscription } = useMySubscription();
   const availablePacks = subscription?.features?.available_packs || [];
 
-  const displayName = user?.full_name || user?.email?.split("@")[0] || "User";
-  const displayInitial = displayName[0].toUpperCase();
   const planTier = user?.plan_tier || "free";
   const [fields, setFields] = useState({});
 
@@ -1688,7 +1686,8 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const mainText = fields[firstRequiredTextarea?.id] || "";
   const charCount = mainText.length;
 
-  const canSaveReplies =
+  // Save is available for ALL tools when user is on Daily/Pro and generation ID exists
+  const canSave =
     user &&
     (planTier === "daily" || planTier === "pro") &&
     phase === "done" &&
@@ -1841,12 +1840,12 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
         generation_id: result._generationId,
       });
       setSavedVariants((prev) => new Set(prev).add(variant));
-      toast.success(`Reply (${variant}) saved!`);
+      toast.success(`Analysis saved!`);
     } catch (err) {
       const msg =
-        err?.response?.data?.message || err?.message || "Failed to save reply.";
+        err?.response?.data?.message || err?.message || "Failed to save.";
       if (msg.toLowerCase().includes("already saved")) {
-        toast.warning("This reply was already saved.");
+        toast.warning("This analysis was already saved.");
         setSavedVariants((prev) => new Set(prev).add(variant));
       } else {
         toast.error(msg);
@@ -1855,6 +1854,19 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
       setSavingVariant(null);
     }
   }
+
+  // Helper to get display text for copy button in non-reply tools
+  const getAnalysisText = () => {
+    if (!result) return "";
+    if (tool.id === "tone-checker") {
+      return `Tone: ${result.primary_tone || "—"}\nRisk: ${result.risk_level || "—"}\nInterpretation: ${result.interpretation || "—"}`;
+    }
+    if (tool.id === "intent-detector") {
+      return `Primary intent: ${result.primary_intent || "—"}\nSurface meaning: ${result.surface_meaning || "—"}\nSubtext: ${result.subtext || "—"}\nStrategy: ${result.recommended_response_strategy || "—"}`;
+    }
+    // For reply tools, we'll use the active variant text in the VariantPanel
+    return "";
+  };
 
   return (
     <div
@@ -2632,7 +2644,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     activeTab={activeTab}
                     setActiveTab={(v) => setActiveTab(v)}
                     onShare={() => setShowShare(true)}
-                    onSave={canSaveReplies ? handleSaveReply : null}
+                    onSave={canSave ? handleSaveReply : null}
                     isSaved={savedVariants.has(activeTab)}
                     insights={result._replyInsights}
                     descriptors={result._replyDescriptors}
@@ -2775,6 +2787,103 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                         </p>
                       </div>
                     )}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "flex-end",
+                        gap: 8,
+                        marginTop: 20,
+                        paddingTop: 16,
+                        borderTop: "1px solid var(--border)",
+                      }}
+                    >
+                      {canSave && (
+                        <button
+                          onClick={() => handleSaveReply("tone-analysis")}
+                          disabled={savedVariants.has("tone-analysis")}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
+                            padding: "7px 14px",
+                            borderRadius: 9,
+                            border: `1px solid ${savedVariants.has("tone-analysis") ? "rgba(34,197,94,0.3)" : "var(--border2)"}`,
+                            background: savedVariants.has("tone-analysis")
+                              ? "rgba(34,197,94,0.08)"
+                              : "transparent",
+                            color: savedVariants.has("tone-analysis")
+                              ? "var(--green)"
+                              : "var(--ink-3)",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            cursor: savedVariants.has("tone-analysis")
+                              ? "default"
+                              : "pointer",
+                            transition: "all .15s",
+                            fontFamily: "inherit",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!savedVariants.has("tone-analysis")) {
+                              e.currentTarget.style.borderColor =
+                                "var(--green)";
+                              e.currentTarget.style.color = "var(--green)";
+                              e.currentTarget.style.background =
+                                "rgba(34,197,94,0.05)";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!savedVariants.has("tone-analysis")) {
+                              e.currentTarget.style.borderColor =
+                                "var(--border2)";
+                              e.currentTarget.style.color = "var(--ink-3)";
+                              e.currentTarget.style.background = "transparent";
+                            }
+                          }}
+                        >
+                          {savedVariants.has("tone-analysis") ? (
+                            <BookmarkCheck size={12} />
+                          ) : (
+                            <Bookmark size={12} />
+                          )}
+                          {savedVariants.has("tone-analysis")
+                            ? "Saved"
+                            : "Save"}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setShowShare(true)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 5,
+                          padding: "7px 14px",
+                          borderRadius: 9,
+                          border: "1px solid var(--border2)",
+                          background: "transparent",
+                          color: "var(--ink-3)",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          transition: "all .15s",
+                          fontFamily: "inherit",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = "var(--green)";
+                          e.currentTarget.style.color = "var(--green)";
+                          e.currentTarget.style.background =
+                            "rgba(34,197,94,0.05)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = "var(--border2)";
+                          e.currentTarget.style.color = "var(--ink-3)";
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        <Share2 size={12} /> Share
+                      </button>
+                      <CopyBtn text={getAnalysisText()} />
+                    </div>
                   </div>
                 </div>
               )}
@@ -2814,7 +2923,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     activeTab={activeTab}
                     setActiveTab={(v) => setActiveTab(v)}
                     onShare={() => setShowShare(true)}
-                    onSave={canSaveReplies ? handleSaveReply : null}
+                    onSave={canSave ? handleSaveReply : null}
                     isSaved={savedVariants.has(activeTab)}
                     insights={result._replyInsights}
                     descriptors={result._replyDescriptors}
@@ -2905,7 +3014,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     activeTab={activeTab}
                     setActiveTab={(v) => setActiveTab(v)}
                     onShare={() => setShowShare(true)}
-                    onSave={canSaveReplies ? handleSaveReply : null}
+                    onSave={canSave ? handleSaveReply : null}
                     isSaved={savedVariants.has(activeTab)}
                     insights={result._replyInsights}
                     descriptors={result._replyDescriptors}
@@ -2925,37 +3034,36 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     activeTab={activeTab}
                     setActiveTab={(v) => setActiveTab(v)}
                     onShare={() => setShowShare(true)}
-                    onSave={canSaveReplies ? handleSaveReply : null}
+                    onSave={canSave ? handleSaveReply : null}
                     isSaved={savedVariants.has(activeTab)}
                     insights={result._replyInsights}
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
                   />
-                  {result.replies._emailDetails &&
-                    result.replies._emailDetails[activeTab] && (
-                      <div
+                  {result.replies?._emailDetails?.[activeTab] && (
+                    <div
+                      style={{
+                        marginTop: 8,
+                        padding: "10px 14px",
+                        background: "var(--surface2)",
+                        borderRadius: 10,
+                      }}
+                    >
+                      <p
                         style={{
-                          marginTop: 8,
-                          padding: "10px 14px",
-                          background: "var(--surface2)",
-                          borderRadius: 10,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: "var(--ink-3)",
+                          marginBottom: 2,
                         }}
                       >
-                        <p
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: "var(--ink-3)",
-                            marginBottom: 2,
-                          }}
-                        >
-                          Subject
-                        </p>
-                        <p style={{ fontSize: 13, color: "var(--ink)" }}>
-                          {result.replies._emailDetails[activeTab].subject}
-                        </p>
-                      </div>
-                    )}
+                        Subject
+                      </p>
+                      <p style={{ fontSize: 13, color: "var(--ink)" }}>
+                        {result.replies._emailDetails[activeTab].subject}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
               {tool.id === "difficult-email" && (
@@ -2970,37 +3078,36 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     activeTab={activeTab}
                     setActiveTab={(v) => setActiveTab(v)}
                     onShare={() => setShowShare(true)}
-                    onSave={canSaveReplies ? handleSaveReply : null}
+                    onSave={canSave ? handleSaveReply : null}
                     isSaved={savedVariants.has(activeTab)}
                     insights={result._replyInsights}
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
                   />
-                  {result.replies._emailSubjects &&
-                    result.replies._emailSubjects[activeTab] && (
-                      <div
+                  {result.replies?._emailSubjects?.[activeTab] && (
+                    <div
+                      style={{
+                        marginTop: 8,
+                        padding: "10px 14px",
+                        background: "var(--surface2)",
+                        borderRadius: 10,
+                      }}
+                    >
+                      <p
                         style={{
-                          marginTop: 8,
-                          padding: "10px 14px",
-                          background: "var(--surface2)",
-                          borderRadius: 10,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: "var(--ink-3)",
+                          marginBottom: 2,
                         }}
                       >
-                        <p
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: "var(--ink-3)",
-                            marginBottom: 2,
-                          }}
-                        >
-                          Subject
-                        </p>
-                        <p style={{ fontSize: 13, color: "var(--ink)" }}>
-                          {result.replies._emailSubjects[activeTab]}
-                        </p>
-                      </div>
-                    )}
+                        Subject
+                      </p>
+                      <p style={{ fontSize: 13, color: "var(--ink)" }}>
+                        {result.replies._emailSubjects[activeTab]}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
               {tool.id === "intent-detector" && (
@@ -3252,6 +3359,103 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                         </p>
                       </div>
                     )}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "flex-end",
+                        gap: 8,
+                        marginTop: 20,
+                        paddingTop: 16,
+                        borderTop: "1px solid var(--border)",
+                      }}
+                    >
+                      {canSave && (
+                        <button
+                          onClick={() => handleSaveReply("intent-analysis")}
+                          disabled={savedVariants.has("intent-analysis")}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
+                            padding: "7px 14px",
+                            borderRadius: 9,
+                            border: `1px solid ${savedVariants.has("intent-analysis") ? "rgba(34,197,94,0.3)" : "var(--border2)"}`,
+                            background: savedVariants.has("intent-analysis")
+                              ? "rgba(34,197,94,0.08)"
+                              : "transparent",
+                            color: savedVariants.has("intent-analysis")
+                              ? "var(--green)"
+                              : "var(--ink-3)",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            cursor: savedVariants.has("intent-analysis")
+                              ? "default"
+                              : "pointer",
+                            transition: "all .15s",
+                            fontFamily: "inherit",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!savedVariants.has("intent-analysis")) {
+                              e.currentTarget.style.borderColor =
+                                "var(--green)";
+                              e.currentTarget.style.color = "var(--green)";
+                              e.currentTarget.style.background =
+                                "rgba(34,197,94,0.05)";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!savedVariants.has("intent-analysis")) {
+                              e.currentTarget.style.borderColor =
+                                "var(--border2)";
+                              e.currentTarget.style.color = "var(--ink-3)";
+                              e.currentTarget.style.background = "transparent";
+                            }
+                          }}
+                        >
+                          {savedVariants.has("intent-analysis") ? (
+                            <BookmarkCheck size={12} />
+                          ) : (
+                            <Bookmark size={12} />
+                          )}
+                          {savedVariants.has("intent-analysis")
+                            ? "Saved"
+                            : "Save"}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setShowShare(true)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 5,
+                          padding: "7px 14px",
+                          borderRadius: 9,
+                          border: "1px solid var(--border2)",
+                          background: "transparent",
+                          color: "var(--ink-3)",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          transition: "all .15s",
+                          fontFamily: "inherit",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = "var(--green)";
+                          e.currentTarget.style.color = "var(--green)";
+                          e.currentTarget.style.background =
+                            "rgba(34,197,94,0.05)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = "var(--border2)";
+                          e.currentTarget.style.color = "var(--ink-3)";
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        <Share2 size={12} /> Share
+                      </button>
+                      <CopyBtn text={getAnalysisText()} />
+                    </div>
                   </div>
                 </div>
               )}
