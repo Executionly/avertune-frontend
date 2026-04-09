@@ -195,7 +195,7 @@ function PlanCard({ plan, billing, onCheckout, checkingOut }) {
               marginTop: 6,
             }}
           >
-            {plan.monthly_limit / 30} replies / week
+            {Math.round((plan.monthly_limit / 30) * 7)} replies / week
           </p>
         )}
         {!showWeekly && !isYearly && plan.prices.yearly && (
