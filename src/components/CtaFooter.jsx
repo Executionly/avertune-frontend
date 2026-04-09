@@ -83,16 +83,38 @@ export function CTA({ onSignup }) {
 
 export function Footer({ onPricing }) {
   const navigate = useNavigate();
+
+  // Helper to scroll to a section by ID
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    } else {
+      // If not found on current page, navigate to home and then scroll
+      navigate("/");
+      setTimeout(() => {
+        const el = document.getElementById(sectionId);
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  };
+
   const cols = [
     {
       label: "Resources",
       links: [
-        { label: "How it works", onClick: null },
+        {
+          label: "How it works",
+          onClick: () => scrollToSection("how-it-works"),
+        },
         {
           label: "Pricing",
           onClick: () => (onPricing ? onPricing() : navigate("/pricing")),
         },
-        { label: "FAQ", onClick: null },
+        {
+          label: "FAQ",
+          onClick: () => scrollToSection("faq"),
+        },
         {
           label: "Affiliate Program",
           onClick: () => navigate("/affiliate-program"),
@@ -102,10 +124,34 @@ export function Footer({ onPricing }) {
     {
       label: "Tools",
       links: [
-        { label: "Reply Generator", onClick: null },
-        { label: "Tone Checker", onClick: null },
-        { label: "Improve Reply", onClick: null },
-        { label: "Boundary Builder", onClick: null },
+        {
+          label: "Reply Generator",
+          onClick: () => navigate("/tool/reply-generator"),
+        },
+        {
+          label: "Tone Checker",
+          onClick: () => navigate("/tool/tone-checker"),
+        },
+        {
+          label: "Boundary Builder",
+          onClick: () => navigate("/tool/boundary-builder"),
+        },
+        {
+          label: "Sales & Negotiation",
+          onClick: () => navigate("/tool/negotiation-reply"),
+        },
+        {
+          label: "Follow-Up Writer",
+          onClick: () => navigate("/tool/follow-up-writer"),
+        },
+        {
+          label: "Difficult Email",
+          onClick: () => navigate("/tool/difficult-email"),
+        },
+        {
+          label: "Intent Detector",
+          onClick: () => navigate("/tool/intent-detector"),
+        },
       ],
     },
     {
@@ -118,12 +164,15 @@ export function Footer({ onPricing }) {
           onClick: () => navigate("/responsible-use"),
         },
         {
-          label: "Support",
+          label: "Support@avertune.com",
           onClick: () => (window.location.href = "mailto:support@avertune.com"),
         },
       ],
     },
   ];
+
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer
       style={{
@@ -186,9 +235,7 @@ export function Footer({ onPricing }) {
             <p
               style={{ fontSize: 13.5, color: "var(--ink-3)", lineHeight: 1.6 }}
             >
-              Respond with clarity.
-              <br />
-              Every time.
+              Respond with clarity. Every time.
             </p>
           </div>
           {cols.map((col) => (
@@ -254,31 +301,45 @@ export function Footer({ onPricing }) {
           }}
         >
           <p style={{ fontSize: 12.5, color: "var(--ink-4)" }}>
-            © 2026 Avertune. All rights reserved.
+            © {currentYear} Avertune. All rights reserved.
           </p>
           <div style={{ display: "flex", gap: 18 }}>
-            {["Privacy Policy", "Terms of Use"].map((l) => (
-              <button
-                key={l}
-                style={{
-                  fontSize: 12.5,
-                  color: "var(--ink-4)",
-                  transition: "color 0.15s",
-                  background: "none",
-                  border: "none",
-                  fontFamily: "inherit",
-                  cursor: "pointer",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.color = "var(--ink)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.color = "var(--ink-4)")
-                }
-              >
-                {l}
-              </button>
-            ))}
+            <button
+              onClick={() => navigate("/privacy")}
+              style={{
+                fontSize: 12.5,
+                color: "var(--ink-4)",
+                transition: "color 0.15s",
+                background: "none",
+                border: "none",
+                fontFamily: "inherit",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--ink)")}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.color = "var(--ink-4)")
+              }
+            >
+              Privacy Policy
+            </button>
+            <button
+              onClick={() => navigate("/terms")}
+              style={{
+                fontSize: 12.5,
+                color: "var(--ink-4)",
+                transition: "color 0.15s",
+                background: "none",
+                border: "none",
+                fontFamily: "inherit",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--ink)")}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.color = "var(--ink-4)")
+              }
+            >
+              Terms of Use
+            </button>
           </div>
         </div>
       </div>
