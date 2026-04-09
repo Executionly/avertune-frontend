@@ -919,9 +919,19 @@ function ShareModal({
 
   const replyText =
     result?.replies?.[activeVariant] || result?.recommended_approach || "";
-  const fullReply = replyText;
+  let fullReply = replyText;
+  let displayLabel = activeVariant;
 
-  const shareQuote = `Message analysis via Avertune:\n\n${includePrompt && promptText ? `Original message:\n"${promptText}"\n\n` : ""} ${activeVariant} reply:\n"${fullReply}"\n\n🔗 avertune.com`;
+  // Handle tone checker and intent detector
+  if (!fullReply && tool?.id === "tone-checker") {
+    fullReply = `Tone: ${result?.primary_tone || "—"}\nRisk: ${result?.risk_level || "—"}\nInterpretation: ${result?.interpretation || "—"}`;
+    displayLabel = "Analysis";
+  } else if (!fullReply && tool?.id === "intent-detector") {
+    fullReply = `Primary intent: ${result?.primary_intent || "—"}\nSurface meaning: ${result?.surface_meaning || "—"}\nSubtext: ${result?.subtext || "—"}\nStrategy: ${result?.recommended_response_strategy || "—"}`;
+    displayLabel = "Analysis";
+  }
+
+  const shareQuote = `Reply via Avertune:\n\n${includePrompt && promptText ? `Original message:\n"${promptText}"\n\n` : ""} ${displayLabel} reply:\n"${fullReply}"\n\n🔗 avertune.com`;
 
   const platforms = [
     {
@@ -996,7 +1006,7 @@ function ShareModal({
       });
       cardElement.style.overflow = originalOverflow;
       const link = document.createElement("a");
-      link.download = `avertune-${tool.id}-${Date.now()}.png`;
+      link.download = `avertune-${tool.id}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (e) {
@@ -1115,8 +1125,8 @@ function ShareModal({
             flex: 1,
             overflowY: "auto",
             marginBottom: 16,
-            scrollbarWidth: "none", // Firefox
-            msOverflowStyle: "none", // IE/Edge
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
           }}
           className="hide-scrollbar"
         >
@@ -1183,27 +1193,6 @@ function ShareModal({
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 8,
-                    background: "linear-gradient(135deg,#22c55e,#2dd4bf)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
-                    <path
-                      d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
-                      stroke="#000"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
                 <span
                   style={{
                     fontWeight: 800,
@@ -1231,7 +1220,7 @@ function ShareModal({
                     letterSpacing: "0.04em",
                   }}
                 >
-                  {activeVariant}
+                  {displayLabel}
                 </span>
               </div>
             </div>
@@ -1286,7 +1275,7 @@ function ShareModal({
                     marginBottom: 6,
                   }}
                 >
-                  {activeVariant} reply
+                  {displayLabel} reply
                 </p>
                 <div
                   style={{
@@ -1386,7 +1375,6 @@ function ShareModal({
         </div>
       </div>
 
-      {/* Hide scrollbar for the scrollable container */}
       <style>{`
         .hide-scrollbar {
           scrollbar-width: none;
