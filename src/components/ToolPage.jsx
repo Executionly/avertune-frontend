@@ -931,7 +931,7 @@ function ShareModal({
     displayLabel = "Analysis";
   }
 
-  const shareQuote = `Reply via Avertune:\n\n${includePrompt && promptText ? `Original message:\n"${promptText}"\n\n` : ""} ${displayLabel} reply:\n"${fullReply}"\n\n🔗 avertune.com`;
+  const shareQuote = `Reply via Avertune:\n\n${includePrompt && promptText ? `Original message:\n"${promptText}"\n\n` : ""} ${displayLabel} reply:\n"${fullReply.replace(/<[^>]*>/g, "")}"\n\n🔗 avertune.com`;
 
   const platforms = [
     {
@@ -1086,7 +1086,7 @@ function ShareModal({
           Your insight card
         </p>
 
-        {/* Toggle for including prompt - fixed */}
+        {/* Toggle for including prompt */}
         <div
           style={{
             marginBottom: 12,
@@ -1282,15 +1282,13 @@ function ShareModal({
                     whiteSpace: "pre-wrap",
                   }}
                   dangerouslySetInnerHTML={{ __html: `"${fullReply}"` }}
-                >
-                  "{fullReply}"
-                </div>
+                />
               </div>
             )}
           </div>
         </div>
 
-        {/* Download button - fixed */}
+        {/* Download button */}
         <div
           style={{ display: "flex", gap: 8, marginBottom: 16, flexShrink: 0 }}
         >
