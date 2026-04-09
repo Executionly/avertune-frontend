@@ -924,10 +924,10 @@ function ShareModal({
 
   // Handle tone checker and intent detector
   if (!fullReply && tool?.id === "tone-checker") {
-    fullReply = `Tone: ${result?.primary_tone || "—"}\nRisk: ${result?.risk_level || "—"}\nInterpretation: ${result?.interpretation || "—"}`;
+    fullReply = `<strong>Tone:</strong> ${result?.primary_tone || "—"}\n<strong>Risk:</strong> ${result?.risk_level || "—"}\n<strong>Interpretation:</strong> ${result?.interpretation || "—"}`;
     displayLabel = "Analysis";
   } else if (!fullReply && tool?.id === "intent-detector") {
-    fullReply = `Primary intent: ${result?.primary_intent || "—"}\nSurface meaning: ${result?.surface_meaning || "—"}\nSubtext: ${result?.subtext || "—"}\nStrategy: ${result?.recommended_response_strategy || "—"}`;
+    fullReply = `<strong>Primary intent:</strong> ${result?.primary_intent || "—"}\n<strong>Surface meaning:</strong> ${result?.surface_meaning || "—"}\n<strong>Subtext:</strong> ${result?.subtext || "—"}\n<strong>Strategy:</strong> ${result?.recommended_response_strategy || "—"}`;
     displayLabel = "Analysis";
   }
 
@@ -1207,9 +1207,6 @@ function ShareModal({
               <div
                 style={{
                   padding: "3px 10px",
-                  borderRadius: 20,
-                  background: `${varColor}20`,
-                  border: `1px solid ${varColor}40`,
                 }}
               >
                 <span
@@ -1284,6 +1281,7 @@ function ShareModal({
                     lineHeight: 1.65,
                     whiteSpace: "pre-wrap",
                   }}
+                  dangerouslySetInnerHTML={{ __html: `"${fullReply}"` }}
                 >
                   "{fullReply}"
                 </div>
