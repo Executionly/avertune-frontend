@@ -40,6 +40,129 @@ import { useMySubscription } from "../lib/useSubscription";
 /* ─────────────────────────────── Custom Select ─────────────────────────── */
 function formatOptionLabel(str) {
   if (!str) return "";
+
+  // Special case mappings
+  const specialCases = {
+    boss_manager: "Boss/Manager",
+    partner_spouse: "Partner/Spouse",
+    colleague: "Colleague",
+    direct_report: "Direct Report",
+    client: "Client",
+    friend: "Friend",
+    stranger: "Stranger",
+    acquaintance: "Acquaintance",
+    // Follow-up duration special cases
+    "1_2_days": "1-2 days",
+    "3_5_days": "3-5 days",
+    "1_week": "1 week",
+    "2_weeks": "2 weeks",
+    "1_month": "1 month",
+    longer_than_month: "Longer than a month",
+    // Relationship stakes
+    high: "High",
+    medium: "Medium",
+    low: "Low",
+    // Said before
+    first_time: "First time",
+    said_once_before: "Said once before",
+    said_multiple_times: "Said multiple times",
+    // Negotiation context
+    salary_negotiation: "Salary negotiation",
+    pricing_vendor_deal: "Pricing / vendor deal",
+    contract_terms: "Contract terms",
+    raise_request: "Raise request",
+    partnership_deal: "Partnership deal",
+    freelance_rate: "Freelance rate",
+    other: "Other",
+    // Leverage
+    strong: "Strong",
+    moderate: "Moderate",
+    weak: "Weak",
+    unknown: "Unknown",
+    // Style
+    collaborative: "Collaborative",
+    competitive: "Competitive",
+    principled: "Principled",
+    relationship_first: "Relationship first",
+    // Follow-up type
+    job_application: "Job application",
+    sales_proposal: "Sales proposal",
+    invoice_payment: "Invoice payment",
+    meeting_request: "Meeting request",
+    project_update: "Project update",
+    personal_relationship: "Personal relationship",
+    // Follow-up number
+    first_follow_up: "First follow-up",
+    second_follow_up: "Second follow-up",
+    third_final_follow_up: "Third / final follow-up",
+    checking_in_after_meeting: "Checking in after meeting",
+    // Preferred tone
+    friendly_casual: "Friendly casual",
+    professional: "Professional",
+    urgent_but_respectful: "Urgent but respectful",
+    brief_and_direct: "Brief and direct",
+    // Medium
+    email: "Email",
+    sms: "SMS",
+    whatsapp: "WhatsApp",
+    linkedin: "LinkedIn",
+    slack: "Slack",
+    in_person: "In person",
+    twitter: "Twitter",
+    instagram: "Instagram",
+    facebook: "Facebook",
+    text_message: "Text message",
+    social_media: "Social media",
+    // Channel for intent detector
+    text_message: "Text message",
+    // Relationship for boundary builder
+    boss: "Boss",
+    family: "Family",
+    // Situation types
+    giving_bad_news: "Giving bad news",
+    declining_request: "Declining request",
+    addressing_conflict: "Addressing conflict",
+    raising_concern: "Raising concern",
+    apologising: "Apologising",
+    pushing_back: "Pushing back",
+    ending_relationship: "Ending relationship",
+    requesting_something: "Requesting something",
+    // Sensitivity
+    low: "Low",
+    medium: "Medium",
+    high: "High",
+    // Tension history
+    no_history: "No history",
+    minor_tension: "Minor tension",
+    ongoing_conflict: "Ongoing conflict",
+    recent_argument: "Recent argument",
+    reconciling: "Reconciling",
+    // Preferred length
+    very_short: "Very short",
+    short: "Short",
+    medium: "Medium",
+    long: "Long",
+    // Tone preference
+    professional: "Professional",
+    friendly: "Friendly",
+    direct: "Direct",
+    empathetic: "Empathetic",
+    formal: "Formal",
+    // Goal
+    "De-escalate and set a clear timeline":
+      "De-escalate and set a clear timeline",
+    "Assert my position": "Assert my position",
+    "Build rapport": "Build rapport",
+    "Set a boundary": "Set a boundary",
+    "Request more time": "Request more time",
+    "Decline gracefully": "Decline gracefully",
+    "Escalate urgency": "Escalate urgency",
+    "Close the conversation": "Close the conversation",
+  };
+
+  if (specialCases[str]) return specialCases[str];
+
+  // Default: split by underscore, capitalize each word
   return str
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
