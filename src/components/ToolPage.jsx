@@ -1032,18 +1032,20 @@ function ShareModal({
           maxWidth: 520,
           width: "100%",
           maxHeight: "90vh",
-          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
           position: "relative",
           animation: "fadeUp 0.3s cubic-bezier(0.16,1,0.3,1) both",
           boxShadow: "0 32px 80px rgba(0,0,0,0.4)",
         }}
       >
+        {/* Sticky close button */}
         <button
           onClick={onClose}
           style={{
             position: "sticky",
             top: 0,
-            float: "right",
+            alignSelf: "flex-end",
             color: "var(--ink-3)",
             background: "var(--surface2)",
             border: "1px solid var(--border)",
@@ -1059,7 +1061,6 @@ function ShareModal({
         >
           <X size={17} />
         </button>
-        <div style={{ clear: "both" }} />
 
         <p
           style={{
@@ -1069,18 +1070,20 @@ function ShareModal({
             textTransform: "uppercase",
             letterSpacing: "0.09em",
             marginBottom: 14,
+            flexShrink: 0,
           }}
         >
           Your insight card
         </p>
 
-        {/* Toggle for including prompt */}
+        {/* Toggle for including prompt - fixed */}
         <div
           style={{
             marginBottom: 12,
             display: "flex",
             alignItems: "center",
             gap: 8,
+            flexShrink: 0,
           }}
         >
           <label
@@ -1106,189 +1109,204 @@ function ShareModal({
           )}
         </div>
 
+        {/* Scrollable container for the insight card */}
         <div
-          ref={cardRef}
           style={{
-            borderRadius: 18,
-            background:
-              "linear-gradient(135deg, #09090B 0%, #0F1A12 50%, #091211 100%)",
-            padding: "clamp(20px,3vw,28px)",
+            flex: 1,
+            overflowY: "auto",
             marginBottom: 16,
-            position: "relative",
-            overflow: "visible",
-            border: "1px solid rgba(34,197,94,0.15)",
+            scrollbarWidth: "none", // Firefox
+            msOverflowStyle: "none", // IE/Edge
           }}
+          className="hide-scrollbar"
         >
-          {/* Watermark at the top */}
-          {showWatermark && (
-            <div
-              style={{
-                marginBottom: 16,
-                paddingBottom: 12,
-                borderBottom: "1px solid rgba(255,255,255,0.08)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-              }}
-            >
-              <div
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: 5,
-                  background: "linear-gradient(135deg,#22c55e,#2dd4bf)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <svg width="9" height="9" viewBox="0 0 13 13" fill="none">
-                  <path
-                    d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
-                    stroke="#000"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-              <span style={{ fontSize: 10, color: "#71717A" }}>Avertune</span>
-              <span style={{ fontSize: 10, color: "#3F3F46" }}>·</span>
-              <span style={{ fontSize: 10, color: "#71717A" }}>
-                avertune.com
-              </span>
-            </div>
-          )}
-
           <div
+            ref={cardRef}
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 20,
+              borderRadius: 18,
+              background:
+                "linear-gradient(135deg, #09090B 0%, #0F1A12 50%, #091211 100%)",
+              padding: "clamp(20px,3vw,28px)",
+              position: "relative",
+              overflow: "visible",
+              border: "1px solid rgba(34,197,94,0.15)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Watermark at the top */}
+            {showWatermark && (
               <div
                 style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 8,
-                  background: "linear-gradient(135deg,#22c55e,#2dd4bf)",
+                  marginBottom: 16,
+                  paddingBottom: 12,
+                  borderBottom: "1px solid rgba(255,255,255,0.08)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  gap: 8,
                 }}
               >
-                <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
-                  <path
-                    d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
-                    stroke="#000"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <div
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 5,
+                    background: "linear-gradient(135deg,#22c55e,#2dd4bf)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <svg width="9" height="9" viewBox="0 0 13 13" fill="none">
+                    <path
+                      d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
+                      stroke="#000"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <span style={{ fontSize: 10, color: "#71717A" }}>Avertune</span>
+                <span style={{ fontSize: 10, color: "#3F3F46" }}>·</span>
+                <span style={{ fontSize: 10, color: "#71717A" }}>
+                  avertune.com
+                </span>
               </div>
-              <span
-                style={{
-                  fontWeight: 800,
-                  fontSize: 14,
-                  letterSpacing: "-0.03em",
-                  color: "#F4F4F6",
-                }}
-              >
-                {tool?.label || ""}
-              </span>
-            </div>
-            <div
-              style={{
-                padding: "3px 10px",
-                borderRadius: 20,
-                background: `${varColor}20`,
-                border: `1px solid ${varColor}40`,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: varColor,
-                  letterSpacing: "0.04em",
-                }}
-              >
-                {activeVariant}
-              </span>
-            </div>
-          </div>
+            )}
 
-          {includePrompt && promptText && (
             <div
               style={{
-                padding: "10px 14px",
-                background: "rgba(56,189,248,0.07)",
-                border: "1px solid rgba(56,189,248,0.15)",
-                borderRadius: 10,
-                marginBottom: 14,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 20,
               }}
             >
-              <p
-                style={{
-                  fontSize: 9.5,
-                  fontWeight: 700,
-                  color: "#38bdf8",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.09em",
-                  marginBottom: 5,
-                }}
-              >
-                Original message
-              </p>
-              <p style={{ fontSize: 12.5, color: "#A1A1AA", lineHeight: 1.55 }}>
-                "{promptText}"
-              </p>
-            </div>
-          )}
-
-          {fullReply && (
-            <div
-              style={{
-                padding: "12px 14px",
-                background: `${varColor}0D`,
-                border: `1px solid ${varColor}28`,
-                borderRadius: 10,
-                marginBottom: 16,
-              }}
-            >
-              <p
-                style={{
-                  fontSize: 9.5,
-                  fontWeight: 700,
-                  color: varColor,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.09em",
-                  marginBottom: 6,
-                }}
-              >
-                {activeVariant} reply
-              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    background: "linear-gradient(135deg,#22c55e,#2dd4bf)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
+                    <path
+                      d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
+                      stroke="#000"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <span
+                  style={{
+                    fontWeight: 800,
+                    fontSize: 14,
+                    letterSpacing: "-0.03em",
+                    color: "#F4F4F6",
+                  }}
+                >
+                  {tool?.label || ""}
+                </span>
+              </div>
               <div
                 style={{
-                  fontSize: 12.5,
-                  color: "#F4F4F6",
-                  lineHeight: 1.65,
-                  whiteSpace: "pre-wrap",
+                  padding: "3px 10px",
+                  borderRadius: 20,
+                  background: `${varColor}20`,
+                  border: `1px solid ${varColor}40`,
                 }}
               >
-                "{fullReply}"
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: varColor,
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  {activeVariant}
+                </span>
               </div>
             </div>
-          )}
+
+            {includePrompt && promptText && (
+              <div
+                style={{
+                  padding: "10px 14px",
+                  background: "rgba(56,189,248,0.07)",
+                  border: "1px solid rgba(56,189,248,0.15)",
+                  borderRadius: 10,
+                  marginBottom: 14,
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: 9.5,
+                    fontWeight: 700,
+                    color: "#38bdf8",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.09em",
+                    marginBottom: 5,
+                  }}
+                >
+                  Original message
+                </p>
+                <p
+                  style={{ fontSize: 12.5, color: "#A1A1AA", lineHeight: 1.55 }}
+                >
+                  "{promptText}"
+                </p>
+              </div>
+            )}
+
+            {fullReply && (
+              <div
+                style={{
+                  padding: "12px 14px",
+                  background: `${varColor}0D`,
+                  border: `1px solid ${varColor}28`,
+                  borderRadius: 10,
+                  marginBottom: 16,
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: 9.5,
+                    fontWeight: 700,
+                    color: varColor,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.09em",
+                    marginBottom: 6,
+                  }}
+                >
+                  {activeVariant} reply
+                </p>
+                <div
+                  style={{
+                    fontSize: 12.5,
+                    color: "#F4F4F6",
+                    lineHeight: 1.65,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  "{fullReply}"
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Only Download button */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        {/* Download button - fixed */}
+        <div
+          style={{ display: "flex", gap: 8, marginBottom: 16, flexShrink: 0 }}
+        >
           <button
             onClick={downloadCard}
             disabled={downloading}
@@ -1332,11 +1350,12 @@ function ShareModal({
             textTransform: "uppercase",
             letterSpacing: "0.08em",
             marginBottom: 10,
+            flexShrink: 0,
           }}
         >
           Share on
         </p>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
           {platforms.map((p) => (
             <button
               key={p.label}
@@ -1366,6 +1385,17 @@ function ShareModal({
           ))}
         </div>
       </div>
+
+      {/* Hide scrollbar for the scrollable container */}
+      <style>{`
+        .hide-scrollbar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   );
 }
