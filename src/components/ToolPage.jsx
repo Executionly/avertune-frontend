@@ -1021,7 +1021,6 @@ function ShareModal({
         justifyContent: "center",
         padding: "20px",
         animation: "fadeIn 0.2s ease both",
-        overflowY: "auto",
       }}
     >
       <div
@@ -1036,25 +1035,32 @@ function ShareModal({
           overflowY: "auto",
           position: "relative",
           animation: "fadeUp 0.3s cubic-bezier(0.16,1,0.3,1) both",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.4)",
         }}
       >
         <button
           onClick={onClose}
           style={{
-            position: "absolute",
-            top: 14,
-            right: 14,
+            position: "sticky",
+            top: 0,
+            float: "right",
             color: "var(--ink-3)",
-            background: "none",
-            border: "none",
+            background: "var(--surface2)",
+            border: "1px solid var(--border)",
+            borderRadius: 9,
             cursor: "pointer",
-            padding: 4,
-            borderRadius: 7,
+            padding: 7,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 8,
             zIndex: 10,
           }}
         >
           <X size={17} />
         </button>
+        <div style={{ clear: "both" }} />
+
         <p
           style={{
             fontSize: 11,
