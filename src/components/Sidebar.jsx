@@ -6,7 +6,7 @@ import {
   useCancel,
 } from "../lib/useSubscription";
 import { useToast } from "../lib/Toast";
-import { Home, LogOut, X, MoreHorizontal, Bookmark } from "lucide-react";
+import { Home, LogOut, X, MoreHorizontal, Bookmark, Zap } from "lucide-react";
 import { TOOL_CONFIGS } from "../toolConfigs";
 import { useState } from "react";
 
@@ -33,6 +33,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     subscription?.subscription?.cancel_at_period_end || false;
   const isOnPaidPlan =
     planTier && !["free", "trial"].includes(planTier.toLowerCase());
+  const isPro = planTier.toLowerCase() === "pro";
+  const hasActiveSubscription = !!subscription?.subscription; // true if subscription exists
 
   const handleSignOut = async () => {
     await logout();
@@ -117,6 +119,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         >
           <X size={20} />
         </button>
+
         {/* Logo – clickable to home */}
         <button
           onClick={() => {
@@ -167,6 +170,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             Avertune
           </span>
         </button>
+
         {/* Dashboard link */}
         <div style={{ padding: "12px 10px" }}>
           <button
@@ -201,6 +205,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             Dashboard
           </button>
         </div>
+
         {/* Tools section */}
         <div style={{ padding: "12px 10px" }}>
           <p
@@ -251,6 +256,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             </button>
           ))}
         </div>
+
         {/* Spacer */}
         <div style={{ flex: 1 }} />
 
@@ -359,97 +365,71 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             </p>
           </div>
         </div>
-        {/* Billing dropdown */}
-        <div style={{ padding: "12px 10px", position: "relative" }}>
-          <button
-            onClick={() => setBillingMenuOpen(!billingMenuOpen)}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 9,
-              padding: "9px 10px",
-              borderRadius: 9,
-              background: "transparent",
-              color: "var(--ink-3)",
-              fontFamily: "inherit",
-              fontWeight: 500,
-              fontSize: 13,
-              cursor: "pointer",
-              textAlign: "left",
-              border: "none",
-              transition: "all .15s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--surface2)";
-              e.currentTarget.style.color = "var(--ink)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "var(--ink-3)";
-            }}
-          >
-            <span>Billing</span>
-            <MoreHorizontal size={16} />
-          </button>
 
-          {billingMenuOpen && (
-            <div
+        {/* Billing dropdown – only show if user has an active subscription */}
+        {hasActiveSubscription && (
+          <div style={{ padding: "12px 10px", position: "relative" }}>
+            <button
+              onClick={() => setBillingMenuOpen(!billingMenuOpen)}
               style={{
-                position: "absolute",
-                bottom: "calc(100% + 8px)",
-                left: 12,
-                right: 12,
-                background: "var(--surface)",
-                border: "1px solid var(--border2)",
-                borderRadius: 12,
-                padding: 6,
-                zIndex: 60,
-                boxShadow: "0 12px 32px rgba(0,0,0,0.2)",
-                animation: "slideDown 0.18s ease both",
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 9,
+                padding: "9px 10px",
+                borderRadius: 9,
+                background: "transparent",
+                color: "var(--ink-3)",
+                fontFamily: "inherit",
+                fontWeight: 500,
+                fontSize: 13,
+                cursor: "pointer",
+                textAlign: "left",
+                border: "none",
+                transition: "all .15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--surface2)";
+                e.currentTarget.style.color = "var(--ink)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "var(--ink-3)";
               }}
             >
-              <button
-                onClick={() => {
-                  navigate("/pricing");
-                  setBillingMenuOpen(false);
-                  setIsOpen(false);
-                }}
+              <span>Billing</span>
+              <MoreHorizontal size={16} />
+            </button>
+
+            {billingMenuOpen && (
+              <div
                 style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  background: "transparent",
-                  color: "var(--ink)",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  textAlign: "left",
-                  cursor: "pointer",
-                  border: "none",
-                  transition: "background 0.12s",
+                  position: "absolute",
+                  bottom: "calc(100% + 8px)",
+                  left: 12,
+                  right: 12,
+                  background: "var(--surface)",
+                  border: "1px solid var(--border2)",
+                  borderRadius: 12,
+                  padding: 6,
+                  zIndex: 60,
+                  boxShadow: "0 12px 32px rgba(0,0,0,0.2)",
+                  animation: "slideDown 0.18s ease both",
                 }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "var(--surface2)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "transparent")
-                }
               >
-                Pricing
-              </button>
-              {isOnPaidPlan && !cancelAtPeriodEnd && (
                 <button
                   onClick={() => {
+                    navigate("/pricing");
                     setBillingMenuOpen(false);
-                    setShowCancelModal(true);
+                    setIsOpen(false);
                   }}
                   style={{
                     width: "100%",
                     padding: "8px 12px",
                     borderRadius: 8,
                     background: "transparent",
-                    color: "#ef4444",
+                    color: "var(--ink)",
                     fontSize: 13,
                     fontWeight: 500,
                     textAlign: "left",
@@ -458,37 +438,108 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                     transition: "background 0.12s",
                   }}
                   onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "rgba(239,68,68,0.08)")
+                    (e.currentTarget.style.background = "var(--surface2)")
                   }
                   onMouseLeave={(e) =>
                     (e.currentTarget.style.background = "transparent")
                   }
                 >
-                  Cancel subscription
+                  Pricing
                 </button>
-              )}
-              {isOnPaidPlan && cancelAtPeriodEnd && (
-                <div
-                  style={{
-                    padding: "8px 12px",
-                    fontSize: 12,
-                    color: "var(--ink-3)",
-                    textAlign: "center",
-                    borderTop: "1px solid var(--border)",
-                    marginTop: 4,
-                  }}
-                >
-                  Cancelled – access until{" "}
-                  {subscription?.subscription?.current_period_end
-                    ? new Date(
-                        subscription.subscription.current_period_end,
-                      ).toLocaleDateString()
-                    : "end of period"}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                {isOnPaidPlan && !cancelAtPeriodEnd && (
+                  <button
+                    onClick={() => {
+                      setBillingMenuOpen(false);
+                      setShowCancelModal(true);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      background: "transparent",
+                      color: "#ef4444",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      textAlign: "left",
+                      cursor: "pointer",
+                      border: "none",
+                      transition: "background 0.12s",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background =
+                        "rgba(239,68,68,0.08)")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
+                  >
+                    Cancel subscription
+                  </button>
+                )}
+                {isOnPaidPlan && cancelAtPeriodEnd && (
+                  <div
+                    style={{
+                      padding: "8px 12px",
+                      fontSize: 12,
+                      color: "var(--ink-3)",
+                      textAlign: "center",
+                      borderTop: "1px solid var(--border)",
+                      marginTop: 4,
+                    }}
+                  >
+                    Cancelled – access until{" "}
+                    {subscription?.subscription?.current_period_end
+                      ? new Date(
+                          subscription.subscription.current_period_end,
+                        ).toLocaleDateString()
+                      : "end of period"}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Upgrade button – shown for non-Pro users */}
+        {!isPro && (
+          <div style={{ padding: "12px 10px" }}>
+            <button
+              onClick={() => {
+                navigate("/pricing");
+                setIsOpen(false);
+              }}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 9,
+                padding: "9px 10px",
+                borderRadius: 9,
+                background: "transparent",
+                color: "var(--ink-3)",
+                fontFamily: "inherit",
+                fontWeight: 500,
+                fontSize: 13,
+                cursor: "pointer",
+                textAlign: "left",
+                border: "none",
+                transition: "all .15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(34,197,94,0.08)";
+                e.currentTarget.style.color = "var(--green)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "var(--ink-3)";
+              }}
+            >
+              <Zap size={14} />
+              Upgrade
+            </button>
+          </div>
+        )}
+
         {/* Sign out */}
         <div style={{ padding: "12px 10px" }}>
           <button

@@ -13,6 +13,7 @@ import {
   Clock,
   User,
   LogOut,
+  Zap,
 } from "lucide-react";
 import { useTheme } from "../ThemeContext.jsx";
 import { useAuth } from "../AuthContext.jsx";
@@ -156,6 +157,7 @@ function UserMenu() {
   const displayInitial = displayName[0].toUpperCase();
   const planTier = user?.plan_tier || "free";
   const displayPlan = planTier.charAt(0).toUpperCase() + planTier.slice(1);
+  const isPro = planTier.toLowerCase() === "pro";
   const repliesRemaining = user?.replies_remaining ?? user?.limit_today ?? 5;
 
   return (
@@ -248,7 +250,6 @@ function UserMenu() {
               >
                 {displayPlan}
               </span>
-              {/*<span style={{ fontSize: 11, color: 'var(--ink-3)' }}>· {repliesRemaining} replies left today</span>*/}
             </div>
           </div>
           <button
@@ -281,6 +282,39 @@ function UserMenu() {
           >
             <User size={14} /> Dashboard
           </button>
+          {/* Upgrade button – only show if not Pro */}
+          {!isPro && (
+            <button
+              onClick={() => {
+                navigate("/pricing");
+                setOpen(false);
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 9,
+                width: "100%",
+                padding: "9px 12px",
+                borderRadius: 9,
+                background: "transparent",
+                color: "var(--ink-2)",
+                fontSize: 13.5,
+                fontWeight: 500,
+                textAlign: "left",
+                transition: "background .12s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(34,197,94,0.08)";
+                e.currentTarget.style.color = "var(--green)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "var(--ink-2)";
+              }}
+            >
+              <Zap size={14} /> Upgrade
+            </button>
+          )}
           <button
             onClick={() => {
               logout();
@@ -321,6 +355,8 @@ export default function Nav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const planTier = user?.plan_tier || "free";
+  const isPro = planTier.toLowerCase() === "pro";
 
   function handleTool(slug) {
     setMenuOpen(false);
@@ -639,6 +675,28 @@ export default function Nav() {
                 >
                   Dashboard
                 </button>
+                {/* Upgrade button in mobile drawer */}
+                {!isPro && (
+                  <button
+                    onClick={() => {
+                      navigate("/pricing");
+                      setMenuOpen(false);
+                    }}
+                    className="btn-green"
+                    style={{
+                      flex: 1,
+                      padding: "11px",
+                      borderRadius: 9,
+                      fontSize: 14,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <Zap size={14} /> Upgrade
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     logout();
