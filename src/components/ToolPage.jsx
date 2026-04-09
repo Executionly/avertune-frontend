@@ -913,7 +913,7 @@ function ShareModal({
 }) {
   const cardRef = useRef();
   const [downloading, setDownloading] = useState(false);
-  const [includePrompt, setIncludePrompt] = useState(true); // default to true
+  const [includePrompt, setIncludePrompt] = useState(true);
   const showWatermark =
     subscription?.features?.share_receipt_watermark === true;
 
@@ -1005,7 +1005,7 @@ function ShareModal({
     setDownloading(false);
   }
 
-  const varColor = "#22c55e"; // fallback color
+  const varColor = "#22c55e";
 
   return (
     <div
@@ -1032,6 +1032,8 @@ function ShareModal({
           padding: "clamp(22px,3vw,32px)",
           maxWidth: 520,
           width: "100%",
+          maxHeight: "90vh",
+          overflowY: "auto",
           position: "relative",
           animation: "fadeUp 0.3s cubic-bezier(0.16,1,0.3,1) both",
         }}
@@ -1048,6 +1050,7 @@ function ShareModal({
             cursor: "pointer",
             padding: 4,
             borderRadius: 7,
+            zIndex: 10,
           }}
         >
           <X size={17} />
@@ -1161,6 +1164,27 @@ function ShareModal({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  background: "linear-gradient(135deg,#22c55e,#2dd4bf)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
+                  <path
+                    d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
+                    stroke="#000"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
               <span
                 style={{
                   fontWeight: 800,
@@ -1169,7 +1193,7 @@ function ShareModal({
                   color: "#F4F4F6",
                 }}
               >
-                {tool?.label || "Insights"}
+                {tool?.label || ""}
               </span>
             </div>
             <div
@@ -1339,7 +1363,6 @@ function ShareModal({
     </div>
   );
 }
-
 /* ─────────────────────────────── Variant tabs ─────────────────────────── */
 const VARIANT_COLORS = {
   Balanced: "var(--green)",
