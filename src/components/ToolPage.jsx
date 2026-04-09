@@ -913,16 +913,15 @@ function ShareModal({
 }) {
   const cardRef = useRef();
   const [downloading, setDownloading] = useState(false);
-  const [includePrompt, setIncludePrompt] = useState(false);
+  const [includePrompt, setIncludePrompt] = useState(true); // default to true
   const showWatermark =
     subscription?.features?.share_receipt_watermark === true;
 
   const replyText =
     result?.replies?.[activeVariant] || result?.recommended_approach || "";
-  // Full reply text without trimming
   const fullReply = replyText;
 
-  const shareQuote = `📊 Message analysis via Avertune:\n\n${includePrompt && promptText ? `Original message:\n"${promptText}"\n\n` : ""} ${activeVariant} reply:\n"${fullReply}"\n\n🔗 avertune.com`;
+  const shareQuote = `Message analysis via Avertune:\n\n${includePrompt && promptText ? `Original message:\n"${promptText}"\n\n` : ""} ${activeVariant} reply:\n"${fullReply}"\n\n🔗 avertune.com`;
 
   const platforms = [
     {
@@ -1162,27 +1161,6 @@ function ShareModal({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 8,
-                  background: "linear-gradient(135deg,#22c55e,#2dd4bf)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
-                  <path
-                    d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
-                    stroke="#000"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
               <span
                 style={{
                   fontWeight: 800,
@@ -1191,7 +1169,7 @@ function ShareModal({
                   color: "#F4F4F6",
                 }}
               >
-                Avertune
+                {tool?.label || "Insights"}
               </span>
             </div>
             <div
@@ -1214,8 +1192,6 @@ function ShareModal({
               </span>
             </div>
           </div>
-
-          {/* Removed tone/risk stat boxes */}
 
           {includePrompt && promptText && (
             <div
@@ -1281,7 +1257,7 @@ function ShareModal({
           )}
         </div>
 
-        {/* Only Download button, no Copy card */}
+        {/* Only Download button */}
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           <button
             onClick={downloadCard}
