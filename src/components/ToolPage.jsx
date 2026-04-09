@@ -903,20 +903,26 @@ function PackModal({ value, onChange, onClose, userPlan, availablePacks }) {
 }
 
 /* ─────────────────────────────── Share Modal ─────────────────────────── */
-function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
+function ShareModal({
+  result,
+  tool,
+  activeVariant,
+  onClose,
+  subscription,
+  promptText,
+}) {
   const cardRef = useRef();
-  const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [includePrompt, setIncludePrompt] = useState(false);
   const showWatermark =
     subscription?.features?.share_receipt_watermark === true;
 
   const replyText =
     result?.replies?.[activeVariant] || result?.recommended_approach || "";
-  const toneText = result?.tone || result?.primary_tone || "";
-  const riskText = result?.risk || result?.risk_level || "—";
-  const stratText = result?.strategy || result?.recommended_approach || "";
+  // Full reply text without trimming
+  const fullReply = replyText;
 
-  const shareQuote = `📊 Message analysis via Avertune:\n\nTone: ${toneText} · Risk: ${riskText}\nStrategy: ${stratText}\n\n💬 ${activeVariant} reply:\n"${replyText.slice(0, 200)}${replyText.length > 200 ? "…" : ""}"\n\n🔗 avertune.com`;
+  const shareQuote = `📊 Message analysis via Avertune:\n\n${includePrompt && promptText ? `Original message:\n"${promptText}"\n\n` : ""} ${activeVariant} reply:\n"${fullReply}"\n\n🔗 avertune.com`;
 
   const platforms = [
     {
@@ -945,7 +951,7 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
       ),
       action: () =>
         window.open(
-          `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent("https://avertune.com")}`,
+          `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareQuote)}`,
           "_blank",
         ),
     },
@@ -1000,72 +1006,7 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
     setDownloading(false);
   }
 
-  async function copyImage() {
-    setCopied(false);
-    try {
-      if (!window.html2canvas) {
-        await new Promise((res, rej) => {
-          const s = document.createElement("script");
-          s.src =
-            "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-          s.onload = res;
-          s.onerror = rej;
-          document.head.appendChild(s);
-        });
-      }
-      const cardElement = cardRef.current;
-      const originalOverflow = cardElement.style.overflow;
-      cardElement.style.overflow = "visible";
-      const canvas = await window.html2canvas(cardElement, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: null,
-        windowWidth: cardElement.scrollWidth,
-        windowHeight: cardElement.scrollHeight,
-      });
-      cardElement.style.overflow = originalOverflow;
-      canvas.toBlob(async (blob) => {
-        try {
-          await navigator.clipboard.write([
-            new ClipboardItem({ "image/png": blob }),
-          ]);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2500);
-        } catch {
-          await navigator.clipboard.writeText(shareQuote);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2500);
-        }
-      });
-    } catch {
-      await navigator.clipboard.writeText(shareQuote).catch(() => {});
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }
-  }
-
-  const VARIANT_COLORS = {
-    Balanced: "#22c55e",
-    Firm: "#2dd4bf",
-    Warm: "#38bdf8",
-    Delay: "#a78bfa",
-    Improved: "#22c55e",
-    Concise: "#2dd4bf",
-    Confident: "#38bdf8",
-    "Original+": "#a78bfa",
-    Diplomatic: "#22c55e",
-    Direct: "#2dd4bf",
-    Final: "#ef4444",
-    Strategic: "#22c55e",
-    "Hold Firm": "#2dd4bf",
-    Counter: "#38bdf8",
-    "Walk Away": "#a78bfa",
-    Standard: "#22c55e",
-    Friendly: "#2dd4bf",
-    Urgent: "#f59e0b",
-    Brief: "#38bdf8",
-  };
-  const varColor = VARIANT_COLORS[activeVariant] || "#22c55e";
+  const varColor = "#22c55e"; // fallback color
 
   return (
     <div
@@ -1125,8 +1066,38 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
           Your insight card
         </p>
 
-        {/* ── FIX 1: overflow changed from "hidden" to "visible" so content never clips ── */}
-        {/* ── FIX 2: top logo/branding block removed entirely ── */}
+        {/* Toggle for including prompt */}
+        <div
+          style={{
+            marginBottom: 12,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <label
+            style={{
+              fontSize: 12,
+              color: "var(--ink-3)",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={includePrompt}
+              onChange={(e) => setIncludePrompt(e.target.checked)}
+            />
+            Include original message
+          </label>
+          {includePrompt && (
+            <span style={{ fontSize: 10, color: "#f59e0b" }}>
+              (Sensitive? Uncheck to hide)
+            </span>
+          )}
+        </div>
+
         <div
           ref={cardRef}
           style={{
@@ -1140,161 +1111,13 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
             border: "1px solid rgba(34,197,94,0.15)",
           }}
         >
-          <div
-            style={{
-              position: "absolute",
-              top: -40,
-              left: -40,
-              width: 200,
-              height: 200,
-              background: `radial-gradient(circle, ${varColor}22 0%, transparent 70%)`,
-              pointerEvents: "none",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              bottom: -60,
-              right: -40,
-              width: 240,
-              height: 240,
-              background:
-                "radial-gradient(circle, rgba(45,212,191,0.1) 0%, transparent 70%)",
-              pointerEvents: "none",
-            }}
-          />
-
-          {/* ── FIX 3: stat boxes — removed whiteSpace/textOverflow so long values wrap ── */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: 8,
-              marginBottom: 18,
-            }}
-          >
-            {[
-              { l: "Tone", v: toneText || "—", c: "#38bdf8" },
-              {
-                l: "Risk",
-                v: riskText,
-                c:
-                  riskText === "High"
-                    ? "#ef4444"
-                    : riskText === "Medium"
-                      ? "#f59e0b"
-                      : "#22c55e",
-              },
-              { l: "Tool", v: tool.label, c: "#a78bfa" },
-            ].map((r) => (
-              <div
-                key={r.l}
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  borderRadius: 10,
-                  padding: "10px 12px",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                }}
-              >
-                <p
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 700,
-                    color: "#71717A",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.09em",
-                    marginBottom: 4,
-                  }}
-                >
-                  {r.l}
-                </p>
-                <p
-                  style={{
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    color: r.c,
-                    lineHeight: 1.3,
-                    wordBreak: "break-word",
-                    whiteSpace: "normal",
-                  }}
-                >
-                  {r.v}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {stratText && (
-            <div
-              style={{
-                padding: "10px 14px",
-                background: "rgba(34,197,94,0.07)",
-                border: "1px solid rgba(34,197,94,0.15)",
-                borderRadius: 10,
-                marginBottom: 14,
-              }}
-            >
-              <p
-                style={{
-                  fontSize: 9.5,
-                  fontWeight: 700,
-                  color: "#22c55e",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.09em",
-                  marginBottom: 5,
-                }}
-              >
-                Strategy
-              </p>
-              <p style={{ fontSize: 12.5, color: "#A1A1AA", lineHeight: 1.55 }}>
-                {stratText}
-              </p>
-            </div>
-          )}
-          {replyText && (
-            <div
-              style={{
-                padding: "12px 14px",
-                background: `${varColor}0D`,
-                border: `1px solid ${varColor}28`,
-                borderRadius: 10,
-                marginBottom: 16,
-              }}
-            >
-              <p
-                style={{
-                  fontSize: 9.5,
-                  fontWeight: 700,
-                  color: varColor,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.09em",
-                  marginBottom: 6,
-                }}
-              >
-                {activeVariant} reply
-              </p>
-              <div
-                style={{
-                  fontSize: 12.5,
-                  color: "#F4F4F6",
-                  lineHeight: 1.65,
-                  whiteSpace: "pre-wrap",
-                }}
-              >
-                "
-                {replyText.length > 200
-                  ? replyText.slice(0, 197) + "…"
-                  : replyText}
-                "
-              </div>
-            </div>
-          )}
+          {/* Watermark at the top */}
           {showWatermark && (
             <div
               style={{
-                marginTop: 16,
-                paddingTop: 12,
-                borderTop: "1px solid rgba(255,255,255,0.08)",
+                marginBottom: 16,
+                paddingBottom: 12,
+                borderBottom: "1px solid rgba(255,255,255,0.08)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -1329,31 +1152,137 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
               </span>
             </div>
           )}
-        </div>
 
-        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          <button
-            onClick={copyImage}
+          <div
             style={{
-              flex: 1,
-              padding: "10px",
-              borderRadius: 10,
-              border: `1px solid ${copied ? "rgba(34,197,94,0.3)" : "var(--border2)"}`,
-              background: copied ? "rgba(34,197,94,0.07)" : "transparent",
-              color: copied ? "var(--green)" : "var(--ink-2)",
-              fontWeight: 600,
-              fontSize: 13,
-              cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              transition: "all .2s",
+              justifyContent: "space-between",
+              marginBottom: 20,
             }}
           >
-            {copied ? <Check size={13} /> : <Copy size={13} />}
-            {copied ? "Copied!" : "Copy card"}
-          </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  background: "linear-gradient(135deg,#22c55e,#2dd4bf)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
+                  <path
+                    d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
+                    stroke="#000"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <span
+                style={{
+                  fontWeight: 800,
+                  fontSize: 14,
+                  letterSpacing: "-0.03em",
+                  color: "#F4F4F6",
+                }}
+              >
+                Avertune
+              </span>
+            </div>
+            <div
+              style={{
+                padding: "3px 10px",
+                borderRadius: 20,
+                background: `${varColor}20`,
+                border: `1px solid ${varColor}40`,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: varColor,
+                  letterSpacing: "0.04em",
+                }}
+              >
+                {activeVariant}
+              </span>
+            </div>
+          </div>
+
+          {/* Removed tone/risk stat boxes */}
+
+          {includePrompt && promptText && (
+            <div
+              style={{
+                padding: "10px 14px",
+                background: "rgba(56,189,248,0.07)",
+                border: "1px solid rgba(56,189,248,0.15)",
+                borderRadius: 10,
+                marginBottom: 14,
+              }}
+            >
+              <p
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  color: "#38bdf8",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.09em",
+                  marginBottom: 5,
+                }}
+              >
+                Original message
+              </p>
+              <p style={{ fontSize: 12.5, color: "#A1A1AA", lineHeight: 1.55 }}>
+                "{promptText}"
+              </p>
+            </div>
+          )}
+
+          {fullReply && (
+            <div
+              style={{
+                padding: "12px 14px",
+                background: `${varColor}0D`,
+                border: `1px solid ${varColor}28`,
+                borderRadius: 10,
+                marginBottom: 16,
+              }}
+            >
+              <p
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  color: varColor,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.09em",
+                  marginBottom: 6,
+                }}
+              >
+                {activeVariant} reply
+              </p>
+              <div
+                style={{
+                  fontSize: 12.5,
+                  color: "#F4F4F6",
+                  lineHeight: 1.65,
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                "{fullReply}"
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Only Download button, no Copy card */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           <button
             onClick={downloadCard}
             disabled={downloading}
@@ -1388,6 +1317,7 @@ function ShareModal({ result, tool, activeVariant, onClose, subscription }) {
             <Download size={13} /> {downloading ? "Saving…" : "Download"}
           </button>
         </div>
+
         <p
           style={{
             fontSize: 11,
@@ -2033,6 +1963,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
           activeVariant={activeTab}
           onClose={() => setShowShare(false)}
           subscription={subscription}
+          promptText={fields[firstRequiredTextarea?.id] || ""} // Add this line
         />
       )}
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
