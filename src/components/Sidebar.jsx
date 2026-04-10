@@ -142,37 +142,14 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             borderBottom: "1px solid var(--border)",
           }}
         >
-          <div
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 9,
-              background: "linear-gradient(135deg,var(--green),var(--teal))",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-              <path
-                d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
-                stroke="#000"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+          <div>
+            <img
+              src="./logo.png"
+              alt="avertune logo"
+              width={200}
+              height={200}
+            />
           </div>
-          <span
-            style={{
-              fontWeight: 800,
-              fontSize: 16,
-              letterSpacing: "-0.03em",
-              color: "var(--ink)",
-            }}
-          >
-            Avertune
-          </span>
         </button>
 
         {/* Dashboard link */}

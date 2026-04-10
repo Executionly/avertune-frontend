@@ -199,44 +199,15 @@ export function Footer({ onPricing }) {
                 marginBottom: 14,
               }}
             >
-              <div
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 7,
-                  background:
-                    "linear-gradient(135deg,var(--green),var(--teal))",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <svg width="11" height="11" viewBox="0 0 13 13" fill="none">
-                  <path
-                    d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
-                    stroke="#000"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+              <div>
+                <img
+                  src="./logo.png"
+                  alt="avertune logo"
+                  width={200}
+                  height={200}
+                />
               </div>
-              <span
-                style={{
-                  fontWeight: 800,
-                  fontSize: 15,
-                  letterSpacing: "-0.02em",
-                  color: "var(--ink)",
-                }}
-              >
-                Avertune
-              </span>
             </div>
-            <p
-              style={{ fontSize: 13.5, color: "var(--ink-3)", lineHeight: 1.6 }}
-            >
-              Respond with clarity. Every time.
-            </p>
           </div>
           {cols.map((col) => (
             <div key={col.label}>

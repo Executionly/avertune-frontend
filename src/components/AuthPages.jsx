@@ -29,44 +29,13 @@ function Logo() {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 9,
+
         justifyContent: "center",
-        marginBottom: 36,
       }}
     >
-      <div
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 11,
-          background:
-            "linear-gradient(135deg,var(--green) 0%,var(--teal) 100%)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 0 20px rgba(34,197,94,0.3)",
-        }}
-      >
-        <svg width="16" height="16" viewBox="0 0 13 13" fill="none">
-          <path
-            d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
-            stroke="#000"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+      <div>
+        <img src="./logo.png" alt="avertune logo" width={200} height={200} />
       </div>
-      <span
-        style={{
-          fontWeight: 800,
-          fontSize: 20,
-          letterSpacing: "-0.04em",
-          color: "var(--ink)",
-        }}
-      >
-        Avertune
-      </span>
     </div>
   );
 }
