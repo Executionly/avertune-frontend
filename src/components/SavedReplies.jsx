@@ -958,12 +958,13 @@ export default function SavedReplies() {
 
   useEffect(() => {
     if (!user) return;
+    if (authLoading || subLoading) return; // wait for both to finish
     if (!canAccess) {
       setLoading(false);
       return;
     }
     fetchReplies();
-  }, [user, page, toolFilter]);
+  }, [user, page, toolFilter, subscription, authLoading, subLoading]);
 
   async function fetchReplies() {
     setLoading(true);

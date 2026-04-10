@@ -1155,15 +1155,7 @@ function ShareModal({
                   gap: 8,
                 }}
               >
-                <div>
-                  <img
-                    src="./logo.png"
-                    alt="avertune logo"
-                    width={100}
-                    height={100}
-                  />
-                </div>
-
+                <span style={{ fontSize: 10, color: "#71717A" }}>Avertune</span>
                 <span style={{ fontSize: 10, color: "#3F3F46" }}>·</span>
                 <span style={{ fontSize: 10, color: "#71717A" }}>
                   avertune.com
@@ -1194,6 +1186,9 @@ function ShareModal({
               <div
                 style={{
                   padding: "3px 10px",
+                  borderRadius: 20,
+                  background: `${varColor}20`,
+                  border: `1px solid ${varColor}40`,
                 }}
               >
                 <span
@@ -1878,8 +1873,11 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
     }
     setSavingVariant(variant);
     try {
+      // Get the original prompt text (user's input message)
+      const prompt = mainText || ""; // mainText is already defined earlier
       await api.post("/generate/reply/save", {
         generation_id: result._generationId,
+        prompt: prompt, // optional field – saves the user's input
       });
       setSavedVariants((prev) => new Set(prev).add(variant));
       toast.success(`Analysis saved!`);
