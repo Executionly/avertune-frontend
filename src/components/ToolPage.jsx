@@ -1155,28 +1155,15 @@ function ShareModal({
                   gap: 8,
                 }}
               >
-                <div
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 5,
-                    background: "linear-gradient(135deg,#22c55e,#2dd4bf)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <svg width="9" height="9" viewBox="0 0 13 13" fill="none">
-                    <path
-                      d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
-                      stroke="#000"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                <div>
+                  <img
+                    src="./logo.png"
+                    alt="avertune logo"
+                    width={100}
+                    height={100}
+                  />
                 </div>
-                <span style={{ fontSize: 10, color: "#71717A" }}>Avertune</span>
+
                 <span style={{ fontSize: 10, color: "#3F3F46" }}>·</span>
                 <span style={{ fontSize: 10, color: "#71717A" }}>
                   avertune.com
@@ -1698,27 +1685,6 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
   const planTier = user?.plan_tier || "free";
   const [fields, setFields] = useState({});
 
-  // Loading state
-  if (authLoading || subLoading) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "var(--bg)",
-        }}
-      >
-        <div className="dot-loader">
-          <span />
-          <span />
-          <span />
-        </div>
-      </div>
-    );
-  }
-
   const [phase, setPhase] = useState("idle");
   const [result, setResult] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
@@ -1787,6 +1753,26 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
       }
     }
   }, [location.state, tool.id]);
+  // Loading state
+  if (authLoading || subLoading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--bg)",
+        }}
+      >
+        <div className="dot-loader">
+          <span />
+          <span />
+          <span />
+        </div>
+      </div>
+    );
+  }
 
   function setField(id, val) {
     if (id === firstRequiredTextarea?.id) {

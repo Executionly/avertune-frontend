@@ -542,24 +542,10 @@ export default function PricingPage() {
               style={{ width: 1, height: 20, background: "var(--border)" }}
             />
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 8,
-                  background:
-                    "linear-gradient(135deg,var(--green),var(--teal))",
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
-                  <path
-                    d="M2 6.5h9M6.5 2l4.5 4.5L6.5 11"
-                    stroke="#000"
-                    strokeWidth="2.2"
-                  />
-                </svg>
-              </div>
-              <span style={{ fontWeight: 800, fontSize: 15 }}>Avertune</span>
+              <div></div>
+              <span style={{ fontWeight: 800, fontSize: 15 }}>
+                Avertune<sup>TM</sup>
+              </span>
             </div>
             <span style={{ fontSize: 13, color: "var(--ink-4)" }}>/</span>
             <span
