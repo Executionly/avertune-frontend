@@ -146,21 +146,11 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             src="/logo.png"
             alt="Avertune logo"
             style={{
-              width: 28,
-              height: 28,
+              width: 70,
+              height: 70,
               borderRadius: 8,
             }}
           />
-          <span
-            style={{
-              fontWeight: 800,
-              fontSize: 16,
-              letterSpacing: "-0.03em",
-              color: "var(--ink)",
-            }}
-          >
-            Avertune
-          </span>
         </button>
 
         {/* Dashboard link */}
