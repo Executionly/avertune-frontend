@@ -124,7 +124,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           <X size={20} />
         </button>
 
-        {/* Logo – clickable to home (fixed spacing) */}
+        {/* Logo – clickable to home, larger size, minimal padding */}
         <button
           onClick={() => {
             navigate("/");
@@ -133,18 +133,19 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           style={{
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
             cursor: "pointer",
             width: "100%",
+            padding: "24px 20px",
             borderBottom: "1px solid var(--border)",
-            justifyContent: "center",
           }}
         >
           <img
             src="/logo.png"
             alt="Avertune logo"
             style={{
-              width: 200,
-              height: 200,
+              width: 120,
+              height: "auto",
               objectFit: "contain",
             }}
           />
