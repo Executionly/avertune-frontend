@@ -112,29 +112,39 @@ export default function Dashboard() {
   }
 
   const displayName = user.full_name || user.email?.split("@")[0] || "User";
-  const displayPlan = getPlanLabel(subscription?.plan_tier || user.plan_tier);
+  const planTier = subscription?.plan_tier || user.plan_tier || "free";
+  const displayPlan = getPlanLabel(planTier);
+  const isTrial = planTier === "trial";
 
-  // Use monthly limits from subscription response
-  const usageMonth = subscription?.usage_month ?? 0;
-  const limitMonth = subscription?.limit_month ?? 300;
-  const remainingMonth = subscription?.remaining ?? limitMonth - usageMonth;
+  // Determine which limits to show
+  let usageValue, limitValue, usageLabel;
+  if (isTrial) {
+    // Trial: use daily limits
+    usageValue = subscription?.usage_today ?? 0;
+    limitValue = subscription?.limit_today ?? 5;
+    usageLabel = "Replies used today";
+  } else {
+    // Paid or free: use monthly limits
+    usageValue = subscription?.usage_month ?? 0;
+    limitValue = subscription?.limit_month ?? 300;
+    usageLabel = "Replies used this month";
+  }
+  const remaining = Math.max(0, limitValue - usageValue);
   const usagePct =
-    limitMonth > 0 ? Math.min((usageMonth / limitMonth) * 100, 100) : 0;
-
-  // Optional: pack credits
+    limitValue > 0 ? Math.min((usageValue / limitValue) * 100, 100) : 0;
   const packCredits = subscription?.pack_credits ?? 0;
 
   const STATS = [
     {
-      label: "Replies used this month",
-      value: `${usageMonth} / ${limitMonth}`,
+      label: usageLabel,
+      value: `${usageValue} / ${limitValue}`,
       icon: MessageSquare,
       color: "var(--green)",
       delta: null,
     },
     {
-      label: "Total Replies",
-      value: String(remainingMonth),
+      label: isTrial ? "Remaining today" : "Total Replies",
+      value: String(remaining),
       icon: BarChart2,
       color: "#a78bfa",
       delta: displayPlan,
@@ -436,51 +446,90 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Monthly usage bar */}
-          <div
-            style={{
-              width: "100%",
-              padding: "18px 20px",
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              borderRadius: 16,
-              marginTop: 28,
-            }}
-          >
+          {/* Usage bar - only show for non-trial (monthly) */}
+          {!isTrial && (
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 10,
-              }}
-            >
-              <p style={{ fontSize: 13, fontWeight: 700 }}>Monthly usage</p>
-              <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
-                {usageMonth} / {limitMonth} replies used
-              </span>
-            </div>
-            <div
-              style={{
-                height: 6,
-                background: "var(--surface3)",
-                borderRadius: 3,
-                overflow: "hidden",
+                width: "100%",
+                padding: "18px 20px",
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 16,
+                marginTop: 28,
               }}
             >
               <div
                 style={{
-                  height: "100%",
-                  width: `${usagePct}%`,
-                  background: "linear-gradient(90deg,var(--green),var(--teal))",
-                  borderRadius: 3,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 10,
                 }}
-              />
+              >
+                <p style={{ fontSize: 13, fontWeight: 700 }}>Monthly usage</p>
+                <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
+                  {usageValue} / {limitValue} replies used
+                </span>
+              </div>
+              <div
+                style={{
+                  height: 6,
+                  background: "var(--surface3)",
+                  borderRadius: 3,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${usagePct}%`,
+                    background:
+                      "linear-gradient(90deg,var(--green),var(--teal))",
+                    borderRadius: 3,
+                  }}
+                />
+              </div>
+              <p style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 8 }}>
+                Resets on billing date · {displayPlan} plan
+              </p>
             </div>
-            <p style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 8 }}>
-              Resets on billing date · {displayPlan} plan
-            </p>
-          </div>
+          )}
+
+          {/* For trial users, show a reminder about trial end date */}
+          {isTrial && subscription?.trial_end_date && (
+            <div
+              style={{
+                width: "100%",
+                padding: "16px 20px",
+                background: "rgba(34,197,94,0.05)",
+                border: "1px solid rgba(34,197,94,0.15)",
+                borderRadius: 16,
+                marginTop: 28,
+                textAlign: "center",
+              }}
+            >
+              <p style={{ fontSize: 13, color: "var(--ink-2)" }}>
+                Your free trial ends on{" "}
+                <strong>
+                  {new Date(subscription.trial_end_date).toLocaleDateString()}
+                </strong>
+                .{" "}
+                <button
+                  onClick={() => navigate("/pricing")}
+                  style={{
+                    color: "var(--green)",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    background: "none",
+                    border: "none",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  Upgrade to continue →
+                </button>
+              </p>
+            </div>
+          )}
         </div>
       </main>
 

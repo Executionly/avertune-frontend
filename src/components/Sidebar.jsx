@@ -130,17 +130,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             navigate("/");
             setIsOpen(false);
           }}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            width: "100%",
-            padding: "20px 20px 16px",
-            borderBottom: "1px solid var(--border)",
-          }}
         >
           <div>
             <img
