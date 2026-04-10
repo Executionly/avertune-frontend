@@ -777,6 +777,7 @@ function SavedReplyCard({ item }) {
   const pack = item.pack || "general";
   const toolLabel = PACK_LABELS[pack] || formatPackName(pack);
   const [activeTab, setActiveTab] = useState(null);
+  const originalPrompt = item.text; // user's original message/prompt
 
   let renderMode = "unknown";
   let variantsObj = null;
@@ -901,6 +902,33 @@ function SavedReplyCard({ item }) {
           Saved on {new Date(item.created_at).toLocaleDateString()}
         </span>
       </div>
+
+      {/* Original message (prompt) */}
+      {originalPrompt && originalPrompt !== null && (
+        <div
+          style={{
+            padding: "12px 20px",
+            borderBottom: "1px solid var(--border)",
+            background: "rgba(56,189,248,0.03)",
+          }}
+        >
+          <p
+            style={{
+              fontSize: 10.5,
+              fontWeight: 700,
+              color: "#38bdf8",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              marginBottom: 4,
+            }}
+          >
+            Original message
+          </p>
+          <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.55 }}>
+            "{originalPrompt}"
+          </p>
+        </div>
+      )}
 
       {/* Render content */}
       {renderMode === "variants" && variantsObj && (
