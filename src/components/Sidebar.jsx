@@ -17,9 +17,9 @@ const tools = Object.entries(TOOL_CONFIGS).map(([slug, config]) => ({
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, authLoading } = useAuth();
   const toast = useToast();
-  const { data: subscription } = useMySubscription();
+  const { data: subscription, isLoading: subLoading } = useMySubscription();
   const cancelMutation = useCancel();
 
   const [billingMenuOpen, setBillingMenuOpen] = useState(false);
@@ -34,7 +34,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   const isOnPaidPlan =
     planTier && !["free", "trial"].includes(planTier.toLowerCase());
   const isPro = planTier.toLowerCase() === "pro";
-  const hasActiveSubscription = !!subscription?.subscription; // true if subscription exists
+  const hasActiveSubscription = !!subscription?.subscription;
 
   const handleSignOut = async () => {
     await logout();
@@ -65,6 +65,10 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       );
     }
   };
+
+  if (authLoading || subLoading) {
+    return null; // or a skeleton sidebar
+  }
 
   return (
     <>

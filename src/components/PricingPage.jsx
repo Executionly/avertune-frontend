@@ -445,7 +445,7 @@ function FAQItem({ item }) {
 
 export default function PricingPage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, authLoading } = useAuth();
   const toast = useToast();
   const checkoutMutation = useCheckout();
   const { data: plansData, isLoading: plansLoading } = usePlans();
@@ -459,7 +459,7 @@ export default function PricingPage() {
 
   const PLANS = plansData?.plans || [];
   const comparison = plansData?.comparison || null;
-  const PACKS = packsData?.packs || []; // Assuming backend returns { packs: [...] }
+  const PACKS = packsData?.packs || [];
 
   async function handleCheckout(plan, billingPeriod) {
     if (!isAuthenticated) {
@@ -504,7 +504,7 @@ export default function PricingPage() {
 
   const checkingOut = (planId) => activePlanId === planId;
 
-  if (plansLoading || packsLoading) {
+  if (authLoading || plansLoading || packsLoading) {
     return (
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
         <header

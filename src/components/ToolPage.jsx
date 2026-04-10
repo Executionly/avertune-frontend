@@ -1687,16 +1687,37 @@ function VariantPanel({
    MAIN TOOL PAGE
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ToolPage({ tool, onBack, onLogin, onTool }) {
-  const { user } = useAuth();
+  const { user, authLoading } = useAuth();
   const toast = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: subscription } = useMySubscription();
+  const { data: subscription, isLoading: subLoading } = useMySubscription();
   const availablePacks = subscription?.features?.available_packs || [];
 
   const planTier = user?.plan_tier || "free";
   const [fields, setFields] = useState({});
+
+  // Loading state
+  if (authLoading || subLoading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--bg)",
+        }}
+      >
+        <div className="dot-loader">
+          <span />
+          <span />
+          <span />
+        </div>
+      </div>
+    );
+  }
 
   const [phase, setPhase] = useState("idle");
   const [result, setResult] = useState(null);

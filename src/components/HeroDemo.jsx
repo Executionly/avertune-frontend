@@ -747,24 +747,27 @@ function PaywallModal({ onClose, onSignup }) {
 
 /* ── Try It Section ── */
 function TryItSection({ onSignup }) {
-  const { user } = useAuth();
+  const { user, authLoading } = useAuth();
   const navigate = useNavigate();
-  const { data: subscription } = useMySubscription();
+  const { data: subscription, isLoading: subLoading } = useMySubscription();
   const [msg, setMsg] = useState("");
 
-  const charLimit = user
-    ? subscription?.character_limits?.reply_generator || 2000
-    : 600;
+  const isLoading = authLoading || subLoading;
+
+  const charLimit = isLoading
+    ? 600
+    : user
+      ? subscription?.character_limits?.reply_generator || 2000
+      : 600;
 
   const handleGenerate = () => {
     if (!msg.trim()) return;
-
+    if (isLoading) return;
     if (!user) {
       sessionStorage.setItem("pendingMessage", msg);
       navigate("/login");
       return;
     }
-
     navigate("/tool/reply-generator", { state: { message: msg } });
   };
 
@@ -953,7 +956,7 @@ function TryItSection({ onSignup }) {
               </div>
               <button
                 onClick={handleGenerate}
-                disabled={!msg.trim()}
+                disabled={!msg.trim() || isLoading}
                 className="btn-green"
                 style={{
                   padding: "clamp(11px,1.5vw,14px) clamp(24px,3vw,36px)",
@@ -962,8 +965,8 @@ function TryItSection({ onSignup }) {
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  opacity: !msg.trim() ? 0.45 : 1,
-                  cursor: !msg.trim() ? "not-allowed" : "pointer",
+                  opacity: !msg.trim() || isLoading ? 0.45 : 1,
+                  cursor: !msg.trim() || isLoading ? "not-allowed" : "pointer",
                 }}
               >
                 Generate

@@ -282,7 +282,6 @@ function UserMenu() {
           >
             <User size={14} /> Dashboard
           </button>
-          {/* Upgrade button – only show if not Pro */}
           {!isPro && (
             <button
               onClick={() => {
@@ -353,7 +352,7 @@ function UserMenu() {
 
 export default function Nav() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, authLoading } = useAuth();
   const navigate = useNavigate();
   const planTier = user?.plan_tier || "free";
   const isPro = planTier.toLowerCase() === "pro";
@@ -527,7 +526,18 @@ export default function Nav() {
           }}
         >
           <ThemePicker />
-          {user ? (
+          {authLoading ? (
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                border: "2px solid var(--border2)",
+                borderTopColor: "var(--green)",
+                borderRadius: "50%",
+                animation: "spin .7s linear infinite",
+              }}
+            />
+          ) : user ? (
             <UserMenu />
           ) : (
             <>
@@ -658,7 +668,19 @@ export default function Nav() {
             Pricing
           </button>
           <div style={{ display: "flex", gap: 10 }}>
-            {user ? (
+            {authLoading ? (
+              <div
+                style={{
+                  width: 20,
+                  height: 20,
+                  border: "2px solid var(--border2)",
+                  borderTopColor: "var(--green)",
+                  borderRadius: "50%",
+                  animation: "spin .7s linear infinite",
+                  margin: "0 auto",
+                }}
+              />
+            ) : user ? (
               <>
                 <button
                   onClick={() => {
@@ -675,7 +697,6 @@ export default function Nav() {
                 >
                   Dashboard
                 </button>
-                {/* Upgrade button in mobile drawer */}
                 {!isPro && (
                   <button
                     onClick={() => {
