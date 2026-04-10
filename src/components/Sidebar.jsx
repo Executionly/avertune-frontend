@@ -133,19 +133,19 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           style={{
             display: "flex",
             alignItems: "center",
-            background: "none",
-            border: "none",
             cursor: "pointer",
             width: "100%",
             borderBottom: "1px solid var(--border)",
+            justifyContent: "center",
           }}
         >
           <img
             src="/logo.png"
             alt="Avertune logo"
             style={{
-              width: 100,
-              height: 100,
+              width: 200,
+              height: 200,
+              objectFit: "contain",
             }}
           />
         </button>
