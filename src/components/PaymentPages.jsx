@@ -48,12 +48,8 @@ export function PaymentSuccessPage() {
     : "Your subscription is now active. You can start using all Avertune tools immediately.";
 
   const handleGoToDashboard = () => {
-    try {
-      navigate("/dashboard");
-    } catch (e) {
-      // Fallback if navigate fails
-      window.location.href = "/dashboard";
-    }
+    // Force a full page reload to ensure auth state is fresh
+    window.location.href = "/dashboard";
   };
 
   return (
@@ -105,19 +101,11 @@ export function PaymentFailurePage() {
   const navigate = useNavigate();
 
   const handleTryAgain = () => {
-    try {
-      navigate("/pricing");
-    } catch (e) {
-      window.location.href = "/pricing";
-    }
+    window.location.href = "/pricing";
   };
 
   const handleGoToDashboard = () => {
-    try {
-      navigate("/dashboard");
-    } catch (e) {
-      window.location.href = "/dashboard";
-    }
+    window.location.href = "/dashboard";
   };
 
   return (

@@ -87,25 +87,37 @@ export default function Dashboard() {
   const { data: subscription, isLoading: subLoading } = useMySubscription();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Consistent loading spinner (matches Nav)
   if (authLoading || subLoading) {
     return (
       <div
         style={{
-          minHeight: "100vh",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "var(--bg)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "var(--bg)",
+          zIndex: 1000,
         }}
       >
-        <div className="dot-loader">
-          <span />
-          <span />
-          <span />
-        </div>
+        <div
+          style={{
+            width: 20,
+            height: 20,
+            border: "2px solid var(--border2)",
+            borderTopColor: "var(--green)",
+            borderRadius: "50%",
+            animation: "spin 0.7s linear infinite",
+          }}
+        />
       </div>
     );
   }
+
   if (!user) {
     navigate("/");
     return null;
@@ -119,12 +131,10 @@ export default function Dashboard() {
   // Determine which limits to show
   let usageValue, limitValue, usageLabel;
   if (isTrial) {
-    // Trial: use daily limits
     usageValue = subscription?.usage_today ?? 0;
     limitValue = subscription?.limit_today ?? 5;
     usageLabel = "Replies used today";
   } else {
-    // Paid or free: use monthly limits
     usageValue = subscription?.usage_month ?? 0;
     limitValue = subscription?.limit_month ?? 300;
     usageLabel = "Replies used this month";
@@ -227,7 +237,7 @@ export default function Dashboard() {
                 <p
                   style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 1 }}
                 >
-                  Good to see you, {displayName} 👋
+                  Good to see you, {displayName}
                 </p>
               </div>
             </div>
@@ -538,6 +548,11 @@ export default function Dashboard() {
           .dashboard-stats-grid,
           .dashboard-tools-grid {
             grid-template-columns: 1fr !important;
+          }
+        }
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
           }
         }
       `}</style>

@@ -303,22 +303,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             gap: 10,
           }}
         >
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: "linear-gradient(135deg,var(--green),var(--teal))",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ fontSize: 14, fontWeight: 800, color: "#000" }}>
-              {displayInitial}
-            </span>
-          </div>
           <div style={{ minWidth: 0 }}>
             <p
               style={{

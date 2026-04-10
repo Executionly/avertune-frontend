@@ -426,8 +426,10 @@ export function SignupPage({ onSuccess }) {
 
   async function onSubmit(values) {
     msg.clear();
+    // Remove confirm_password before sending to API
+    const { confirm_password, ...signupData } = values;
     try {
-      const res = await signup(values);
+      const res = await signup(signupData);
       onSuccess?.({ email: values.email, message: res?.message || null });
     } catch (err) {
       msg.setFromError(err);
@@ -475,6 +477,13 @@ export function SignupPage({ onSuccess }) {
             placeholder="Min. 8 characters"
             registration={register("password")}
             error={errors.password?.message}
+          />
+          <Field
+            label="Confirm password"
+            type="password"
+            placeholder="Confirm your password"
+            registration={register("confirm_password")}
+            error={errors.confirm_password?.message}
           />
 
           <ApiMessage state={msg.state} />
