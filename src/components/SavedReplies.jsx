@@ -944,7 +944,7 @@ export default function SavedReplies() {
   const { user, authLoading } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
-  const { data: subscription } = useMySubscription();
+  const { data: subscription, isLoading: subLoading } = useMySubscription();
   const [replies, setReplies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -986,7 +986,7 @@ export default function SavedReplies() {
     }
   }
 
-  if (authLoading) return null;
+  if (authLoading || subLoading) return null;
   if (!user) {
     navigate("/login");
     return null;

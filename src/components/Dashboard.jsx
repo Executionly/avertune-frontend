@@ -84,10 +84,28 @@ const TOOLS = [
 export default function Dashboard() {
   const { user, authLoading } = useAuth();
   const navigate = useNavigate();
-  const { data: subscription } = useMySubscription();
+  const { data: subscription, isLoading: subLoading } = useMySubscription();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (authLoading) return null;
+  if (authLoading || subLoading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--bg)",
+        }}
+      >
+        <div className="dot-loader">
+          <span />
+          <span />
+          <span />
+        </div>
+      </div>
+    );
+  }
   if (!user) {
     navigate("/");
     return null;
