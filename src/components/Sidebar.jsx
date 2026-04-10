@@ -67,7 +67,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   };
 
   if (authLoading || subLoading) {
-    return null; // or a skeleton sidebar
+    return null;
   }
 
   return (
@@ -124,21 +124,43 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           <X size={20} />
         </button>
 
-        {/* Logo – clickable to home */}
+        {/* Logo – clickable to home (fixed spacing) */}
         <button
           onClick={() => {
             navigate("/");
             setIsOpen(false);
           }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            width: "100%",
+            padding: "16px 20px",
+            borderBottom: "1px solid var(--border)",
+          }}
         >
-          <div>
-            <img
-              src="./logo.png"
-              alt="avertune logo"
-              width={200}
-              height={200}
-            />
-          </div>
+          <img
+            src="/logo.png"
+            alt="Avertune logo"
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+            }}
+          />
+          <span
+            style={{
+              fontWeight: 800,
+              fontSize: 16,
+              letterSpacing: "-0.03em",
+              color: "var(--ink)",
+            }}
+          >
+            Avertune
+          </span>
         </button>
 
         {/* Dashboard link */}
