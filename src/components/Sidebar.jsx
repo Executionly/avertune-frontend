@@ -135,8 +135,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             alignItems: "center",
             justifyContent: "center",
             cursor: "pointer",
-            width: "100%",
-            padding: "24px 20px",
             borderBottom: "1px solid var(--border)",
           }}
         >
