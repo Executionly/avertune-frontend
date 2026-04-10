@@ -133,12 +133,10 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
             background: "none",
             border: "none",
             cursor: "pointer",
             width: "100%",
-            padding: "16px 20px",
             borderBottom: "1px solid var(--border)",
           }}
         >
@@ -146,9 +144,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             src="/logo.png"
             alt="Avertune logo"
             style={{
-              width: 70,
-              height: 70,
-              borderRadius: 8,
+              width: 100,
+              height: 100,
             }}
           />
         </button>
