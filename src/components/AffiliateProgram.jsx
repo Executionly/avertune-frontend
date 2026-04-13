@@ -26,12 +26,14 @@ export default function AffiliateProgram() {
       value: "$5,000+",
       label: "monthly earning potential",
       color: "var(--green)",
+      standout: true,
     },
     {
       icon: DollarSign,
       value: "Unlimited",
       label: "earnings scale with performance",
       color: "var(--teal)",
+      standout: false,
     },
   ];
 
@@ -44,12 +46,12 @@ export default function AffiliateProgram() {
     {
       icon: Mail,
       title: "Send your video",
-      desc: "Email your video to creators@avertune.com with your name and social handles.",
+      desc: "Email your video to <b style='color:black'>creators@avertune.com</b> with your name and social handles.",
     },
     {
       icon: Zap,
       title: "Get approved & earn",
-      desc: "If we love your style, we'll send you a paid collaboration offer. Earn up to $5,000+ per month!",
+      desc: "If we love your style, we'll send you a paid collaboration offer. Earn up to <b style='color:black'>$5,000+</b> per month!",
     },
   ];
 
@@ -250,7 +252,7 @@ export default function AffiliateProgram() {
             <span
               style={{ fontSize: 12, fontWeight: 700, color: "var(--green)" }}
             >
-              Earn up to $5,000+ / month
+              Earn up to <b>$5,000+</b> / month
             </span>
           </div>
           <h1
@@ -305,10 +307,14 @@ export default function AffiliateProgram() {
               <s.icon size={32} color={s.color} style={{ marginBottom: 12 }} />
               <div
                 style={{
-                  fontSize: "clamp(28px,4vw,40px)",
-                  fontWeight: 800,
+                  fontSize: "clamp(32px,4vw,44px)",
+                  fontWeight: s.standout ? 900 : 700,
                   color: s.color,
                   marginBottom: 4,
+                  ...(s.standout && {
+                    textShadow: "0 0 8px rgba(34,197,94,0.4)",
+                    letterSpacing: "-0.02em",
+                  }),
                 }}
               >
                 {s.value}
@@ -375,15 +381,14 @@ export default function AffiliateProgram() {
                     color: "var(--ink-3)",
                     lineHeight: 1.6,
                   }}
-                >
-                  {step.desc}
-                </p>
+                  dangerouslySetInnerHTML={{ __html: step.desc }}
+                />
               </div>
             ))}
           </div>
           <div style={{ textAlign: "center", marginTop: 32 }}>
             <a
-              href="mailto:creators@avertune.com?subject=Creator%20Application&body=Hi%2C%20I%27d%20like%20to%20join%20the%20Avertune%20Creator%20Program.%20Here%20is%20my%20video%20and%20information%3A%0A%0AName%3A%0ASocial%20handles%3A%0AVideo%20link%3A"
+              href="mailto:creators@avertune.com?subject=Creator%20Application&body=Hi%2C%20I%27d%20like%20to%20join%20the%20Avertune%20Creator%20Program.%20Here%20is%20my%20video%20and%20information%3A%0A%0AName%3A%0ASocial%20handles%3A%0AVideo%20link%3A%0A%0AP.S.%20I%27m%20excited%20about%20the%20%245%2C000%2B%20earning%20potential!"
               className="btn-green"
               style={{
                 padding: "12px 28px",
@@ -397,7 +402,17 @@ export default function AffiliateProgram() {
                 color: "#000",
               }}
             >
-              Send your video → <Mail size={16} />
+              <Mail size={16} /> Send your video –{" "}
+              <strong
+                style={{
+                  fontSize: "1.1em",
+                  color: "#000",
+                  textShadow: "0 0 2px rgba(0,0,0,0.2)",
+                }}
+              >
+                $5,000+
+              </strong>{" "}
+              potential
             </a>
           </div>
         </div>
@@ -690,19 +705,30 @@ export default function AffiliateProgram() {
         {/* Bottom CTA */}
         <div style={{ marginTop: "clamp(56px,8vw,88px)", textAlign: "center" }}>
           <a
-            href="mailto:creators@avertune.com?subject=Creator%20Application"
+            href="mailto:creators@avertune.com?subject=Creator%20Application&body=Hi%2C%20I%27d%20like%20to%20apply%20for%20the%20Creator%20Program.%20Here%20is%20my%20video%20and%20information%3A%0A%0AName%3A%0ASocial%20handles%3A%0AVideo%20link%3A%0A%0AI%27m%20excited%20about%20the%20%245%2C000%2B%20earning%20potential!"
             className="btn-green"
             style={{
               padding: "14px 36px",
               borderRadius: 14,
               fontSize: 16,
               fontWeight: 700,
-              display: "inline-block",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
               textDecoration: "none",
               color: "#000",
             }}
           >
-            Create your first video and apply today →
+            Create your first video –{" "}
+            <strong
+              style={{
+                fontSize: "1.2em",
+                textShadow: "0 0 2px rgba(0,0,0,0.2)",
+              }}
+            >
+              $5,000+
+            </strong>{" "}
+            potential →
           </a>
         </div>
       </div>

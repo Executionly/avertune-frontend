@@ -1,4 +1,5 @@
 import axios from "axios";
+import FingerprintJS from "@fingerprintjs/fingerprintjs";
 
 export const BASE_URL =
   import.meta.env.VITE_API_BASE || "https://avertuneserver.xyz/api";
@@ -39,8 +40,42 @@ export const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// Request interceptor: attach access token
-api.interceptors.request.use((config) => {
+// ── Device fingerprint – load once and set header ────────────────────────────
+let fingerprintLoaded = false;
+
+async function initFingerprint() {
+  if (fingerprintLoaded) return;
+  try {
+    const fp = await FingerprintJS.load();
+    const { visitorId } = await fp.get();
+    api.defaults.headers.common["x-device-fingerprint"] = visitorId;
+    fingerprintLoaded = true;
+  } catch (err) {
+    console.warn("FingerprintJS failed:", err);
+  }
+}
+
+// Start loading immediately (non‑blocking)
+initFingerprint();
+
+// Request interceptor: attach access token (and ensure fingerprint is set)
+api.interceptors.request.use(async (config) => {
+  // If fingerprint not ready yet, wait for it (but don't block forever)
+  if (!fingerprintLoaded) {
+    // Wait up to 1 second for fingerprint to load
+    await Promise.race([
+      new Promise((resolve) => {
+        const check = setInterval(() => {
+          if (fingerprintLoaded) {
+            clearInterval(check);
+            resolve();
+          }
+        }, 50);
+        setTimeout(() => clearInterval(check), 1000);
+      }),
+      new Promise((resolve) => setTimeout(resolve, 1000)),
+    ]);
+  }
   const { accessToken } = getTokens();
   if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
   return config;
