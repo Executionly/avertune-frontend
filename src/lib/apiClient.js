@@ -40,44 +40,48 @@ export const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// ── Device fingerprint – load once and set header ────────────────────────────
-let fingerprintLoaded = false;
+// ── Device fingerprint – load once ───────────────────────────────────────────
+let fingerprintPromise = null;
+let visitorId = null;
 
-async function initFingerprint() {
-  if (fingerprintLoaded) return;
-  try {
-    const fp = await FingerprintJS.load();
-    const { visitorId } = await fp.get();
-    api.defaults.headers.common["x-device-fingerprint"] = visitorId;
-    fingerprintLoaded = true;
-  } catch (err) {
-    console.warn("FingerprintJS failed:", err);
+async function getFingerprint() {
+  if (visitorId) return visitorId;
+  if (!fingerprintPromise) {
+    fingerprintPromise = (async () => {
+      try {
+        const fp = await FingerprintJS.load();
+        const result = await fp.get();
+        visitorId = result.visitorId;
+        return visitorId;
+      } catch (err) {
+        console.warn("FingerprintJS failed:", err);
+        return null;
+      }
+    })();
   }
+  return fingerprintPromise;
 }
 
 // Start loading immediately (non‑blocking)
-initFingerprint();
+getFingerprint();
 
-// Request interceptor: attach access token (and ensure fingerprint is set)
+// Request interceptor: attach access token and optionally fingerprint
 api.interceptors.request.use(async (config) => {
-  // If fingerprint not ready yet, wait for it (but don't block forever)
-  if (!fingerprintLoaded) {
-    // Wait up to 1 second for fingerprint to load
-    await Promise.race([
-      new Promise((resolve) => {
-        const check = setInterval(() => {
-          if (fingerprintLoaded) {
-            clearInterval(check);
-            resolve();
-          }
-        }, 50);
-        setTimeout(() => clearInterval(check), 1000);
-      }),
-      new Promise((resolve) => setTimeout(resolve, 1000)),
-    ]);
-  }
   const { accessToken } = getTokens();
   if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+
+  // Only add fingerprint header to specific endpoints
+  const url = config.url || "";
+  const needsFingerprint =
+    url.includes("/auth/signup") ||
+    url.includes("/generate/") ||
+    url.includes("/generate/reply/save");
+
+  if (needsFingerprint) {
+    const fp = await getFingerprint();
+    if (fp) config.headers["x-device-fingerprint"] = fp;
+  }
+
   return config;
 });
 
