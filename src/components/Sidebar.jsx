@@ -295,7 +295,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             <Bookmark size={15} strokeWidth={1.8} />
             Saved Replies
           </button>
-          // After Saved Replies button
+
           <button
             onClick={() => {
               navigate("/affiliate/dashboard");
