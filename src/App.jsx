@@ -45,6 +45,7 @@ import PrivacyPolicy from "./components/PrivacyPolicy.jsx";
 import TermsOfService from "./components/TermsOfService.jsx";
 import ResponsibleUse from "./components/ResponsibleUse.jsx";
 import SavedReplies from "./components/SavedReplies.jsx";
+import AffiliateDashboard from "./components/AffiliateDashbpard.jsx";
 
 // ── Protected route ───────────────────────────────────────────────────────────
 function Protected({ children }) {
@@ -193,6 +194,14 @@ export default function App() {
         element={
           <Protected>
             <Dashboard />
+          </Protected>
+        }
+      />
+      <Route
+        path="/affiliate/dashboard"
+        element={
+          <Protected>
+            <AffiliateDashboard />
           </Protected>
         }
       />

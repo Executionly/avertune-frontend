@@ -6,7 +6,15 @@ import {
   useCancel,
 } from "../lib/useSubscription";
 import { useToast } from "../lib/Toast";
-import { Home, LogOut, X, MoreHorizontal, Bookmark, Zap } from "lucide-react";
+import {
+  Home,
+  LogOut,
+  X,
+  MoreHorizontal,
+  Bookmark,
+  Zap,
+  TrendingUp,
+} from "lucide-react";
 import { TOOL_CONFIGS } from "../toolConfigs";
 import { useState } from "react";
 
@@ -286,6 +294,41 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           >
             <Bookmark size={15} strokeWidth={1.8} />
             Saved Replies
+          </button>
+          // After Saved Replies button
+          <button
+            onClick={() => {
+              navigate("/affiliate/dashboard");
+              setIsOpen(false);
+            }}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
+              padding: "9px 10px",
+              borderRadius: 9,
+              background: "transparent",
+              color: "var(--ink-3)",
+              fontFamily: "inherit",
+              fontWeight: 500,
+              fontSize: 13.5,
+              cursor: "pointer",
+              textAlign: "left",
+              border: "none",
+              transition: "all .15s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--surface2)";
+              e.currentTarget.style.color = "var(--ink)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--ink-3)";
+            }}
+          >
+            <TrendingUp size={15} strokeWidth={1.8} />
+            Affiliate
           </button>
         </div>
 
