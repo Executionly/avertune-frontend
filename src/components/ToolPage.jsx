@@ -1799,7 +1799,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
     try {
       // Directly call the backend API – no Anthropic fallback
       const parsed = await generateApi[tool.backendRoute](fields);
-      //trackEvent("generate", { tool: tool.id, variant: activeTab });
+      trackEvent("generate", { tool: tool.id, variant: activeTab });
       toast.success("Done! Here are your results.");
       setResult(parsed);
       setPhase("done");
