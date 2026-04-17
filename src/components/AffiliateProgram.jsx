@@ -46,12 +46,12 @@ export default function AffiliateProgram() {
     {
       icon: Mail,
       title: "Send your video",
-      desc: "Email your video to <b style='color:black'>creators@avertune.com</b> with your name and social handles.",
+      desc: "Email your video to <b>creators@avertune.com</b> with your name and social handles.",
     },
     {
       icon: Zap,
       title: "Get approved & earn",
-      desc: "If we love your style, we'll send you a paid collaboration offer. Earn up to <b style='color:black'>$5,000+</b> per month!",
+      desc: "If we love your style, we'll send you a paid collaboration offer. Earn up to <b>$5,000+</b> per month!",
     },
   ];
 

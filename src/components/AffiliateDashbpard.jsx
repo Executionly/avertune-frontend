@@ -69,19 +69,18 @@ export default function AffiliateDashboard() {
   async function fetchAffiliateData() {
     setLoading(true);
     try {
-      let profileRes;
-      try {
-        profileRes = await api.get("/affiliate/profile");
-        setProfile(profileRes.data);
+      const profileRes = await api.get("/affiliate/profile");
+      const profileData = profileRes.data;
+
+      // Check if user is actually an affiliate (using the is_affiliate flag)
+      if (profileData.is_affiliate === true) {
+        setProfile(profileData);
         setJoined(true);
-      } catch (err) {
-        if (err.response?.status === 404) {
-          // User hasn't joined yet
-          setJoined(false);
-          setLoading(false);
-          return;
-        }
-        throw err;
+      } else {
+        // User exists but has not joined the program
+        setJoined(false);
+        setLoading(false);
+        return;
       }
 
       // Only fetch other data if joined
@@ -105,7 +104,12 @@ export default function AffiliateDashboard() {
       setWithdrawals(withdrawalsRes.data.data || withdrawalsRes.data || []);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to load affiliate data.");
+      if (err.response?.status === 404) {
+        // Profile endpoint returned 404 (user not yet registered as affiliate)
+        setJoined(false);
+      } else {
+        toast.error("Failed to load affiliate data.");
+      }
     } finally {
       setLoading(false);
     }
