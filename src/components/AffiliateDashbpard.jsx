@@ -69,9 +69,24 @@ export default function AffiliateDashboard() {
   async function fetchAffiliateData() {
     setLoading(true);
     try {
-      const [profileRes, statsRes, referralsRes, clicksRes, withdrawalsRes] =
+      let profileRes;
+      try {
+        profileRes = await api.get("/affiliate/profile");
+        setProfile(profileRes.data);
+        setJoined(true);
+      } catch (err) {
+        if (err.response?.status === 404) {
+          // User hasn't joined yet
+          setJoined(false);
+          setLoading(false);
+          return;
+        }
+        throw err;
+      }
+
+      // Only fetch other data if joined
+      const [statsRes, referralsRes, clicksRes, withdrawalsRes] =
         await Promise.all([
-          api.get("/affiliate/profile").catch(() => ({ data: null })),
           api.get("/affiliate/stats").catch(() => ({ data: null })),
           api
             .get("/affiliate/referrals?page=1&limit=50")
@@ -84,13 +99,12 @@ export default function AffiliateDashboard() {
             .catch(() => ({ data: [] })),
         ]);
 
-      setProfile(profileRes.data);
       setStats(statsRes.data);
       setReferrals(referralsRes.data.data || referralsRes.data || []);
       setClicks(clicksRes.data.data || clicksRes.data || []);
       setWithdrawals(withdrawalsRes.data.data || withdrawalsRes.data || []);
-      setJoined(!!profileRes.data);
     } catch (err) {
+      console.error(err);
       toast.error("Failed to load affiliate data.");
     } finally {
       setLoading(false);
@@ -104,7 +118,7 @@ export default function AffiliateDashboard() {
       toast.success(
         "Welcome to the Affiliate Program! Your referral link is ready.",
       );
-      fetchAffiliateData();
+      await fetchAffiliateData(); // Refresh to get the new profile
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to join.");
     } finally {
@@ -292,7 +306,7 @@ export default function AffiliateDashboard() {
                 }}
               >
                 Earn 20% commission for each referral's first 2 paid months,
-                then 8% ongoing. Withdrawals are reviewed bi-weekly.
+                then 8% ongoing. Withdrawals are reviewed monthly.
               </p>
               <button
                 onClick={joinAffiliateProgram}
@@ -760,7 +774,7 @@ export default function AffiliateDashboard() {
                     </div>
                   </div>
 
-                  {/* Dynamic fields based on payout method */}
+                  {/* PayPal */}
                   {payoutMethod === "paypal" && (
                     <div style={{ marginBottom: 16 }}>
                       <label
@@ -795,6 +809,77 @@ export default function AffiliateDashboard() {
                     </div>
                   )}
 
+                  {/* Wise */}
+                  {payoutMethod === "wise" && (
+                    <div style={{ marginBottom: 16 }}>
+                      <label
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                          display: "block",
+                          marginBottom: 6,
+                        }}
+                      >
+                        Wise email
+                      </label>
+                      <input
+                        type="email"
+                        value={payoutDetails.wise_email}
+                        onChange={(e) =>
+                          setPayoutDetails({
+                            ...payoutDetails,
+                            wise_email: e.target.value,
+                          })
+                        }
+                        placeholder="user@wise.com"
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          borderRadius: 10,
+                          border: "1px solid var(--border2)",
+                          background: "var(--surface2)",
+                          color: "var(--ink)",
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Payoneer */}
+                  {payoutMethod === "payoneer" && (
+                    <div style={{ marginBottom: 16 }}>
+                      <label
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                          display: "block",
+                          marginBottom: 6,
+                        }}
+                      >
+                        Payoneer email
+                      </label>
+                      <input
+                        type="email"
+                        value={payoutDetails.payoneer_email}
+                        onChange={(e) =>
+                          setPayoutDetails({
+                            ...payoutDetails,
+                            payoneer_email: e.target.value,
+                          })
+                        }
+                        placeholder="user@payoneer.com"
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          borderRadius: 10,
+                          border: "1px solid var(--border2)",
+                          background: "var(--surface2)",
+                          color: "var(--ink)",
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Bank Transfer */}
                   {payoutMethod === "bank_transfer" && (
                     <>
                       <div
@@ -899,9 +984,220 @@ export default function AffiliateDashboard() {
                           }}
                         />
                       </div>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: 16,
+                          marginBottom: 16,
+                        }}
+                      >
+                        <div>
+                          <label
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 600,
+                              display: "block",
+                              marginBottom: 6,
+                            }}
+                          >
+                            SWIFT / BIC
+                          </label>
+                          <input
+                            type="text"
+                            value={payoutDetails.bank_swift}
+                            onChange={(e) =>
+                              setPayoutDetails({
+                                ...payoutDetails,
+                                bank_swift: e.target.value,
+                              })
+                            }
+                            placeholder="FBNINGLA"
+                            style={{
+                              width: "100%",
+                              padding: "10px 12px",
+                              borderRadius: 10,
+                              border: "1px solid var(--border2)",
+                              background: "var(--surface2)",
+                              color: "var(--ink)",
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 600,
+                              display: "block",
+                              marginBottom: 6,
+                            }}
+                          >
+                            Routing number (if US)
+                          </label>
+                          <input
+                            type="text"
+                            value={payoutDetails.bank_routing}
+                            onChange={(e) =>
+                              setPayoutDetails({
+                                ...payoutDetails,
+                                bank_routing: e.target.value,
+                              })
+                            }
+                            placeholder="021000021"
+                            style={{
+                              width: "100%",
+                              padding: "10px 12px",
+                              borderRadius: 10,
+                              border: "1px solid var(--border2)",
+                              background: "var(--surface2)",
+                              color: "var(--ink)",
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            display: "block",
+                            marginBottom: 6,
+                          }}
+                        >
+                          Bank country
+                        </label>
+                        <input
+                          type="text"
+                          value={payoutDetails.bank_country}
+                          onChange={(e) =>
+                            setPayoutDetails({
+                              ...payoutDetails,
+                              bank_country: e.target.value,
+                            })
+                          }
+                          placeholder="NG"
+                          style={{
+                            width: "100%",
+                            padding: "10px 12px",
+                            borderRadius: 10,
+                            border: "1px solid var(--border2)",
+                            background: "var(--surface2)",
+                            color: "var(--ink)",
+                          }}
+                        />
+                      </div>
                     </>
                   )}
 
+                  {/* Mobile Money */}
+                  {payoutMethod === "mobile_money" && (
+                    <>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: 16,
+                          marginBottom: 16,
+                        }}
+                      >
+                        <div>
+                          <label
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 600,
+                              display: "block",
+                              marginBottom: 6,
+                            }}
+                          >
+                            Mobile number
+                          </label>
+                          <input
+                            type="tel"
+                            value={payoutDetails.mobile_number}
+                            onChange={(e) =>
+                              setPayoutDetails({
+                                ...payoutDetails,
+                                mobile_number: e.target.value,
+                              })
+                            }
+                            placeholder="+2348012345678"
+                            style={{
+                              width: "100%",
+                              padding: "10px 12px",
+                              borderRadius: 10,
+                              border: "1px solid var(--border2)",
+                              background: "var(--surface2)",
+                              color: "var(--ink)",
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 600,
+                              display: "block",
+                              marginBottom: 6,
+                            }}
+                          >
+                            Provider
+                          </label>
+                          <input
+                            type="text"
+                            value={payoutDetails.mobile_provider}
+                            onChange={(e) =>
+                              setPayoutDetails({
+                                ...payoutDetails,
+                                mobile_provider: e.target.value,
+                              })
+                            }
+                            placeholder="MTN"
+                            style={{
+                              width: "100%",
+                              padding: "10px 12px",
+                              borderRadius: 10,
+                              border: "1px solid var(--border2)",
+                              background: "var(--surface2)",
+                              color: "var(--ink)",
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            display: "block",
+                            marginBottom: 6,
+                          }}
+                        >
+                          Country
+                        </label>
+                        <input
+                          type="text"
+                          value={payoutDetails.mobile_country}
+                          onChange={(e) =>
+                            setPayoutDetails({
+                              ...payoutDetails,
+                              mobile_country: e.target.value,
+                            })
+                          }
+                          placeholder="NG"
+                          style={{
+                            width: "100%",
+                            padding: "10px 12px",
+                            borderRadius: 10,
+                            border: "1px solid var(--border2)",
+                            background: "var(--surface2)",
+                            color: "var(--ink)",
+                          }}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* USDT */}
                   {payoutMethod === "usdt" && (
                     <>
                       <div style={{ marginBottom: 16 }}>
@@ -934,6 +1230,37 @@ export default function AffiliateDashboard() {
                             color: "var(--ink)",
                           }}
                         />
+                      </div>
+                      <div>
+                        <label
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            display: "block",
+                            marginBottom: 6,
+                          }}
+                        >
+                          Network
+                        </label>
+                        <select
+                          value={payoutDetails.usdt_network}
+                          onChange={(e) =>
+                            setPayoutDetails({
+                              ...payoutDetails,
+                              usdt_network: e.target.value,
+                            })
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "10px 12px",
+                            borderRadius: 10,
+                            border: "1px solid var(--border2)",
+                            background: "var(--surface2)",
+                            color: "var(--ink)",
+                          }}
+                        >
+                          <option value="TRC20">TRC20</option>
+                        </select>
                       </div>
                     </>
                   )}
