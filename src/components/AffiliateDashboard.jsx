@@ -157,7 +157,7 @@ export default function AffiliateDashboard() {
         ...payoutDetails,
       });
       toast.success(
-        "Withdrawal request submitted. It will be reviewed bi-weekly.",
+        "Withdrawal request submitted. It will be reviewed monthly.",
       );
       setWithdrawAmount("");
       setPayoutDetails({
@@ -309,7 +309,7 @@ export default function AffiliateDashboard() {
                 }}
               >
                 Earn 20% commission for each referral's first 2 paid months,
-                then 8% ongoing. Withdrawals are reviewed bi-weekly.
+                then 8% ongoing. Withdrawals are reviewed monthly.
               </p>
               <button
                 onClick={joinAffiliateProgram}

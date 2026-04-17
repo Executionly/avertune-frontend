@@ -415,29 +415,12 @@ export function LoginPage() {
 export function SignupPage({ onSuccess }) {
   const { signup, googleSignIn } = useAuth();
   const navigate = useNavigate();
-  const msg = useApiMessage();
   const location = useLocation();
+  const msg = useApiMessage();
 
   // Extract referral code from URL
   const urlParams = new URLSearchParams(location.search);
   const referralCode = urlParams.get("ref") || "";
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(location.search);
-    const ref = urlParams.get("ref");
-    if (ref) {
-      // Track the click (call public endpoint)
-      fetch(`${api.defaults.baseURL}/affiliate/track-click`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          referral_code: ref,
-          referrer: document.referrer,
-          landing_page: window.location.pathname,
-        }),
-      }).catch(() => {});
-    }
-  }, [location]);
 
   const {
     register,
@@ -447,9 +430,26 @@ export function SignupPage({ onSuccess }) {
     resolver: zodResolver(signUpSchema),
   });
 
+  // Track referral click when page loads with ref parameter
+  useEffect(() => {
+    const ref = urlParams.get("ref");
+    if (ref) {
+      const baseURL =
+        import.meta.env.VITE_API_BASE || "https://avertuneserver.xyz/api";
+      fetch(`${baseURL}/affiliate/track-click`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          referral_code: ref,
+          referrer: document.referrer,
+          landing_page: window.location.pathname,
+        }),
+      }).catch(() => {});
+    }
+  }, [location.search]);
+
   async function onSubmit(values) {
     msg.clear();
-
     // Remove confirm_password before sending to API
     const { confirm_password, ...signupData } = values;
     if (referralCode) {
@@ -457,7 +457,6 @@ export function SignupPage({ onSuccess }) {
     }
     try {
       const res = await signup(signupData);
-      // Track signup event
       trackEvent("signup", { method: "email", referral_code: referralCode });
       onSuccess?.({ email: values.email, message: res?.message || null });
     } catch (err) {
