@@ -19,6 +19,7 @@ import {
   Briefcase,
   Battery,
 } from "lucide-react";
+import { trackEvent } from "../lib/analytics.js";
 
 const FAQS = [
   {
@@ -473,6 +474,11 @@ export default function PricingPage() {
 
     let period = billingPeriod;
     if (period === "annual") period = "yearly";
+    trackEvent("upgrade_click", {
+      plan: plan.tier,
+      billing_period: period,
+      price: plan.prices?.[period === "yearly" ? "yearly" : "monthly"],
+    });
 
     setActivePlanId(plan.tier);
     try {
@@ -492,6 +498,11 @@ export default function PricingPage() {
       navigate("/signup");
       return;
     }
+    trackEvent("buy_pack", {
+      pack_id: packId,
+      replies: pack?.replies,
+      price: pack?.price,
+    });
     setBuyingPackId(packId);
     try {
       await buyPackMutation.mutateAsync(packId);
