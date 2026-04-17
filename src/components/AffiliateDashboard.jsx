@@ -468,7 +468,7 @@ export default function AffiliateDashboard() {
                   <p style={{ color: "var(--ink-3)" }}>
                     <strong>{profile?.commission_rate ?? 20}%</strong> for each
                     referral's first 2 paid months, then <strong>8%</strong>{" "}
-                    ongoing. Withdrawals are reviewed bi‑weekly.
+                    ongoing. Withdrawals are reviewed monthly.
                   </p>
                 </div>
                 <div>
@@ -518,6 +518,57 @@ export default function AffiliateDashboard() {
                     </button>
                   </div>
                 </div>
+              </div>
+
+              {/* Affiliate Program Info */}
+              <div
+                style={{
+                  background:
+                    "linear-gradient(135deg, rgba(34,197,94,0.05), rgba(45,212,191,0.05))",
+                  border: "1px solid rgba(34,197,94,0.2)",
+                  borderRadius: 20,
+                  padding: "20px 24px",
+                  marginBottom: 28,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 16,
+                }}
+              >
+                <div>
+                  <h3
+                    style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}
+                  >
+                    Affiliate Program
+                  </h3>
+                  <p style={{ fontSize: 13, color: "var(--ink-3)" }}>
+                    Learn how to earn more, track performance, and get tips.
+                  </p>
+                </div>
+                <button
+                  onClick={() => window.open("/affiliate-program", "_blank")}
+                  style={{
+                    padding: "8px 20px",
+                    borderRadius: 10,
+                    border: "1px solid var(--border2)",
+                    background: "transparent",
+                    color: "var(--ink-2)",
+                    cursor: "pointer",
+                    fontSize: 13,
+                    fontWeight: 500,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "var(--green)";
+                    e.currentTarget.style.color = "var(--green)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "var(--border2)";
+                    e.currentTarget.style.color = "var(--ink-2)";
+                  }}
+                >
+                  Program Details →
+                </button>
               </div>
 
               {/* Referrals Table */}
