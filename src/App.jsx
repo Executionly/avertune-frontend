@@ -45,7 +45,7 @@ import PrivacyPolicy from "./components/PrivacyPolicy.jsx";
 import TermsOfService from "./components/TermsOfService.jsx";
 import ResponsibleUse from "./components/ResponsibleUse.jsx";
 import SavedReplies from "./components/SavedReplies.jsx";
-import AffiliateDashboard from "./components/AffiliateDashbpard.jsx";
+import AffiliateDashboard from "./components/AffiliateDashboard.jsx";
 import { initAnalytics, trackPageview } from "./lib/analytics.js";
 
 // ── Protected route ───────────────────────────────────────────────────────────
