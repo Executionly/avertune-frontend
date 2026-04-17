@@ -13,12 +13,8 @@ import {
   Award,
   TrendingUp,
   Menu,
-  ExternalLink,
   CreditCard,
-  Wallet,
-  Calendar,
   MousePointer,
-  Download,
 } from "lucide-react";
 
 export default function AffiliateDashboard() {
@@ -57,9 +53,11 @@ export default function AffiliateDashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const referralLink = profile?.referral_code
-    ? `https://www.avertune.com/signup?ref=${profile.referral_code}`
-    : "";
+  const referralLink =
+    profile?.referral_url ||
+    (profile?.referral_code
+      ? `https://www.avertune.com/signup?ref=${profile.referral_code}`
+      : "");
 
   useEffect(() => {
     if (!user) return;
@@ -72,40 +70,37 @@ export default function AffiliateDashboard() {
       const profileRes = await api.get("/affiliate/profile");
       const profileData = profileRes.data;
 
-      // Check if user is actually an affiliate (using the is_affiliate flag)
       if (profileData.is_affiliate === true) {
         setProfile(profileData);
         setJoined(true);
       } else {
-        // User exists but has not joined the program
         setJoined(false);
         setLoading(false);
         return;
       }
 
-      // Only fetch other data if joined
+      // Fetch other data in parallel
       const [statsRes, referralsRes, clicksRes, withdrawalsRes] =
         await Promise.all([
           api.get("/affiliate/stats").catch(() => ({ data: null })),
           api
             .get("/affiliate/referrals?page=1&limit=50")
-            .catch(() => ({ data: [] })),
+            .catch(() => ({ data: { data: [] } })),
           api
             .get("/affiliate/clicks?page=1&limit=50")
-            .catch(() => ({ data: [] })),
+            .catch(() => ({ data: { data: [] } })),
           api
             .get("/affiliate/withdrawals?page=1&limit=50")
-            .catch(() => ({ data: [] })),
+            .catch(() => ({ data: { data: [] } })),
         ]);
 
       setStats(statsRes.data);
-      setReferrals(referralsRes.data.data || referralsRes.data || []);
-      setClicks(clicksRes.data.data || clicksRes.data || []);
-      setWithdrawals(withdrawalsRes.data.data || withdrawalsRes.data || []);
+      setReferrals(referralsRes.data?.data || referralsRes.data || []);
+      setClicks(clicksRes.data?.data || clicksRes.data || []);
+      setWithdrawals(withdrawalsRes.data?.data || withdrawalsRes.data || []);
     } catch (err) {
       console.error(err);
       if (err.response?.status === 404) {
-        // Profile endpoint returned 404 (user not yet registered as affiliate)
         setJoined(false);
       } else {
         toast.error("Failed to load affiliate data.");
@@ -122,7 +117,7 @@ export default function AffiliateDashboard() {
       toast.success(
         "Welcome to the Affiliate Program! Your referral link is ready.",
       );
-      await fetchAffiliateData(); // Refresh to get the new profile
+      await fetchAffiliateData();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to join.");
     } finally {
@@ -131,16 +126,17 @@ export default function AffiliateDashboard() {
   }
 
   async function requestWithdrawal() {
+    const available = (stats?.total_earnings || 0) - (stats?.paid_out || 0);
     if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) {
       toast.error("Please enter a valid amount.");
       return;
     }
-    if (parseFloat(withdrawAmount) > (stats?.available_balance || 0)) {
+    if (parseFloat(withdrawAmount) > available) {
       toast.error("Amount exceeds available balance.");
       return;
     }
 
-    // Validate required fields based on payout method
+    // Validation per method
     if (payoutMethod === "paypal" && !payoutDetails.paypal_email) {
       toast.error("PayPal email is required.");
       return;
@@ -180,7 +176,7 @@ export default function AffiliateDashboard() {
         usdt_address: "",
         usdt_network: "TRC20",
       });
-      fetchAffiliateData(); // refresh
+      fetchAffiliateData();
     } catch (err) {
       toast.error(err.response?.data?.message || "Withdrawal request failed.");
     } finally {
@@ -200,6 +196,10 @@ export default function AffiliateDashboard() {
     navigate("/login");
     return null;
   }
+
+  // Calculate available balance
+  const availableBalance =
+    (stats?.total_earnings || 0) - (stats?.paid_out || 0);
 
   return (
     <div
@@ -273,7 +273,6 @@ export default function AffiliateDashboard() {
               </p>
             </div>
           ) : !joined ? (
-            // Join Affiliate Program Prompt
             <div
               style={{
                 textAlign: "center",
@@ -310,7 +309,7 @@ export default function AffiliateDashboard() {
                 }}
               >
                 Earn 20% commission for each referral's first 2 paid months,
-                then 8% ongoing. Withdrawals are reviewed monthly.
+                then 8% ongoing. Withdrawals are reviewed bi-weekly.
               </p>
               <button
                 onClick={joinAffiliateProgram}
@@ -381,7 +380,7 @@ export default function AffiliateDashboard() {
                   >
                     <DollarSign size={18} color="var(--teal)" />
                     <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
-                      Available balance
+                      Total earnings
                     </span>
                   </div>
                   <div
@@ -391,7 +390,34 @@ export default function AffiliateDashboard() {
                       color: "var(--teal)",
                     }}
                   >
-                    ${stats?.available_balance?.toFixed(2) ?? "0.00"}
+                    ${stats?.total_earnings?.toFixed(2) ?? "0.00"}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: "18px 20px",
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 16,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Clock size={18} color="#f59e0b" />
+                    <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
+                      Pending earnings
+                    </span>
+                  </div>
+                  <div
+                    style={{ fontSize: 32, fontWeight: 800, color: "#f59e0b" }}
+                  >
+                    ${stats?.pending_earnings?.toFixed(2) ?? "0.00"}
                   </div>
                 </div>
                 <div
@@ -421,33 +447,6 @@ export default function AffiliateDashboard() {
                     {stats?.paid_referrals ?? 0}
                   </div>
                 </div>
-                <div
-                  style={{
-                    padding: "18px 20px",
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 16,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <Clock size={18} color="#f59e0b" />
-                    <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
-                      Pending earnings
-                    </span>
-                  </div>
-                  <div
-                    style={{ fontSize: 32, fontWeight: 800, color: "#f59e0b" }}
-                  >
-                    ${stats?.pending_balance?.toFixed(2) ?? "0.00"}
-                  </div>
-                </div>
               </div>
 
               {/* Commission Info + Referral Link */}
@@ -467,9 +466,9 @@ export default function AffiliateDashboard() {
                     Your commission rate
                   </h2>
                   <p style={{ color: "var(--ink-3)" }}>
-                    <strong>20%</strong> for each referral's first 2 paid
-                    months, then <strong>8%</strong> ongoing. Withdrawals are
-                    reviewed bi‑weekly.
+                    <strong>{profile?.commission_rate ?? 20}%</strong> for each
+                    referral's first 2 paid months, then <strong>8%</strong>{" "}
+                    ongoing. Withdrawals are reviewed bi‑weekly.
                   </p>
                 </div>
                 <div>
