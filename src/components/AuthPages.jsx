@@ -20,6 +20,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
 } from "../lib/authSchemas.js";
+import { trackEvent } from "../lib/analytics.js";
 
 // ─── Design primitives ────────────────────────────────────────────────────────
 
@@ -415,6 +416,28 @@ export function SignupPage({ onSuccess }) {
   const { signup, googleSignIn } = useAuth();
   const navigate = useNavigate();
   const msg = useApiMessage();
+  const location = useLocation();
+
+  // Extract referral code from URL
+  const urlParams = new URLSearchParams(location.search);
+  const referralCode = urlParams.get("ref") || "";
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const ref = urlParams.get("ref");
+    if (ref) {
+      // Track the click (call public endpoint)
+      fetch(`${api.defaults.baseURL}/affiliate/track-click`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          referral_code: ref,
+          referrer: document.referrer,
+          landing_page: window.location.pathname,
+        }),
+      }).catch(() => {});
+    }
+  }, [location]);
 
   const {
     register,
@@ -426,10 +449,16 @@ export function SignupPage({ onSuccess }) {
 
   async function onSubmit(values) {
     msg.clear();
+
     // Remove confirm_password before sending to API
     const { confirm_password, ...signupData } = values;
+    if (referralCode) {
+      signupData.referral_code = referralCode;
+    }
     try {
       const res = await signup(signupData);
+      // Track signup event
+      trackEvent("signup", { method: "email", referral_code: referralCode });
       onSuccess?.({ email: values.email, message: res?.message || null });
     } catch (err) {
       msg.setFromError(err);

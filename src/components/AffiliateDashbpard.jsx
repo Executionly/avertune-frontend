@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
-import { useMySubscription } from "../lib/useSubscription.js";
 import { api } from "../lib/apiClient.js";
 import { useToast } from "../lib/Toast.jsx";
 import Sidebar from "./Sidebar.jsx";
@@ -18,28 +17,49 @@ import {
   CreditCard,
   Wallet,
   Calendar,
+  MousePointer,
+  Download,
 } from "lucide-react";
 
 export default function AffiliateDashboard() {
   const { user, authLoading } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
-  const { data: subscription } = useMySubscription();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profile, setProfile] = useState(null);
   const [stats, setStats] = useState(null);
-  const [ledger, setLedger] = useState([]);
+  const [referrals, setReferrals] = useState([]);
+  const [clicks, setClicks] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [joined, setJoined] = useState(false);
+  const [joining, setJoining] = useState(false);
+
+  // Withdrawal form state
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [payoutMethod, setPayoutMethod] = useState("paypal");
   const [payoutDetails, setPayoutDetails] = useState({
     paypal_email: "",
-    account_holder_name: "",
+    bank_name: "",
+    bank_account: "",
+    bank_account_name: "",
+    bank_country: "NG",
+    bank_swift: "",
+    bank_routing: "",
+    wise_email: "",
+    payoneer_email: "",
+    mobile_number: "",
+    mobile_provider: "",
+    mobile_country: "NG",
+    usdt_address: "",
+    usdt_network: "TRC20",
   });
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const referralLink = `https://app.avertune.com/signup?ref=${user?.affiliate_code || ""}`;
+  const referralLink = profile?.referral_code
+    ? `https://www.avertune.com/signup?ref=${profile.referral_code}`
+    : "";
 
   useEffect(() => {
     if (!user) return;
@@ -49,18 +69,46 @@ export default function AffiliateDashboard() {
   async function fetchAffiliateData() {
     setLoading(true);
     try {
-      const [statsRes, ledgerRes, withdrawalsRes] = await Promise.all([
-        api.get("/affiliate/stats"),
-        api.get("/affiliate/ledger"),
-        api.get("/affiliate/withdrawals"),
-      ]);
+      const [profileRes, statsRes, referralsRes, clicksRes, withdrawalsRes] =
+        await Promise.all([
+          api.get("/affiliate/profile").catch(() => ({ data: null })),
+          api.get("/affiliate/stats").catch(() => ({ data: null })),
+          api
+            .get("/affiliate/referrals?page=1&limit=50")
+            .catch(() => ({ data: [] })),
+          api
+            .get("/affiliate/clicks?page=1&limit=50")
+            .catch(() => ({ data: [] })),
+          api
+            .get("/affiliate/withdrawals?page=1&limit=50")
+            .catch(() => ({ data: [] })),
+        ]);
+
+      setProfile(profileRes.data);
       setStats(statsRes.data);
-      setLedger(ledgerRes.data || []);
-      setWithdrawals(withdrawalsRes.data || []);
+      setReferrals(referralsRes.data.data || referralsRes.data || []);
+      setClicks(clicksRes.data.data || clicksRes.data || []);
+      setWithdrawals(withdrawalsRes.data.data || withdrawalsRes.data || []);
+      setJoined(!!profileRes.data);
     } catch (err) {
       toast.error("Failed to load affiliate data.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function joinAffiliateProgram() {
+    setJoining(true);
+    try {
+      await api.post("/affiliate/join");
+      toast.success(
+        "Welcome to the Affiliate Program! Your referral link is ready.",
+      );
+      fetchAffiliateData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to join.");
+    } finally {
+      setJoining(false);
     }
   }
 
@@ -69,12 +117,21 @@ export default function AffiliateDashboard() {
       toast.error("Please enter a valid amount.");
       return;
     }
-    if (parseFloat(withdrawAmount) > (stats?.available_earnings || 0)) {
-      toast.error("Amount exceeds available earnings.");
+    if (parseFloat(withdrawAmount) > (stats?.available_balance || 0)) {
+      toast.error("Amount exceeds available balance.");
       return;
     }
-    if (!payoutDetails.paypal_email || !payoutDetails.account_holder_name) {
-      toast.error("Please fill in all payout details.");
+
+    // Validate required fields based on payout method
+    if (payoutMethod === "paypal" && !payoutDetails.paypal_email) {
+      toast.error("PayPal email is required.");
+      return;
+    }
+    if (
+      payoutMethod === "bank_transfer" &&
+      (!payoutDetails.bank_account || !payoutDetails.bank_account_name)
+    ) {
+      toast.error("Bank account details are required.");
       return;
     }
 
@@ -82,15 +139,30 @@ export default function AffiliateDashboard() {
     try {
       await api.post("/affiliate/withdraw", {
         amount: parseFloat(withdrawAmount),
-        method: payoutMethod,
-        details: payoutDetails,
+        payout_method: payoutMethod,
+        ...payoutDetails,
       });
       toast.success(
         "Withdrawal request submitted. It will be reviewed bi-weekly.",
       );
       setWithdrawAmount("");
-      setPayoutDetails({ paypal_email: "", account_holder_name: "" });
-      fetchAffiliateData(); // refresh stats and withdrawals
+      setPayoutDetails({
+        paypal_email: "",
+        bank_name: "",
+        bank_account: "",
+        bank_account_name: "",
+        bank_country: "NG",
+        bank_swift: "",
+        bank_routing: "",
+        wise_email: "",
+        payoneer_email: "",
+        mobile_number: "",
+        mobile_provider: "",
+        mobile_country: "NG",
+        usdt_address: "",
+        usdt_network: "TRC20",
+      });
+      fetchAffiliateData(); // refresh
     } catch (err) {
       toast.error(err.response?.data?.message || "Withdrawal request failed.");
     } finally {
@@ -109,33 +181,6 @@ export default function AffiliateDashboard() {
   if (!user) {
     navigate("/login");
     return null;
-  }
-
-  // Check if user has affiliate access (optional: based on plan or separate flag)
-  const canAccessAffiliate = true; // or subscription?.features?.affiliate === true
-
-  if (!canAccessAffiliate) {
-    return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-        <div
-          className="container"
-          style={{ paddingTop: 80, textAlign: "center" }}
-        >
-          <h1 style={{ fontSize: 28, marginBottom: 12 }}>Affiliate Program</h1>
-          <p style={{ color: "var(--ink-3)", marginBottom: 24 }}>
-            Join our affiliate program to earn commissions. Upgrade to a paid
-            plan or apply separately.
-          </p>
-          <button
-            onClick={() => navigate("/pricing")}
-            className="btn-green"
-            style={{ padding: "12px 28px", borderRadius: 12 }}
-          >
-            View Plans
-          </button>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -209,6 +254,55 @@ export default function AffiliateDashboard() {
                 Loading affiliate data...
               </p>
             </div>
+          ) : !joined ? (
+            // Join Affiliate Program Prompt
+            <div
+              style={{
+                textAlign: "center",
+                padding: "clamp(40px,8vw,80px) 20px",
+                background: "var(--surface)",
+                borderRadius: 24,
+                maxWidth: 500,
+                margin: "0 auto",
+              }}
+            >
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 20,
+                  background: "rgba(34,197,94,0.08)",
+                  border: "1px solid rgba(34,197,94,0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 24px",
+                }}
+              >
+                <TrendingUp size={28} color="var(--green)" />
+              </div>
+              <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>
+                Join the Affiliate Program
+              </h2>
+              <p
+                style={{
+                  color: "var(--ink-3)",
+                  marginBottom: 24,
+                  lineHeight: 1.6,
+                }}
+              >
+                Earn 20% commission for each referral's first 2 paid months,
+                then 8% ongoing. Withdrawals are reviewed bi-weekly.
+              </p>
+              <button
+                onClick={joinAffiliateProgram}
+                disabled={joining}
+                className="btn-green"
+                style={{ padding: "12px 28px", borderRadius: 12 }}
+              >
+                {joining ? "Joining..." : "Join Now"}
+              </button>
+            </div>
           ) : (
             <>
               {/* Stats Cards */}
@@ -269,7 +363,7 @@ export default function AffiliateDashboard() {
                   >
                     <DollarSign size={18} color="var(--teal)" />
                     <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
-                      Available earnings
+                      Available balance
                     </span>
                   </div>
                   <div
@@ -279,36 +373,7 @@ export default function AffiliateDashboard() {
                       color: "var(--teal)",
                     }}
                   >
-                    ${stats?.available_earnings?.toFixed(2) ?? "0.00"}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    padding: "18px 20px",
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 16,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <Clock size={18} color="#f59e0b" />
-                    <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
-                      Withdrawal status
-                    </span>
-                  </div>
-                  <div
-                    style={{ fontSize: 18, fontWeight: 700, color: "#f59e0b" }}
-                  >
-                    {stats?.withdrawal_status === "eligible"
-                      ? "Eligible now"
-                      : "Pending review"}
+                    ${stats?.available_balance?.toFixed(2) ?? "0.00"}
                   </div>
                 </div>
                 <div
@@ -336,6 +401,33 @@ export default function AffiliateDashboard() {
                     style={{ fontSize: 32, fontWeight: 800, color: "#a78bfa" }}
                   >
                     {stats?.paid_referrals ?? 0}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: "18px 20px",
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 16,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Clock size={18} color="#f59e0b" />
+                    <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
+                      Pending earnings
+                    </span>
+                  </div>
+                  <div
+                    style={{ fontSize: 32, fontWeight: 800, color: "#f59e0b" }}
+                  >
+                    ${stats?.pending_balance?.toFixed(2) ?? "0.00"}
                   </div>
                 </div>
               </div>
@@ -411,70 +503,12 @@ export default function AffiliateDashboard() {
                 </div>
               </div>
 
-              {/* Creator Program Card */}
-              <div
-                style={{
-                  background:
-                    "linear-gradient(135deg, rgba(34,197,94,0.05), rgba(45,212,191,0.05))",
-                  border: "1px solid rgba(34,197,94,0.2)",
-                  borderRadius: 20,
-                  padding: "24px",
-                  marginBottom: 28,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: 16,
-                }}
-              >
-                <div>
-                  <h3
-                    style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}
-                  >
-                    Creator Program
-                  </h3>
-                  <p style={{ color: "var(--ink-3)" }}>
-                    Apply to join the Creator Program to earn bonuses, milestone
-                    rewards, and higher commission potential.
-                  </p>
-                </div>
-                <div style={{ display: "flex", gap: 12 }}>
-                  <button
-                    onClick={() => window.open("/affiliate-program", "_blank")}
-                    className="btn-green"
-                    style={{
-                      padding: "10px 20px",
-                      borderRadius: 10,
-                      fontSize: 14,
-                    }}
-                  >
-                    Apply now
-                  </button>
-                  <button
-                    onClick={() =>
-                      window.open("/affiliate-program#how-it-works", "_blank")
-                    }
-                    style={{
-                      padding: "10px 20px",
-                      borderRadius: 10,
-                      border: "1px solid var(--border2)",
-                      background: "transparent",
-                      color: "var(--ink-2)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    See how it works{" "}
-                    <ExternalLink size={12} style={{ marginLeft: 4 }} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Referral Tracking Table */}
+              {/* Referrals Table */}
               <div style={{ marginBottom: 28 }}>
                 <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
-                  Referral Tracking
+                  Referrals
                 </h2>
-                {stats?.referrals?.length === 0 ? (
+                {referrals.length === 0 ? (
                   <div
                     style={{
                       textAlign: "center",
@@ -507,7 +541,7 @@ export default function AffiliateDashboard() {
                               color: "var(--ink-3)",
                             }}
                           >
-                            Name / Email
+                            Email / Name
                           </th>
                           <th
                             style={{
@@ -539,7 +573,7 @@ export default function AffiliateDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {stats?.referrals?.map((ref) => (
+                        {referrals.map((ref) => (
                           <tr
                             key={ref.id}
                             style={{ borderBottom: "1px solid var(--border)" }}
@@ -555,6 +589,87 @@ export default function AffiliateDashboard() {
                             </td>
                             <td style={{ padding: "12px 8px" }}>
                               ${ref.commission?.toFixed(2) ?? "0.00"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Clicks History */}
+              <div style={{ marginBottom: 28 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
+                  Link Clicks
+                </h2>
+                {clicks.length === 0 ? (
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: 40,
+                      background: "var(--surface)",
+                      borderRadius: 16,
+                    }}
+                  >
+                    <MousePointer size={32} color="var(--ink-4)" />
+                    <p style={{ marginTop: 12, color: "var(--ink-3)" }}>
+                      No clicks tracked yet.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: "auto" }}>
+                    <table
+                      style={{ width: "100%", borderCollapse: "collapse" }}
+                    >
+                      <thead>
+                        <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                          <th
+                            style={{
+                              padding: "12px 8px",
+                              textAlign: "left",
+                              fontSize: 13,
+                              color: "var(--ink-3)",
+                            }}
+                          >
+                            Date
+                          </th>
+                          <th
+                            style={{
+                              padding: "12px 8px",
+                              textAlign: "left",
+                              fontSize: 13,
+                              color: "var(--ink-3)",
+                            }}
+                          >
+                            IP / Country
+                          </th>
+                          <th
+                            style={{
+                              padding: "12px 8px",
+                              textAlign: "left",
+                              fontSize: 13,
+                              color: "var(--ink-3)",
+                            }}
+                          >
+                            Landing page
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {clicks.map((click) => (
+                          <tr
+                            key={click.id}
+                            style={{ borderBottom: "1px solid var(--border)" }}
+                          >
+                            <td style={{ padding: "12px 8px" }}>
+                              {new Date(click.created_at).toLocaleDateString()}
+                            </td>
+                            <td style={{ padding: "12px 8px" }}>
+                              {click.ip || click.country || "—"}
+                            </td>
+                            <td style={{ padding: "12px 8px" }}>
+                              {click.landing_page || "—"}
                             </td>
                           </tr>
                         ))}
@@ -636,18 +751,18 @@ export default function AffiliateDashboard() {
                         }}
                       >
                         <option value="paypal">PayPal</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="wise">Wise</option>
+                        <option value="payoneer">Payoneer</option>
+                        <option value="mobile_money">Mobile Money</option>
+                        <option value="usdt">USDT (TRC20)</option>
                       </select>
                     </div>
                   </div>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: 16,
-                      marginBottom: 16,
-                    }}
-                  >
-                    <div>
+
+                  {/* Dynamic fields based on payout method */}
+                  {payoutMethod === "paypal" && (
+                    <div style={{ marginBottom: 16 }}>
                       <label
                         style={{
                           fontSize: 13,
@@ -667,7 +782,7 @@ export default function AffiliateDashboard() {
                             paypal_email: e.target.value,
                           })
                         }
-                        placeholder="name@example.com"
+                        placeholder="user@paypal.com"
                         style={{
                           width: "100%",
                           padding: "10px 12px",
@@ -678,38 +793,151 @@ export default function AffiliateDashboard() {
                         }}
                       />
                     </div>
-                    <div>
-                      <label
+                  )}
+
+                  {payoutMethod === "bank_transfer" && (
+                    <>
+                      <div
                         style={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          display: "block",
-                          marginBottom: 6,
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: 16,
+                          marginBottom: 16,
                         }}
                       >
-                        Account holder name
-                      </label>
-                      <input
-                        type="text"
-                        value={payoutDetails.account_holder_name}
-                        onChange={(e) =>
-                          setPayoutDetails({
-                            ...payoutDetails,
-                            account_holder_name: e.target.value,
-                          })
-                        }
-                        placeholder="John Doe"
-                        style={{
-                          width: "100%",
-                          padding: "10px 12px",
-                          borderRadius: 10,
-                          border: "1px solid var(--border2)",
-                          background: "var(--surface2)",
-                          color: "var(--ink)",
-                        }}
-                      />
-                    </div>
-                  </div>
+                        <div>
+                          <label
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 600,
+                              display: "block",
+                              marginBottom: 6,
+                            }}
+                          >
+                            Bank name
+                          </label>
+                          <input
+                            type="text"
+                            value={payoutDetails.bank_name}
+                            onChange={(e) =>
+                              setPayoutDetails({
+                                ...payoutDetails,
+                                bank_name: e.target.value,
+                              })
+                            }
+                            placeholder="First Bank"
+                            style={{
+                              width: "100%",
+                              padding: "10px 12px",
+                              borderRadius: 10,
+                              border: "1px solid var(--border2)",
+                              background: "var(--surface2)",
+                              color: "var(--ink)",
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 600,
+                              display: "block",
+                              marginBottom: 6,
+                            }}
+                          >
+                            Account number
+                          </label>
+                          <input
+                            type="text"
+                            value={payoutDetails.bank_account}
+                            onChange={(e) =>
+                              setPayoutDetails({
+                                ...payoutDetails,
+                                bank_account: e.target.value,
+                              })
+                            }
+                            placeholder="1234567890"
+                            style={{
+                              width: "100%",
+                              padding: "10px 12px",
+                              borderRadius: 10,
+                              border: "1px solid var(--border2)",
+                              background: "var(--surface2)",
+                              color: "var(--ink)",
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div style={{ marginBottom: 16 }}>
+                        <label
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            display: "block",
+                            marginBottom: 6,
+                          }}
+                        >
+                          Account holder name
+                        </label>
+                        <input
+                          type="text"
+                          value={payoutDetails.bank_account_name}
+                          onChange={(e) =>
+                            setPayoutDetails({
+                              ...payoutDetails,
+                              bank_account_name: e.target.value,
+                            })
+                          }
+                          placeholder="John Doe"
+                          style={{
+                            width: "100%",
+                            padding: "10px 12px",
+                            borderRadius: 10,
+                            border: "1px solid var(--border2)",
+                            background: "var(--surface2)",
+                            color: "var(--ink)",
+                          }}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {payoutMethod === "usdt" && (
+                    <>
+                      <div style={{ marginBottom: 16 }}>
+                        <label
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            display: "block",
+                            marginBottom: 6,
+                          }}
+                        >
+                          USDT Address (TRC20)
+                        </label>
+                        <input
+                          type="text"
+                          value={payoutDetails.usdt_address}
+                          onChange={(e) =>
+                            setPayoutDetails({
+                              ...payoutDetails,
+                              usdt_address: e.target.value,
+                            })
+                          }
+                          placeholder="TQqpDiEbZhbC..."
+                          style={{
+                            width: "100%",
+                            padding: "10px 12px",
+                            borderRadius: 10,
+                            border: "1px solid var(--border2)",
+                            background: "var(--surface2)",
+                            color: "var(--ink)",
+                          }}
+                        />
+                      </div>
+                    </>
+                  )}
+
                   <div
                     style={{
                       fontSize: 12,
@@ -731,94 +959,7 @@ export default function AffiliateDashboard() {
                 </div>
               </div>
 
-              {/* Earnings Ledger */}
-              <div style={{ marginBottom: 28 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
-                  Earnings Ledger
-                </h2>
-                {ledger.length === 0 ? (
-                  <div
-                    style={{
-                      textAlign: "center",
-                      padding: 40,
-                      background: "var(--surface)",
-                      borderRadius: 16,
-                    }}
-                  >
-                    <Wallet size={32} color="var(--ink-4)" />
-                    <p style={{ marginTop: 12, color: "var(--ink-3)" }}>
-                      No settled earnings entries yet.
-                    </p>
-                  </div>
-                ) : (
-                  <div style={{ overflowX: "auto" }}>
-                    <table
-                      style={{ width: "100%", borderCollapse: "collapse" }}
-                    >
-                      <thead>
-                        <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                          <th
-                            style={{
-                              padding: "12px 8px",
-                              textAlign: "left",
-                              fontSize: 13,
-                              color: "var(--ink-3)",
-                            }}
-                          >
-                            Date
-                          </th>
-                          <th
-                            style={{
-                              padding: "12px 8px",
-                              textAlign: "left",
-                              fontSize: 13,
-                              color: "var(--ink-3)",
-                            }}
-                          >
-                            Description
-                          </th>
-                          <th
-                            style={{
-                              padding: "12px 8px",
-                              textAlign: "right",
-                              fontSize: 13,
-                              color: "var(--ink-3)",
-                            }}
-                          >
-                            Amount
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ledger.map((entry) => (
-                          <tr
-                            key={entry.id}
-                            style={{ borderBottom: "1px solid var(--border)" }}
-                          >
-                            <td style={{ padding: "12px 8px" }}>
-                              {new Date(entry.created_at).toLocaleDateString()}
-                            </td>
-                            <td style={{ padding: "12px 8px" }}>
-                              {entry.description}
-                            </td>
-                            <td
-                              style={{
-                                padding: "12px 8px",
-                                textAlign: "right",
-                                color: "var(--green)",
-                              }}
-                            >
-                              +${entry.amount.toFixed(2)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              {/* Withdrawal Requests */}
+              {/* Withdrawal Requests History */}
               <div>
                 <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
                   Withdrawal Requests
@@ -872,6 +1013,16 @@ export default function AffiliateDashboard() {
                               color: "var(--ink-3)",
                             }}
                           >
+                            Method
+                          </th>
+                          <th
+                            style={{
+                              padding: "12px 8px",
+                              textAlign: "left",
+                              fontSize: 13,
+                              color: "var(--ink-3)",
+                            }}
+                          >
                             Status
                           </th>
                         </tr>
@@ -887,6 +1038,9 @@ export default function AffiliateDashboard() {
                             </td>
                             <td style={{ padding: "12px 8px" }}>
                               ${req.amount.toFixed(2)}
+                            </td>
+                            <td style={{ padding: "12px 8px" }}>
+                              {req.payout_method}
                             </td>
                             <td style={{ padding: "12px 8px" }}>
                               <span

@@ -36,6 +36,7 @@ import { PACKS } from "../lib/packData.js";
 import { useToast } from "../lib/Toast.jsx";
 import Sidebar from "./Sidebar.jsx";
 import { useMySubscription } from "../lib/useSubscription";
+import { trackEvent } from "../lib/analytics.js";
 
 /* ─────────────────────────────── Custom Select ─────────────────────────── */
 function formatOptionLabel(str) {
@@ -1796,26 +1797,10 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
     setActiveTab(tool.outputVariants?.[0] || "");
     setSavedVariants(new Set());
     try {
-      let parsed;
-      if (tool.backendRoute && generateApi[tool.backendRoute]) {
-        parsed = await generateApi[tool.backendRoute](fields);
-        toast.success("Done! Here are your results.");
-      } else {
-        const prompt = tool.buildPrompt(fields);
-        const res = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-20250514",
-            max_tokens: 1000,
-            messages: [{ role: "user", content: prompt }],
-          }),
-        });
-        const data = await res.json();
-        const raw = data.content?.find((b) => b.type === "text")?.text || "{}";
-        parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-        toast.success("Done! Here are your results.");
-      }
+      // Directly call the backend API – no Anthropic fallback
+      const parsed = await generateApi[tool.backendRoute](fields);
+      trackEvent("generate", { tool: tool.id, variant: activeTab });
+      toast.success("Done! Here are your results.");
       setResult(parsed);
       setPhase("done");
       if (parsed?._remaining != null || parsed?._raw?.remaining != null) {
@@ -1880,6 +1865,7 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
         prompt: prompt, // optional field – saves the user's input
       });
       setSavedVariants((prev) => new Set(prev).add(variant));
+      trackEvent("save_reply", { tool: tool.id, variant });
       toast.success(`Analysis saved!`);
     } catch (err) {
       const msg =

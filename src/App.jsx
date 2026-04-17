@@ -46,6 +46,7 @@ import TermsOfService from "./components/TermsOfService.jsx";
 import ResponsibleUse from "./components/ResponsibleUse.jsx";
 import SavedReplies from "./components/SavedReplies.jsx";
 import AffiliateDashboard from "./components/AffiliateDashbpard.jsx";
+import { initAnalytics, trackPageview } from "./lib/analytics.js";
 
 // ── Protected route ───────────────────────────────────────────────────────────
 function Protected({ children }) {
@@ -162,6 +163,16 @@ function EmailSentWrapper() {
 export default function App() {
   // No need for the old checkout effect anymore – the payment provider redirects
   // directly to /subscription/success or /subscription/cancel.
+  const location = useLocation();
+
+  useEffect(() => {
+    initAnalytics();
+  }, []);
+
+  useEffect(() => {
+    // Track page view on route change
+    trackPageview(location.pathname, document.title);
+  }, [location]);
 
   return (
     <Routes>
