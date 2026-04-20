@@ -117,7 +117,7 @@ export function Footer({ onPricing }) {
         },
         {
           label: "Affiliate Program",
-          onClick: () => navigate("/affiliate-program"),
+          onClick: () => navigate("/affiliate/dashboard"),
         },
       ],
     },
