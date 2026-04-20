@@ -1,10 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
-import {
-  useMySubscription,
-  getPlanLabel,
-  useCancel,
-} from "../lib/useSubscription";
+import { getPlanLabel, useCancel } from "../lib/useSubscription";
 import { useToast } from "../lib/Toast";
 import {
   Home,
@@ -17,6 +13,7 @@ import {
 } from "lucide-react";
 import { TOOL_CONFIGS } from "../toolConfigs";
 import { useState } from "react";
+import { useSubscription } from "../context/SubscriptionContext";
 
 const tools = Object.entries(TOOL_CONFIGS).map(([slug, config]) => ({
   slug,
@@ -27,7 +24,11 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   const navigate = useNavigate();
   const { user, logout, authLoading } = useAuth();
   const toast = useToast();
-  const { data: subscription, isLoading: subLoading } = useMySubscription();
+  const {
+    subscription,
+    loading: subLoading,
+    error: subError,
+  } = useSubscription();
   const cancelMutation = useCancel();
 
   const [billingMenuOpen, setBillingMenuOpen] = useState(false);

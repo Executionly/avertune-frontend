@@ -11,6 +11,7 @@ import {
   PaymentFailurePage,
 } from "./components/PaymentPages";
 import "./index.css";
+import { SubscriptionProvider } from "./context/SubscriptionContext.jsx";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,7 +49,9 @@ if (isPaymentPage) {
           <ThemeProvider>
             <ToastProvider>
               <AuthProvider>
-                <App />
+                <SubscriptionProvider>
+                  <App />
+                </SubscriptionProvider>
               </AuthProvider>
             </ToastProvider>
           </ThemeProvider>

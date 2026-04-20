@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMySubscription, getPlanLabel } from "../lib/useSubscription.js";
+import { getPlanLabel } from "../lib/useSubscription.js";
 import {
   MessageSquare,
   Activity,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../AuthContext.jsx";
 import Sidebar from "./Sidebar.jsx";
+import { useSubscription } from "../context/SubscriptionContext.jsx";
 
 const TOOLS = [
   {
@@ -84,7 +85,12 @@ const TOOLS = [
 export default function Dashboard() {
   const { user, authLoading } = useAuth();
   const navigate = useNavigate();
-  const { data: subscription, isLoading: subLoading } = useMySubscription();
+  const {
+    subscription,
+    loading: subLoading,
+    error: subError,
+  } = useSubscription();
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Consistent loading spinner (matches Nav)
