@@ -17,6 +17,42 @@ import {
   MousePointer,
 } from "lucide-react";
 
+// FAQ data extracted from AffiliateProgram component
+const AFFILIATE_FAQS = [
+  {
+    q: "Is there a follower requirement?",
+    a: "No. We care about content quality, not follower count.",
+  },
+  {
+    q: "When do I get paid?",
+    a: "Payments are made based on approved content and performance cycles.",
+  },
+  {
+    q: "Can I create my own content ideas?",
+    a: "Yes. We encourage originality. We provide inspiration and proven formats, but you are free to test your own ideas.",
+  },
+  {
+    q: "Is there a limit to earnings?",
+    a: "No. Earnings scale with performance. The more you create and the better your content performs, the more you earn.",
+  },
+  {
+    q: "What kind of content performs best?",
+    a: "Real message examples, before/after comparisons, and emotional or high-stakes scenarios tend to perform very well.",
+  },
+  {
+    q: "How is Avertune different from writing tools?",
+    a: "Most tools help you rewrite text. Avertune helps you understand what a message really means, avoid miscommunication, and respond strategically. It's communication decision support, not just writing.",
+  },
+  {
+    q: "Is Avertune free to use?",
+    a: "Yes. You can try Avertune with a limited number of replies per day. Paid plans unlock more replies, advanced response strategies, and negotiation tools.",
+  },
+  {
+    q: "Is my data private?",
+    a: "Yes. We do not sell your data. We use your inputs only to provide and improve the service.",
+  },
+];
+
 export default function AffiliateDashboard() {
   const { user, authLoading } = useAuth();
   const navigate = useNavigate();
@@ -308,8 +344,9 @@ export default function AffiliateDashboard() {
                   lineHeight: 1.6,
                 }}
               >
-                Earn 20% commission for each referral's first 2 paid months,
-                then 8% ongoing. Withdrawals are reviewed monthly.
+                Earn {profile?.commission_rate ?? 20}% commission for each
+                referral's first 2 paid months, then 8% ongoing. Withdrawals are
+                reviewed monthly.
               </p>
               <button
                 onClick={joinAffiliateProgram}
@@ -520,55 +557,31 @@ export default function AffiliateDashboard() {
                 </div>
               </div>
 
-              {/* Affiliate Program Info */}
+              {/* Affiliate Info Note */}
               <div
                 style={{
-                  background:
-                    "linear-gradient(135deg, rgba(34,197,94,0.05), rgba(45,212,191,0.05))",
+                  background: "rgba(34,197,94,0.05)",
                   border: "1px solid rgba(34,197,94,0.2)",
-                  borderRadius: 20,
+                  borderRadius: 16,
                   padding: "20px 24px",
                   marginBottom: 28,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: 16,
+                  textAlign: "center",
                 }}
               >
-                <div>
-                  <h3
-                    style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}
-                  >
-                    Affiliate Program
-                  </h3>
-                  <p style={{ fontSize: 13, color: "var(--ink-3)" }}>
-                    Learn how to earn more, track performance, and get tips.
-                  </p>
-                </div>
-                <button
-                  onClick={() => window.open("/affiliate-program", "_blank")}
+                <p
                   style={{
-                    padding: "8px 20px",
-                    borderRadius: 10,
-                    border: "1px solid var(--border2)",
-                    background: "transparent",
+                    fontSize: 14,
                     color: "var(--ink-2)",
-                    cursor: "pointer",
-                    fontSize: 13,
-                    fontWeight: 500,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "var(--green)";
-                    e.currentTarget.style.color = "var(--green)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "var(--border2)";
-                    e.currentTarget.style.color = "var(--ink-2)";
+                    lineHeight: 1.6,
                   }}
                 >
-                  Program Details →
-                </button>
+                  💡 <strong>How it works:</strong> Share your unique referral
+                  link. When someone signs up and subscribes to a paid plan, you
+                  earn <strong>{profile?.commission_rate ?? 20}%</strong> for
+                  their first 2 months, then <strong>8%</strong> ongoing.
+                  Withdrawals are reviewed monthly and paid out via your chosen
+                  method.
+                </p>
               </div>
 
               {/* Referrals Table */}
@@ -760,6 +773,8 @@ export default function AffiliateDashboard() {
                     padding: "24px",
                   }}
                 >
+                  {/* ... withdrawal form (same as before, unchanged) ... */}
+                  {/* To avoid repetition, the withdrawal form remains exactly as in the original code */}
                   <div
                     style={{
                       display: "grid",
@@ -1453,6 +1468,59 @@ export default function AffiliateDashboard() {
                     </table>
                   </div>
                 )}
+              </div>
+
+              {/* FAQ Section */}
+              <div style={{ marginTop: 40 }}>
+                <h2
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 700,
+                    letterSpacing: "-0.03em",
+                    marginBottom: 20,
+                  }}
+                >
+                  Frequently Asked Questions
+                </h2>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                  }}
+                >
+                  {AFFILIATE_FAQS.map((faq, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 16,
+                        padding: "16px 20px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: 15,
+                          fontWeight: 700,
+                          marginBottom: 8,
+                          color: "var(--ink)",
+                        }}
+                      >
+                        {faq.q}
+                      </p>
+                      <p
+                        style={{
+                          fontSize: 14,
+                          color: "var(--ink-3)",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        {faq.a}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </>
           )}
