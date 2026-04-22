@@ -17,39 +17,67 @@ import {
   MousePointer,
 } from "lucide-react";
 
-// FAQ data extracted from AffiliateProgram component
+// Updated FAQ data from client
 const AFFILIATE_FAQS = [
   {
-    q: "Is there a follower requirement?",
-    a: "No. We care about content quality, not follower count.",
+    q: "How does the Avertune affiliate program work?",
+    a: "You share your unique referral link. When someone signs up and becomes a paying user, you earn commission on their subscription.",
+  },
+  {
+    q: "How much can I earn?",
+    a: "You earn: 20% commission for each referral's first 2 paid months, then 8% ongoing commission after that. The more users you refer, the more you earn over time.",
+  },
+  {
+    q: "What plans are eligible for commission?",
+    a: "You earn commission on all paid plans, including: Weekly, Starter, Daily, Pro, and Annual plans.",
   },
   {
     q: "When do I get paid?",
-    a: "Payments are made based on approved content and performance cycles.",
+    a: "Withdrawals are reviewed and processed monthly after verification of payments and activity.",
   },
   {
-    q: "Can I create my own content ideas?",
-    a: "Yes. We encourage originality. We provide inspiration and proven formats, but you are free to test your own ideas.",
+    q: "Do I earn commission on free trial users?",
+    a: "No. Commission is only paid when a user upgrades to a paid plan.",
   },
   {
-    q: "Is there a limit to earnings?",
-    a: "No. Earnings scale with performance. The more you create and the better your content performs, the more you earn.",
+    q: "Do I earn commission on add-on reply packs?",
+    a: "No. Commission applies only to subscription plans.",
   },
   {
-    q: "What kind of content performs best?",
-    a: "Real message examples, before/after comparisons, and emotional or high-stakes scenarios tend to perform very well.",
+    q: "What is the referral tracking window?",
+    a: "You receive credit if a user signs up within 30 days of clicking your referral link.",
   },
   {
-    q: "How is Avertune different from writing tools?",
-    a: "Most tools help you rewrite text. Avertune helps you understand what a message really means, avoid miscommunication, and respond strategically. It's communication decision support, not just writing.",
+    q: "Can I refer myself?",
+    a: "No. Self-referrals or duplicate accounts are not allowed and may result in removal from the program.",
   },
   {
-    q: "Is Avertune free to use?",
-    a: "Yes. You can try Avertune with a limited number of replies per day. Paid plans unlock more replies, advanced response strategies, and negotiation tools.",
+    q: "What happens if a user cancels or requests a refund?",
+    a: "If a payment is refunded or fails, the associated commission will not be paid.",
   },
   {
-    q: "Is my data private?",
-    a: "Yes. We do not sell your data. We use your inputs only to provide and improve the service.",
+    q: "Is there a limit to how much I can earn?",
+    a: "No. There is no earning limit. Your income grows with your referrals.",
+  },
+  {
+    q: "How do I track my performance?",
+    a: "You'll have access to a dashboard showing clicks, signups, paid users, and earnings.",
+  },
+  {
+    q: "Who is the affiliate program for?",
+    a: "This program is ideal for creators, professionals, educators, communities, or anyone who shares useful tools.",
+  },
+  {
+    q: "How do I get started?",
+    a: "Sign up, get your referral link, and start sharing Avertune.",
+  },
+  {
+    q: "What kind of content works best?",
+    a: "Real message examples, before vs after replies, difficult conversations, workplace and sales scenarios.",
+  },
+  {
+    q: "Where can I get support?",
+    a: "If you need help, contact us at support@avertune.com",
   },
 ];
 
@@ -233,10 +261,6 @@ export default function AffiliateDashboard() {
     return null;
   }
 
-  // Calculate available balance
-  const availableBalance =
-    (stats?.total_earnings || 0) - (stats?.paid_out || 0);
-
   return (
     <div
       style={{ minHeight: "100vh", background: "var(--bg)", display: "flex" }}
@@ -344,9 +368,8 @@ export default function AffiliateDashboard() {
                   lineHeight: 1.6,
                 }}
               >
-                Earn {profile?.commission_rate ?? 20}% commission for each
-                referral's first 2 paid months, then 8% ongoing. Withdrawals are
-                reviewed monthly.
+                Earn 20% commission for each referral's first 2 paid months,
+                then 8% ongoing. Withdrawals are reviewed monthly.
               </p>
               <button
                 onClick={joinAffiliateProgram}
@@ -773,8 +796,7 @@ export default function AffiliateDashboard() {
                     padding: "24px",
                   }}
                 >
-                  {/* ... withdrawal form (same as before, unchanged) ... */}
-                  {/* To avoid repetition, the withdrawal form remains exactly as in the original code */}
+                  {/* Withdrawal form – same as original, unchanged */}
                   <div
                     style={{
                       display: "grid",
@@ -1470,7 +1492,7 @@ export default function AffiliateDashboard() {
                 )}
               </div>
 
-              {/* FAQ Section */}
+              {/* FAQ Section – Updated with new content */}
               <div style={{ marginTop: 40 }}>
                 <h2
                   style={{
@@ -1480,7 +1502,7 @@ export default function AffiliateDashboard() {
                     marginBottom: 20,
                   }}
                 >
-                  Frequently Asked Questions
+                  Affiliate Program FAQ
                 </h2>
                 <div
                   style={{
