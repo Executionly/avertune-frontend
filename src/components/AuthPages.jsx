@@ -296,6 +296,9 @@ export function LoginPage() {
   const msg = useApiMessage();
   const from = location.state?.from?.pathname || "/dashboard";
 
+  const urlParams = new URLSearchParams(location.search);
+  const referralCode = urlParams.get("ref") || "";
+
   const {
     register,
     handleSubmit,
@@ -313,7 +316,9 @@ export function LoginPage() {
       msg.setFromError(err);
     }
   }
-
+  const handleGoogleSignIn = () => {
+    googleSignIn(referralCode);
+  };
   return (
     <PageShell onBack={() => navigate("/")}>
       <Card>
@@ -331,7 +336,7 @@ export function LoginPage() {
           Log in to continue.
         </p>
 
-        <GoogleBtn onClick={googleSignIn} />
+        <GoogleBtn onClick={handleGoogleSignIn} />
         <Divider label="or continue with email" />
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -463,7 +468,9 @@ export function SignupPage({ onSuccess }) {
       msg.setFromError(err);
     }
   }
-
+  const handleGoogleSignIn = () => {
+    googleSignIn(referralCode);
+  };
   return (
     <PageShell onBack={() => navigate("/")}>
       <Card>
@@ -481,7 +488,7 @@ export function SignupPage({ onSuccess }) {
           7-day free trial, no credit card required.
         </p>
 
-        <GoogleBtn onClick={googleSignIn} />
+        <GoogleBtn onClick={handleGoogleSignIn} />
         <Divider label="or sign up with email" />
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
