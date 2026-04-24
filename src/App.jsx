@@ -40,13 +40,13 @@ import {
   AudienceSection,
   SecuritySection,
 } from "./components/HomeSections.jsx";
-import AffiliateProgram from "./components/AffiliateProgram.jsx";
 import PrivacyPolicy from "./components/PrivacyPolicy.jsx";
 import TermsOfService from "./components/TermsOfService.jsx";
 import ResponsibleUse from "./components/ResponsibleUse.jsx";
 import SavedReplies from "./components/SavedReplies.jsx";
 import AffiliateDashboard from "./components/AffiliateDashboard.jsx";
 import { initAnalytics, trackPageview } from "./lib/analytics.js";
+import InfluencerProgram from "./components/InfluencerProgram.jsx";
 
 // ── Protected route ───────────────────────────────────────────────────────────
 function Protected({ children }) {
@@ -185,7 +185,7 @@ export default function App() {
       <Route path="/email-sent" element={<EmailSentWrapper />} />
       <Route path="/link-expired" element={<LinkAlreadyUsedPage />} />
       <Route path="/account-confirmed" element={<AccountConfirmedPage />} />
-      <Route path="/affiliate-program" element={<AffiliateProgram />} />
+      <Route path="/influencer-program" element={<InfluencerProgram />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="/responsible-use" element={<ResponsibleUse />} />
