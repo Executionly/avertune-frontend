@@ -119,6 +119,10 @@ export function Footer({ onPricing }) {
           label: "Affiliate Program",
           onClick: () => navigate("/affiliate/dashboard"),
         },
+        {
+          label: "Influencer Program",
+          onClick: () => navigate("/influencer-program"),
+        },
       ],
     },
     {

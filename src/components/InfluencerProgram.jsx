@@ -17,7 +17,7 @@ import {
   Lock,
 } from "lucide-react";
 
-export default function AffiliateProgram() {
+export default function InfluencerProgram() {
   const navigate = useNavigate();
 
   const stats = [
@@ -46,7 +46,7 @@ export default function AffiliateProgram() {
     {
       icon: Mail,
       title: "Send your video",
-      desc: "Email your video to <b>creators@avertune.com</b> with your name and social handles.",
+      desc: "Email your video to <b>info@avertune.com</b> with your name and social handles.",
     },
     {
       icon: Zap,
@@ -96,19 +96,19 @@ export default function AffiliateProgram() {
   const testimonials = [
     {
       name: "Maria S.",
-      role: "Content Creator",
-      text: "Working with Avertune has been a genuinely great experience. Communication is clear, earnings are solid, and I feel valued. This job has helped me grow my creative skills and build a stronger portfolio. I honestly recommend Avertune to other creators – it's a comfortable and motivating place to work!",
+      role: "Content Influencer",
+      text: "Working with Avertune has been a genuinely great experience. Communication is clear, earnings are solid, and I feel valued. This job has helped me grow my creative skills and build a stronger portfolio. I honestly recommend Avertune to other influencers – it's a comfortable and motivating place to work!",
       rating: 5,
     },
     {
       name: "Jeremy L.",
       role: "YouTuber",
-      text: "Overall, I've really enjoyed working with Avertune. The communication is smooth, expectations are clear, and the process is easy. Earnings are solid and definitely appreciated. This collaboration has helped me grow my creative skills and add more to my portfolio. I'd definitely recommend Avertune to other creators.",
+      text: "Overall, I've really enjoyed working with Avertune. The communication is smooth, expectations are clear, and the process is easy. Earnings are solid and definitely appreciated. This collaboration has helped me grow my creative skills and add more to my portfolio. I'd definitely recommend Avertune to other influencers.",
       rating: 5,
     },
     {
       name: "Sofie K.",
-      role: "TikTok Creator",
+      role: "TikTok Influencer",
       text: "Firstly yes I love working with you!! Such a great brand to work with and very efficient. Earnings are great. Satisfied. This collab has certainly helped me grow!! 100% recommend working with Avertune!! You're actually one of my favourite brands I currently work with! Can't wait to create even more content for you :)",
       rating: 5,
     },
@@ -223,7 +223,7 @@ export default function AffiliateProgram() {
           <span
             style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-2)" }}
           >
-            Creator Program
+            Influencer Program
           </span>
         </div>
       </header>
@@ -264,7 +264,7 @@ export default function AffiliateProgram() {
               marginBottom: 14,
             }}
           >
-            Become an Avertune Creator
+            Become an Avertune Influencer
             <br />
             <span className="grad-text">Create. Help. Get paid.</span>
           </h1>
@@ -277,7 +277,7 @@ export default function AffiliateProgram() {
               lineHeight: 1.6,
             }}
           >
-            Avertune is building a global network of creators who show how to
+            Avertune is building a global network of influencers who show how to
             handle real conversations — from work emails to difficult messages.
             If you enjoy creating content and want to grow your influence while
             earning, we want to work with you.
@@ -388,7 +388,7 @@ export default function AffiliateProgram() {
           </div>
           <div style={{ textAlign: "center", marginTop: 32 }}>
             <a
-              href="mailto:creators@avertune.com?subject=Creator%20Application&body=Hi%2C%20I%27d%20like%20to%20join%20the%20Avertune%20Creator%20Program.%20Here%20is%20my%20video%20and%20information%3A%0A%0AName%3A%0ASocial%20handles%3A%0AVideo%20link%3A%0A%0AP.S.%20I%27m%20excited%20about%20the%20%245%2C000%2B%20earning%20potential!"
+              href="mailto:info@avertune.com?subject=Influencer%20Application&body=Hi%2C%20I%27d%20like%20to%20join%20the%20Avertune%20Influencer%20Program.%20Here%20is%20my%20video%20and%20information%3A%0A%0AName%3A%0ASocial%20handles%3A%0AVideo%20link%3A%0A%0AP.S.%20I%27m%20excited%20about%20the%20%245%2C000%2B%20earning%20potential!"
               className="btn-green"
               style={{
                 padding: "12px 28px",
@@ -612,7 +612,7 @@ export default function AffiliateProgram() {
               marginBottom: 12,
             }}
           >
-            What our creators say
+            What our influencers say
           </h2>
           <div
             style={{
@@ -705,7 +705,7 @@ export default function AffiliateProgram() {
         {/* Bottom CTA */}
         <div style={{ marginTop: "clamp(56px,8vw,88px)", textAlign: "center" }}>
           <a
-            href="mailto:creators@avertune.com?subject=Creator%20Application&body=Hi%2C%20I%27d%20like%20to%20apply%20for%20the%20Creator%20Program.%20Here%20is%20my%20video%20and%20information%3A%0A%0AName%3A%0ASocial%20handles%3A%0AVideo%20link%3A%0A%0AI%27m%20excited%20about%20the%20%245%2C000%2B%20earning%20potential!"
+            href="mailto:info@avertune.com?subject=Influencer%20Application&body=Hi%2C%20I%27d%20like%20to%20apply%20for%20the%20Influencer%20Program.%20Here%20is%20my%20video%20and%20information%3A%0A%0AName%3A%0ASocial%20handles%3A%0AVideo%20link%3A%0A%0AI%27m%20excited%20about%20the%20%245%2C000%2B%20earning%20potential!"
             className="btn-green"
             style={{
               padding: "14px 36px",
