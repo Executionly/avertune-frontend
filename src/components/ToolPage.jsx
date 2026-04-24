@@ -2628,7 +2628,11 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                   <span />
                 </div>
                 <span style={{ fontSize: 14, color: "var(--ink-3)" }}>
-                  Generating your {tool.label.toLowerCase()}…
+                  Generating your{" "}
+                  {tool.label.toLowerCase() == "reply generator"
+                    ? "reply"
+                    : tool.label.toLowerCase()}
+                  …
                 </span>
               </div>
               <div
