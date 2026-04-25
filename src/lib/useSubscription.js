@@ -8,12 +8,63 @@ export const SUB_KEYS = {
   packs: ["subscription", "packs"],
 };
 
+// ✅ Normalize subscription response (handles both object and number formats)
+function normalizeSubscription(raw) {
+  if (!raw) return raw;
+
+  // Normalize character_limits
+  let charLimits = {};
+  if (raw.character_limits) {
+    if (typeof raw.character_limits === "object") {
+      charLimits = raw.character_limits;
+    } else if (typeof raw.character_limits === "number") {
+      const limit = raw.character_limits;
+      charLimits = {
+        reply_generator: limit,
+        tone_checker: limit,
+        boundary_builder: limit,
+        negotiation: limit,
+        follow_up: limit,
+        difficult_email: limit,
+        intent_detector: limit,
+      };
+    }
+  }
+
+  // Normalize tool_limits
+  let toolLimits = {};
+  if (raw.tool_limits) {
+    if (typeof raw.tool_limits === "object") {
+      toolLimits = raw.tool_limits;
+    } else if (typeof raw.tool_limits === "number") {
+      const limit = raw.tool_limits;
+      toolLimits = {
+        reply_generator: limit,
+        tone_checker: limit,
+        boundary_builder: limit,
+        negotiation: limit,
+        follow_up: limit,
+        difficult_email: limit,
+        intent_detector: limit,
+      };
+    }
+  }
+
+  return {
+    ...raw,
+    character_limits: charLimits,
+    tool_limits: toolLimits,
+  };
+}
+
 export function usePlans() {
   return useQuery({
     queryKey: SUB_KEYS.plans,
     queryFn: subscriptionApi.getPlans,
     staleTime: 10 * 60 * 1000,
     retry: false,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -21,10 +72,15 @@ export function useMySubscription() {
   const { isAuthenticated } = useAuth();
   return useQuery({
     queryKey: SUB_KEYS.me,
-    queryFn: subscriptionApi.getMySubscription,
+    queryFn: async () => {
+      const data = await subscriptionApi.getMySubscription();
+      return normalizeSubscription(data);
+    },
     enabled: isAuthenticated,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
     retry: false,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -82,6 +138,8 @@ export function usePacks() {
     queryFn: subscriptionApi.getPacks,
     staleTime: 10 * 60 * 1000,
     retry: false,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 }
 
