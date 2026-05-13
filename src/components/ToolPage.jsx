@@ -925,11 +925,28 @@ function ShareModal({
 
   // Handle tone checker and intent detector
   if (!fullReply && tool?.id === "tone-checker") {
-    fullReply = `<strong>Tone:</strong> ${result?.primary_tone || "—"}\n<strong>Risk:</strong> ${result?.risk_level || "—"}\n<strong>Interpretation:</strong> ${result?.interpretation || "—"}`;
+    fullReply = `<strong>Tone:</strong> ${result?.primary_tone || "—"}<br/><strong>Risk:</strong> ${result?.risk_level || "—"}<br/><strong>Interpretation:</strong> ${result?.interpretation || "—"}`;
     displayLabel = "Analysis";
   } else if (!fullReply && tool?.id === "intent-detector") {
-    fullReply = `<strong>Primary intent:</strong> ${result?.primary_intent || "—"}\n<strong>Surface meaning:</strong> ${result?.surface_meaning || "—"}\n<strong>Subtext:</strong> ${result?.subtext || "—"}\n<strong>Strategy:</strong> ${result?.recommended_response_strategy || "—"}`;
+    fullReply = `<strong>Primary intent:</strong> ${result?.primary_intent || "—"}<br/><strong>Surface meaning:</strong> ${result?.surface_meaning || "—"}<br/><strong>Subtext:</strong> ${result?.subtext || "—"}<br/><strong>Strategy:</strong> ${result?.recommended_response_strategy || "—"}`;
     displayLabel = "Analysis";
+  }
+
+  // Add scoring to share card if present
+  const hasScoring = result?.scoring;
+  let scoringHtml = "";
+  if (hasScoring) {
+    scoringHtml = `
+      <div style="margin-top: 12px; padding: 10px 12px; background: rgba(167,139,250,0.08); border-radius: 10px; border-left: 2px solid #a78bfa;">
+        <p style="font-size: 9px; font-weight: 700; color: #a78bfa; margin-bottom: 8px; letter-spacing: 0.06em;">SCORING</p>
+        ${result.scoring.tone_detected ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a1a1aa;">Tone:</span> <span style="color: #f4f4f6;">${result.scoring.tone_detected}</span></div>` : ""}
+        ${result.scoring.intent_clarity_score ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a1a1aa;">Intent clarity:</span> <span style="color: #f4f4f6;">${Math.round(result.scoring.intent_clarity_score * 10)}/10</span></div>` : ""}
+        ${result.scoring.risk_score ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a1a1aa;">Risk:</span> <span style="color: #f4f4f6;">${Math.round(result.scoring.risk_score * 10)}/10</span></div>` : ""}
+        ${result.scoring.confidence_score ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a1a1aa;">Confidence:</span> <span style="color: #f4f4f6;">${Math.round(result.scoring.confidence_score * 100)}%</span></div>` : ""}
+        ${result.scoring.escalation_probability ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a1a1aa;">Escalation:</span> <span style="color: #f4f4f6;">${Math.round(result.scoring.escalation_probability * 100)}%</span></div>` : ""}
+        ${result.scoring.relationship_impact ? `<div style="font-size: 10px; display: flex; justify-content: space-between;"><span style="color: #a1a1aa;">Relationship impact:</span> <span style="color: #f4f4f6;">${result.scoring.relationship_impact}</span></div>` : ""}
+      </div>
+    `;
   }
 
   const shareQuote = `Reply via Avertune:\n\n${includePrompt && promptText ? `Original message:\n"${promptText}"\n\n` : ""} ${displayLabel} reply:\n"${fullReply.replace(/<[^>]*>/g, "")}"\n\n🔗 avertune.com`;
@@ -1264,7 +1281,9 @@ function ShareModal({
                     lineHeight: 1.65,
                     whiteSpace: "pre-wrap",
                   }}
-                  dangerouslySetInnerHTML={{ __html: `"${fullReply}"` }}
+                  dangerouslySetInnerHTML={{
+                    __html: `"${fullReply}"${scoringHtml ? scoringHtml : ""}`,
+                  }}
                 />
               </div>
             )}
@@ -1388,6 +1407,79 @@ const VARIANT_COLORS = {
   Urgent: "#f59e0b",
   Brief: "var(--blue)",
 };
+
+// Scoring Section Component
+function ScoringSection({ scoring }) {
+  if (!scoring) return null;
+
+  const scoringFields = [
+    { label: "Tone", key: "tone_detected" },
+    { label: "Intent clarity", key: "intent_clarity_score" },
+    { label: "Risk", key: "risk_score" },
+    { label: "Confidence", key: "confidence_score" },
+    { label: "Escalation probability", key: "escalation_probability" },
+    { label: "Relationship impact", key: "relationship_impact" },
+  ];
+
+  const formatValue = (value) => {
+    if (typeof value === "number") {
+      if (value <= 1 && value >= 0) return `${Math.round(value * 100)}%`;
+      return value;
+    }
+    return value;
+  };
+
+  return (
+    <div
+      style={{
+        marginBottom: 16,
+        padding: "12px 14px",
+        background: "rgba(167,139,250,0.05)",
+        borderRadius: 10,
+        border: "1px solid rgba(167,139,250,0.15)",
+      }}
+    >
+      <p
+        style={{
+          fontSize: 10.5,
+          fontWeight: 700,
+          color: "#a78bfa",
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          marginBottom: 10,
+        }}
+      >
+        Scoring
+      </p>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+          gap: "8px 12px",
+        }}
+      >
+        {scoringFields.map((field) => {
+          const val = scoring[field.key];
+          if (val === undefined || val === null) return null;
+          return (
+            <div key={field.key}>
+              <p
+                style={{ fontSize: 10, color: "var(--ink-4)", marginBottom: 2 }}
+              >
+                {field.label}
+              </p>
+              <p
+                style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink)" }}
+              >
+                {formatValue(val)}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 /* ── FIX 4: savingVariant prop added so the button shows a spinner while saving ── */
 function VariantPanel({
@@ -2741,6 +2833,9 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
                   />
+                  {result.scoring && (
+                    <ScoringSection scoring={result.scoring} />
+                  )}
                 </div>
               )}
               {tool.id === "tone-checker" && (
@@ -2878,6 +2973,9 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                         </p>
                       </div>
                     )}
+                    {result.scoring && (
+                      <ScoringSection scoring={result.scoring} />
+                    )}
                     <div
                       style={{
                         display: "flex",
@@ -2992,6 +3090,9 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                       </p>
                     </div>
                   )}
+                  {result.scoring && (
+                    <ScoringSection scoring={result.scoring} />
+                  )}
                 </div>
               )}
               {tool.id === "negotiation-reply" && (
@@ -3061,6 +3162,9 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
                   />
+                  {result.scoring && (
+                    <ScoringSection scoring={result.scoring} />
+                  )}
                 </div>
               )}
               {tool.id === "follow-up-writer" && (
@@ -3106,6 +3210,9 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                       </p>
                     </div>
                   )}
+                  {result.scoring && (
+                    <ScoringSection scoring={result.scoring} />
+                  )}
                 </div>
               )}
               {tool.id === "difficult-email" && (
@@ -3150,6 +3257,9 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                         {result.replies._emailSubjects[activeTab]}
                       </p>
                     </div>
+                  )}
+                  {result.scoring && (
+                    <ScoringSection scoring={result.scoring} />
                   )}
                 </div>
               )}
@@ -3401,6 +3511,9 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                           {result.recommended_response_strategy}
                         </p>
                       </div>
+                    )}
+                    {result.scoring && (
+                      <ScoringSection scoring={result.scoring} />
                     )}
                     <div
                       style={{

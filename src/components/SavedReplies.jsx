@@ -288,6 +288,79 @@ function GenericVariantPanel({
   );
 }
 
+// Scoring Section Component
+function ScoringSection({ scoring }) {
+  if (!scoring) return null;
+
+  const scoringFields = [
+    { label: "Tone", key: "tone_detected" },
+    { label: "Intent clarity", key: "intent_clarity_score" },
+    { label: "Risk", key: "risk_score" },
+    { label: "Confidence", key: "confidence_score" },
+    { label: "Escalation probability", key: "escalation_probability" },
+    { label: "Relationship impact", key: "relationship_impact" },
+  ];
+
+  const formatValue = (value) => {
+    if (typeof value === "number") {
+      if (value <= 1 && value >= 0) return `${Math.round(value * 100)}%`;
+      return value;
+    }
+    return value;
+  };
+
+  return (
+    <div
+      style={{
+        marginBottom: 16,
+        padding: "12px 14px",
+        background: "rgba(167,139,250,0.05)",
+        borderRadius: 10,
+        border: "1px solid rgba(167,139,250,0.15)",
+      }}
+    >
+      <p
+        style={{
+          fontSize: 10.5,
+          fontWeight: 700,
+          color: "#a78bfa",
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          marginBottom: 10,
+        }}
+      >
+        Scoring
+      </p>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+          gap: "8px 12px",
+        }}
+      >
+        {scoringFields.map((field) => {
+          const val = scoring[field.key];
+          if (val === undefined || val === null) return null;
+          return (
+            <div key={field.key}>
+              <p
+                style={{ fontSize: 10, color: "var(--ink-4)", marginBottom: 2 }}
+              >
+                {field.label}
+              </p>
+              <p
+                style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink)" }}
+              >
+                {formatValue(val)}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // Intent Detector Card
 function IntentDetectorCard({ resultJson }) {
   const copyText = `
@@ -478,6 +551,7 @@ Trust signal: ${resultJson.trust_signal || "—"}
           </div>
         )}
       </div>
+      {resultJson.scoring && <ScoringSection scoring={resultJson.scoring} />}
       <div
         style={{
           display: "flex",
@@ -628,6 +702,7 @@ Interpretation: ${resultJson.interpretation || "—"}
           </p>
         </div>
       )}
+      {resultJson.scoring && <ScoringSection scoring={resultJson.scoring} />}
       <div
         style={{
           display: "flex",
@@ -757,6 +832,7 @@ ${resultJson.power_note ? `Power note: ${resultJson.power_note}` : ""}
           </p>
         </div>
       )}
+      {resultJson.scoring && <ScoringSection scoring={resultJson.scoring} />}
       <div
         style={{
           display: "flex",
@@ -932,12 +1008,17 @@ function SavedReplyCard({ item }) {
 
       {/* Render content */}
       {renderMode === "variants" && variantsObj && (
-        <GenericVariantPanel
-          variantsObj={variantsObj}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          recommendedVariant={recommendedVariant}
-        />
+        <>
+          <GenericVariantPanel
+            variantsObj={variantsObj}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            recommendedVariant={recommendedVariant}
+          />
+          {resultJson.scoring && (
+            <ScoringSection scoring={resultJson.scoring} />
+          )}
+        </>
       )}
       {renderMode === "intent_detector" && (
         <IntentDetectorCard resultJson={resultJson} />
@@ -986,7 +1067,7 @@ export default function SavedReplies() {
 
   useEffect(() => {
     if (!user) return;
-    if (authLoading || subLoading) return; // wait for both to finish
+    if (authLoading || subLoading) return;
     if (!canAccess) {
       setLoading(false);
       return;
