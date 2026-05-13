@@ -940,9 +940,9 @@ function ShareModal({
       <div style="margin-top: 12px; padding: 10px 12px; background: rgba(167,139,250,0.08); border-radius: 10px; border-left: 2px solid #a78bfa;">
         <p style="font-size: 9px; font-weight: 700; color: #a78bfa; margin-bottom: 8px; letter-spacing: 0.06em;">SCORING</p>
         ${result.scoring.tone_detected ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Tone:</span> <span style="color: #f4f4f6;">${result.scoring.tone_detected}</span></div>` : ""}
-        ${result.scoring.intent_clarity_score ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Intent clarity:</span> <span style="color: #f4f4f6;">${Math.round(result.scoring.intent_clarity_score * 10)}/10</span></div>` : ""}
-        ${result.scoring.risk_score ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Risk:</span> <span style="color: #f4f4f6;">${Math.round(result.scoring.risk_score * 10)}/10</span></div>` : ""}
-        ${result.scoring.confidence_score ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Confidence:</span> <span style="color: #f4f4f6;">${Math.round(result.scoring.confidence_score * 10)}%</span></div>` : ""}
+        ${result.scoring.intent_clarity_score ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Intent clarity:</span> <span style="color: #f4f4f6;">${Math.round(result.scoring.intent_clarity_score)}/10</span></div>` : ""}
+        ${result.scoring.risk_score ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Risk:</span> <span style="color: #f4f4f6;">${Math.round(result.scoring.risk_score)}/10</span></div>` : ""}
+        ${result.scoring.confidence_score ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Confidence:</span> <span style="color: #f4f4f6;">${Math.round(result.scoring.confidence_score)}/10</span></div>` : ""}
         ${result.scoring.escalation_probability ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Escalation:</span> <span style="color: #f4f4f6;">${Math.round(result.scoring.escalation_probability * 100)}%</span></div>` : ""}
         ${result.scoring.relationship_impact ? `<div style="font-size: 10px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Relationship impact:</span> <span style="color: #f4f4f6;">${result.scoring.relationship_impact}</span></div>` : ""}
       </div>
@@ -1424,7 +1424,7 @@ function ScoringSection({ scoring }) {
   const formatValue = (value) => {
     if (typeof value === "number") {
       if (value <= 1 && value >= 0) return `${Math.round(value * 100)}%`;
-      return value;
+      return `${value}/10`;
     }
     return value;
   };
@@ -1464,7 +1464,12 @@ function ScoringSection({ scoring }) {
           return (
             <div key={field.key}>
               <p
-                style={{ fontSize: 10, color: "var(--ink-4)", marginBottom: 2 }}
+                style={{
+                  fontSize: 10,
+                  color: "#a78bfa",
+                  marginBottom: 2,
+                  marginTop: 8,
+                }}
               >
                 {field.label}
               </p>
