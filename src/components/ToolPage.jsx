@@ -933,18 +933,19 @@ function ShareModal({
   }
 
   // Add scoring to share card if present
-  const hasScoring = result?.scoring;
+  const hasScoring = result?.scoring || result?.data?.scoring;
+  let scoringData = result?.scoring || result?.data?.scoring;
   let scoringHtml = "";
   if (hasScoring) {
     scoringHtml = `
       <div style="margin-top: 12px; padding: 10px 12px; background: rgba(167,139,250,0.08); border-radius: 10px; border-left: 2px solid #a78bfa;">
         <p style="font-size: 9px; font-weight: 700; color: #a78bfa; margin-bottom: 8px; letter-spacing: 0.06em;">SCORING</p>
-        ${result.scoring.tone_detected ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Tone:</span> <span style="color: #f4f4f6;">${result.scoring.tone_detected}</span></div>` : ""}
-        ${result.scoring.intent_clarity_score ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Intent clarity:</span> <span style="color: #f4f4f6;">${Math.round(result.scoring.intent_clarity_score)}/10</span></div>` : ""}
-        ${result.scoring.risk_score ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Risk:</span> <span style="color: #f4f4f6;">${Math.round(result.scoring.risk_score)}/10</span></div>` : ""}
-        ${result.scoring.confidence_score ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Confidence:</span> <span style="color: #f4f4f6;">${Math.round(result.scoring.confidence_score)}/10</span></div>` : ""}
-        ${result.scoring.escalation_probability ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Escalation:</span> <span style="color: #f4f4f6;">${Math.round(result.scoring.escalation_probability * 100)}%</span></div>` : ""}
-        ${result.scoring.relationship_impact ? `<div style="font-size: 10px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Relationship impact:</span> <span style="color: #f4f4f6;">${result.scoring.relationship_impact}</span></div>` : ""}
+        ${scoringData.tone_detected ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Tone:</span> <span style="color: #f4f4f6;">${scoringData.tone_detected}</span></div>` : ""}
+        ${scoringData.intent_clarity_score ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Intent clarity:</span> <span style="color: #f4f4f6;">${Math.round(scoringData.intent_clarity_score)}/10</span></div>` : ""}
+        ${scoringData.risk_score ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Risk:</span> <span style="color: #f4f4f6;">${Math.round(scoringData.risk_score)}/10</span></div>` : ""}
+        ${scoringData.confidence_score ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Confidence:</span> <span style="color: #f4f4f6;">${Math.round(scoringData.confidence_score)}/10</span></div>` : ""}
+        ${scoringData.escalation_probability ? `<div style="font-size: 10px; margin-bottom: 6px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Escalation:</span> <span style="color: #f4f4f6;">${Math.round(scoringData.escalation_probability * 100)}%</span></div>` : ""}
+        ${scoringData.relationship_impact ? `<div style="font-size: 10px; display: flex; justify-content: space-between;"><span style="color: #a78bfa;">Relationship impact:</span> <span style="color: #f4f4f6;">${scoringData.relationship_impact}</span></div>` : ""}
       </div>
     `;
   }
@@ -2838,9 +2839,12 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
                   />
-                  {result.scoring && (
-                    <ScoringSection scoring={result.scoring} />
-                  )}
+                  {(() => {
+                    const scoringData = result.scoring || result.data?.scoring;
+                    return (
+                      scoringData && <ScoringSection scoring={scoringData} />
+                    );
+                  })()}
                 </div>
               )}
               {tool.id === "tone-checker" && (
@@ -2978,9 +2982,13 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                         </p>
                       </div>
                     )}
-                    {result.scoring && (
-                      <ScoringSection scoring={result.scoring} />
-                    )}
+                    {(() => {
+                      const scoringData =
+                        result.scoring || result.data?.scoring;
+                      return (
+                        scoringData && <ScoringSection scoring={scoringData} />
+                      );
+                    })()}
                     <div
                       style={{
                         display: "flex",
@@ -3095,9 +3103,12 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                       </p>
                     </div>
                   )}
-                  {result.scoring && (
-                    <ScoringSection scoring={result.scoring} />
-                  )}
+                  {(() => {
+                    const scoringData = result.scoring || result.data?.scoring;
+                    return (
+                      scoringData && <ScoringSection scoring={scoringData} />
+                    );
+                  })()}
                 </div>
               )}
               {tool.id === "negotiation-reply" && (
@@ -3167,9 +3178,12 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                     descriptors={result._replyDescriptors}
                     recommendedVariant={result._recommendedVariant}
                   />
-                  {result.scoring && (
-                    <ScoringSection scoring={result.scoring} />
-                  )}
+                  {(() => {
+                    const scoringData = result.scoring || result.data?.scoring;
+                    return (
+                      scoringData && <ScoringSection scoring={scoringData} />
+                    );
+                  })()}
                 </div>
               )}
               {tool.id === "follow-up-writer" && (
@@ -3215,9 +3229,12 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                       </p>
                     </div>
                   )}
-                  {result.scoring && (
-                    <ScoringSection scoring={result.scoring} />
-                  )}
+                  {(() => {
+                    const scoringData = result.scoring || result.data?.scoring;
+                    return (
+                      scoringData && <ScoringSection scoring={scoringData} />
+                    );
+                  })()}
                 </div>
               )}
               {tool.id === "difficult-email" && (
@@ -3263,9 +3280,12 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                       </p>
                     </div>
                   )}
-                  {result.scoring && (
-                    <ScoringSection scoring={result.scoring} />
-                  )}
+                  {(() => {
+                    const scoringData = result.scoring || result.data?.scoring;
+                    return (
+                      scoringData && <ScoringSection scoring={scoringData} />
+                    );
+                  })()}
                 </div>
               )}
               {tool.id === "intent-detector" && (
@@ -3517,9 +3537,13 @@ export default function ToolPage({ tool, onBack, onLogin, onTool }) {
                         </p>
                       </div>
                     )}
-                    {result.scoring && (
-                      <ScoringSection scoring={result.scoring} />
-                    )}
+                    {(() => {
+                      const scoringData =
+                        result.scoring || result.data?.scoring;
+                      return (
+                        scoringData && <ScoringSection scoring={scoringData} />
+                      );
+                    })()}
                     <div
                       style={{
                         display: "flex",
