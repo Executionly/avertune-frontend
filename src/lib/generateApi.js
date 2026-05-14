@@ -181,6 +181,7 @@ function normalizeToneResponse(raw) {
     emotional_intensity: data.emotional_intensity || "",
     risk_level: data.risk_level || "",
     interpretation: data.interpretation || "",
+    scoring: data.scoring || null, // ← add this line
     _remaining: raw.remaining,
     _raw: raw,
     _generationId: raw.generation_id || data.generation_id || raw.id || data.id,
