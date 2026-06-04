@@ -11,7 +11,7 @@ const SOLUTIONS_BY_TEAM = [
     slug: "enterprise",
     title: "Enterprise & Teams",
     tagline: "Organisation-wide communication intelligence",
-    desc: "Deploy Avertune across your organisation. Define communication standards with the Playbook Engine. Track team performance with analytics dashboards. Scale communication quality across every department.",
+    desc: "Deploy Avertune across your organization. Define communication standards with the Playbook Engine. Track team performance with analytics dashboards. Scale communication quality across every department.",
     features: [
       "Team Playbooks",
       "Communication Analytics",
@@ -159,7 +159,7 @@ function SolutionForm({
       className="bg-white border border-navy-900/[0.08] rounded-[24px] p-8 space-y-5"
     >
       <h3 className="text-[18px] font-semibold text-navy-900 mb-1">
-        Request customisation
+        Request customization
       </h3>
       <p className="text-[13px] text-navy-500 mb-5">
         Tell us about your needs and we'll get back to you.

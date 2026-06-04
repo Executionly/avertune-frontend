@@ -6,7 +6,7 @@ import { CtaSection } from "@/components/marketing/CtaSection";
 
 export const metadata: Metadata = {
   title: "Enterprise & Teams | Avertune",
-  description: "Communication Intelligence for your entire organisation.",
+  description: "Communication Intelligence for your entire organization.",
 };
 
 const FEATURES = [
@@ -23,7 +23,7 @@ const FEATURES = [
   {
     title: "Admin Dashboard",
     description:
-      "Centralised management for users, roles, and organisation-wide settings.",
+      "Centralised management for users, roles, and organization-wide settings.",
   },
   {
     title: "SSO & Role Management",
@@ -32,7 +32,7 @@ const FEATURES = [
   {
     title: "Organisation CI Profiles",
     description:
-      "Maintain consistent communication quality across your entire organisation.",
+      "Maintain consistent communication quality across your entire organization.",
   },
   {
     title: "API Access",
@@ -42,7 +42,7 @@ const FEATURES = [
 ];
 
 const BENEFITS = [
-  "Reduce communication risk across your organisation",
+  "Reduce communication risk across your organization",
   "Maintain brand voice consistency",
   "Coach teams on effective communication patterns",
   "Track improvement with detailed analytics",
@@ -59,7 +59,7 @@ export default function EnterprisePage() {
             Enterprise
           </p>
           <h1 className="font-display font-medium text-white mb-5 leading-[1.1] text-[clamp(32px,5vw,58px)] max-w-[800px]">
-            Communication Intelligence for your entire organisation
+            Communication Intelligence for your entire organization
           </h1>
           <p className="text-base text-white/60 max-w-[540px] leading-relaxed">
             Deploy Avertune across teams. Define communication standards. Track
@@ -70,7 +70,7 @@ export default function EnterprisePage() {
               href="#request-form"
               className="px-6 py-3 rounded-xl bg-violet-600 text-white text-sm font-medium hover:bg-violet-500 transition-all"
             >
-              Request customisation →
+              Request customization →
             </a>
           </div>
         </div>
@@ -84,7 +84,7 @@ export default function EnterprisePage() {
               Everything your team needs
             </h2>
             <p className="text-gray-500 dark:text-gray-400 max-w-[560px] mx-auto">
-              Purpose-built features for organisations that take communication
+              Purpose-built features for organizations that take communication
               seriously.
             </p>
           </div>
@@ -162,10 +162,10 @@ export default function EnterprisePage() {
         <div className="max-w-[800px] mx-auto">
           <div className="text-center mb-8">
             <h2 className="font-display font-medium text-gray-900 dark:text-white text-[clamp(24px,3.5vw,36px)] mb-3">
-              Request customisation
+              Request customization
             </h2>
             <p className="text-gray-500 dark:text-gray-400">
-              Tell us about your organisation's needs and we'll build a tailored
+              Tell us about your organization's needs and we'll build a tailored
               solution.
             </p>
           </div>

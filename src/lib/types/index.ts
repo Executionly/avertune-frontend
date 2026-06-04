@@ -111,6 +111,9 @@ export interface CommunicationScores {
   clarity: number;
   toneMatch: string;
   escalationRisk: "low" | "medium" | "high";
+  riskScore?: number;
+  escalationProbability?: number;
+  relationshipImpact?: string;
 }
 
 // ─── User Profile ──────────────────────────────────────────────
