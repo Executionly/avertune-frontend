@@ -53,7 +53,7 @@ export function DifferentiatorsSection() {
             </h2>
             <p className="text-base text-white/55 max-w-[520px] mx-auto leading-[1.7] reveal reveal-d2">
               The real moat is structured communication intelligence, memory,
-              outcomes, playbooks, and organisational workflows.
+              outcomes, playbooks, and organizational workflows.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState } from "react";
 import { formatTime } from "@/lib/utils";
 import { IntelligenceResultCard } from "./IntelligenceResultCard";
-import { getSampleMessages } from "@/lib/api/intelligence";
+import { ModeSampleDropdown } from "./ModeSampleDropdown";
 import type { ChatMessage, ModeId } from "@/lib/types";
 
 interface ChatMessagesProps {
@@ -95,7 +95,7 @@ function TypedHeading() {
     return () => clearInterval(iv);
   }, []);
   return (
-    <h2 className="text-[20px] font-semibold text-[var(--text-primary)] min-h-[30px]">
+    <h2 className="text-[30px] font-semibold text-[var(--text-primary)] min-h-[30px]">
       {displayed}
       <span
         className="inline-block w-0.5 h-[1.1em] bg-violet-500 ml-0.5 align-middle animate-pulse"
@@ -180,8 +180,6 @@ function StreamingIndicator({
   );
 }
 
-const NO_SAMPLES: string[] = [];
-
 export function ChatMessages({
   messages,
   isTyping,
@@ -194,37 +192,8 @@ export function ChatMessages({
   activeMode = "professional",
 }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [emptySamples, setEmptySamples] = useState<string[]>(NO_SAMPLES);
   // Track which mode the last fetch was for to avoid stale updates
   const fetchedModeRef = useRef<string>("");
-
-  useEffect(() => {
-    // Clear samples immediately when mode changes — no hardcoded fallbacks
-    setEmptySamples(NO_SAMPLES);
-
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("access_token")
-        : null;
-    if (!token) return;
-
-    const modeAtFetchTime = activeMode;
-    fetchedModeRef.current = modeAtFetchTime;
-
-    getSampleMessages(token, activeMode)
-      .then((res) => {
-        // Guard: discard if mode changed while waiting
-        if (fetchedModeRef.current !== modeAtFetchTime) return;
-
-        // API returns { samples: [...] } — each item has a `mode` field
-        const all: any[] = res?.samples ?? res?.messages ?? [];
-        const filtered = all
-          .filter((m: any) => m.mode === modeAtFetchTime)
-          .map((m: any) => m.message ?? m.text ?? String(m));
-        if (filtered.length > 0) setEmptySamples(filtered.slice(0, 3));
-      })
-      .catch(() => {});
-  }, [activeMode]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -246,7 +215,7 @@ export function ChatMessages({
   if (messages.length === 0 && streamingPhase === "idle") {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-5 text-center px-6 overflow-hidden">
-        <div className="w-12 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+        {/*<div className="w-12 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -256,24 +225,16 @@ export function ChatMessages({
           >
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
-        </div>
+        </div>*/}
         <div className="max-w-[420px]">
           <TypedHeading />
-          <p className="text-[14px] text-[var(--text-muted)] mt-2 leading-relaxed">
+          {/*<p className="text-[14px] text-[var(--text-muted)] mt-2 leading-relaxed">
             Paste any message you received. Avertune reads the intent, scores
             the risk, and builds the best response with strategy.
-          </p>
+          </p>*/}
         </div>
-        <div className="flex flex-wrap gap-2 justify-center max-w-[480px]">
-          {emptySamples.map((s) => (
-            <button
-              key={s}
-              onClick={() => onPasteToInput?.(s)}
-              className="px-3.5 py-1.5 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-full text-[13px] text-[var(--text-muted)] hover:border-violet-400/60 hover:text-[var(--text-primary)] transition-all text-left"
-            >
-              {s.length > 65 ? s.slice(0, 65) + "…" : s}
-            </button>
-          ))}
+        <div className="max-w-[520px]">
+          <ModeSampleDropdown onSelect={(s) => onPasteToInput?.(s)} />
         </div>
       </div>
     );

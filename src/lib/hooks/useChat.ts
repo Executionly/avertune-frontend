@@ -59,6 +59,11 @@ function normaliseHistoryMessage(msg: any, mode: ModeId): ChatMessage {
                 : intel.scoring.escalation_probability > 0.25
                   ? "medium"
                   : "low",
+            riskScore: intel.scoring.risk_score ?? 0,
+            escalationProbability: intel.scoring.escalation_probability != null
+              ? Math.round(intel.scoring.escalation_probability * 100)
+              : undefined,
+            relationshipImpact: intel.scoring.relationship_impact ?? undefined,
           }
         : undefined,
       next_best_action: intel.next_best_action,
@@ -110,6 +115,11 @@ function normaliseLiveResult(output: any, mode: ModeId): IntelligenceResult {
           : scoring.escalation_probability > 0.25
             ? "medium"
             : "low",
+      riskScore: scoring.risk_score ?? 0,
+      escalationProbability: scoring.escalation_probability != null
+        ? Math.round(scoring.escalation_probability * 100)
+        : undefined,
+      relationshipImpact: scoring.relationship_impact ?? undefined,
     },
     next_best_action: output.next_best_action,
     situation_read: output.situation_read,
@@ -131,12 +141,14 @@ export interface UseChatReturn {
   loadingConversation: boolean;
   modeLocked: boolean;
   insufficientCredits: boolean;
+  chatError: string | null;
   pendingChallenge: {
     challenge: string;
     risk_type: string;
     originalMessage: string;
   } | null;
   dismissCreditsAlert: () => void;
+  dismissChatError: () => void;
   proceedChallenge: () => void;
   dismissChallenge: () => void;
   setActiveMode: (mode: ModeId) => void;
@@ -168,6 +180,7 @@ export function useChat(): UseChatReturn {
   const [loadingConversation, setLoadingConversation] = useState(false);
   const [modeLocked, setModeLocked] = useState(false);
   const [insufficientCredits, setInsufficientCredits] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
   const [pendingChallenge, setPendingChallenge] = useState<{
     challenge: string;
     risk_type: string;
@@ -189,6 +202,7 @@ export function useChat(): UseChatReturn {
     () => setInsufficientCredits(false),
     [],
   );
+  const dismissChatError = useCallback(() => setChatError(null), []);
   const dismissChallenge = useCallback(() => setPendingChallenge(null), []);
 
   // ── Load conversation ──────────────────────────────────────────────────────
@@ -316,19 +330,54 @@ export function useChat(): UseChatReturn {
         turnType === "generate";
 
       if (hasReplies) {
-        const intelligenceResult = normaliseLiveResult(output, currentMode);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: generateId(),
-            role: "assistant",
-            content: "",
-            timestamp: new Date(),
-            intelligenceResult,
-            turnType: "generate",
-            conversationId: convId ?? threadIdRef.current,
-          } as ChatMessage & { conversationId?: string },
-        ]);
+        // Prefer fetching the canonical conversation from server.
+        // Only fall back to the live-assembled result if the fetch fails.
+        const fetchConvId = convId ?? threadIdRef.current;
+        const token = localStorage.getItem("access_token");
+        if (fetchConvId && token) {
+          getConversationMessages(token, fetchConvId)
+            .then((d) => {
+              if (d.stats) setSessionStats(d.stats);
+              if (d.messages && d.messages.length > 0) {
+                const serverMode = (d.conversation?.mode as ModeId) ?? currentMode;
+                const loaded = d.messages.map((m: any) =>
+                  normaliseHistoryMessage(m, serverMode),
+                );
+                setMessages(loaded);
+              }
+            })
+            .catch(() => {
+              // Fallback: render live-assembled result
+              const intelligenceResult = normaliseLiveResult(output, currentMode);
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: generateId(),
+                  role: "assistant",
+                  content: "",
+                  timestamp: new Date(),
+                  intelligenceResult,
+                  turnType: "generate",
+                  conversationId: fetchConvId,
+                } as ChatMessage & { conversationId?: string },
+              ]);
+            });
+        } else {
+          // No conv ID yet — render live result directly
+          const intelligenceResult = normaliseLiveResult(output, currentMode);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: generateId(),
+              role: "assistant",
+              content: "",
+              timestamp: new Date(),
+              intelligenceResult,
+              turnType: "generate",
+              conversationId: convId ?? threadIdRef.current,
+            } as ChatMessage & { conversationId?: string },
+          ]);
+        }
         return;
       }
 
@@ -421,30 +470,14 @@ export function useChat(): UseChatReturn {
             onError: (message) => {
               setStreamingPhase("idle");
               setIsTyping(false);
-              setMessages((prev) => [
-                ...prev,
-                {
-                  id: generateId(),
-                  role: "assistant",
-                  content: message || "Something went wrong. Please try again.",
-                  timestamp: new Date(),
-                },
-              ]);
+              setChatError(message || "Something went wrong. Please try again.");
             },
           },
         );
       } catch (err: any) {
         setStreamingPhase("idle");
         setIsTyping(false);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: generateId(),
-            role: "assistant",
-            content: err?.message ?? "Something went wrong. Please try again.",
-            timestamp: new Date(),
-          },
-        ]);
+        setChatError(err?.message ?? "Something went wrong. Please try again.");
       }
     },
     [applyUsage, handleComplete],
@@ -475,8 +508,10 @@ export function useChat(): UseChatReturn {
     loadingConversation,
     modeLocked,
     insufficientCredits,
+    chatError,
     pendingChallenge,
     dismissCreditsAlert,
+    dismissChatError,
     proceedChallenge,
     dismissChallenge,
     setActiveMode,

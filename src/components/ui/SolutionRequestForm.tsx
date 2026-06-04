@@ -76,7 +76,7 @@ export function SolutionRequestForm({
     >
       <div>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-          Request customisation
+          Request customization
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Tell us about your needs and we'll get back to you.

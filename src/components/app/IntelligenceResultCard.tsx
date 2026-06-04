@@ -68,14 +68,17 @@ function ScoreBar({
   label,
   value,
   max = 100,
+  invertColor = false,
 }: {
   label: string;
   value: number;
   max?: number;
+  invertColor?: boolean;
 }) {
   const pct = Math.min(Math.round((value / max) * 100), 100);
-  const color =
-    pct > 70 ? "bg-emerald-500" : pct > 40 ? "bg-amber-400" : "bg-red-400";
+  const color = invertColor
+    ? pct > 70 ? "bg-red-400" : pct > 40 ? "bg-amber-400" : "bg-emerald-500"
+    : pct > 70 ? "bg-emerald-500" : pct > 40 ? "bg-amber-400" : "bg-red-400";
   return (
     <div className="flex items-center gap-2.5">
       <span className="text-[11px] text-[var(--text-muted)] w-20 flex-shrink-0">
@@ -272,7 +275,7 @@ export function IntelligenceResultCard({
 
       {/* ── Scoring bars ── */}
       {result.scores &&
-        (result.scores.confidence > 0 || result.scores.clarity > 0) && (
+        (result.scores.confidence > 0 || result.scores.clarity > 0 || (result.scores.riskScore ?? 0) > 0) && (
           <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] px-4 py-3 space-y-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)] mb-2.5">
               Scores
@@ -282,6 +285,39 @@ export function IntelligenceResultCard({
             )}
             {result.scores.clarity > 0 && (
               <ScoreBar label="Clarity" value={result.scores.clarity} />
+            )}
+            {(result.scores.riskScore ?? 0) > 0 && (
+              <ScoreBar
+                label="Risk"
+                value={result.scores.riskScore!}
+                invertColor
+              />
+            )}
+            {result.scores.escalationProbability != null && result.scores.escalationProbability > 0 && (
+              <ScoreBar
+                label="Escalation %"
+                value={result.scores.escalationProbability}
+                invertColor
+              />
+            )}
+            {result.scores.relationshipImpact && (
+              <div className="flex items-center gap-2.5 pt-1 mt-1 border-t border-[var(--card-border)]">
+                <span className="text-[11px] text-[var(--text-muted)] w-20 flex-shrink-0">
+                  Relationship
+                </span>
+                <span
+                  className={cn(
+                    "text-[11px] font-semibold capitalize px-2 py-0.5 rounded-full",
+                    result.scores.relationshipImpact === "positive"
+                      ? "text-emerald-400 bg-emerald-400/10"
+                      : result.scores.relationshipImpact === "negative"
+                        ? "text-red-400 bg-red-400/10"
+                        : "text-[var(--text-muted)] bg-[var(--card-muted-bg)]",
+                  )}
+                >
+                  {result.scores.relationshipImpact}
+                </span>
+              </div>
             )}
           </div>
         )}
