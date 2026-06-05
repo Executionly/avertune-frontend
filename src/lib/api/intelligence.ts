@@ -219,8 +219,11 @@ export async function analyseMessageStream(
         if (eventType === "capability") callbacks.onCapability?.(parsed);
         else if (eventType === "credits") callbacks.onCredits?.(parsed);
         else if (eventType === "chunk") callbacks.onChunk?.(parsed.text ?? "");
-        else if (eventType === "complete") callbacks.onComplete?.(parsed);
-        else if (eventType === "error")
+        else if (eventType === "complete") {
+          // Ensure the complete event has an output wrapper for consistency
+          const completeData = parsed.output ? parsed : { output: parsed };
+          callbacks.onComplete?.(completeData);
+        } else if (eventType === "error")
           callbacks.onError?.(parsed.message ?? "Stream error");
       } catch {}
     }
