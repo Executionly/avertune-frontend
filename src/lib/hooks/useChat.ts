@@ -16,6 +16,8 @@ const LAST_CONV_KEY = "avertune_last_conversation_id";
 // ── Normalise a history message → ChatMessage ─────────────────────────────────
 function normaliseHistoryMessage(msg: any, mode: ModeId): ChatMessage {
   const intel = msg.intelligence ?? msg.intelligence_result ?? null;
+  // scoring may live at top level on the message or inside intelligence
+  const topScoring = msg.scoring ?? null;
   const turnType: string = intel?.turn_type ?? "";
 
   if (
@@ -33,42 +35,87 @@ function normaliseHistoryMessage(msg: any, mode: ModeId): ChatMessage {
     };
   }
 
-  if (
+  // Detect generate shape: has recommended/alternative/answer/strategic_reasoning
+  const isGenerateShape =
     intel.replies ||
     intel.responses ||
     intel.emails ||
-    turnType === "generate"
-  ) {
-    const analysis = intel.analysis ?? {};
-    const replies = intel.replies ?? intel.responses ?? intel.emails ?? {};
+    intel.recommended ||
+    intel.alternative ||
+    intel.answer ||
+    intel.strategic_reasoning ||
+    turnType === "generate";
+
+  if (isGenerateShape) {
+    // Build replies map from whatever shape the API returned
+    let replies: Record<string, any> = {};
+
+    if (intel.replies) {
+      // Already in replies map shape
+      replies = intel.replies;
+    } else if (intel.emails) {
+      replies = intel.emails;
+    } else if (intel.responses) {
+      replies = intel.responses;
+    } else {
+      // New shape: recommended + alternative objects
+      if (intel.recommended && typeof intel.recommended === "object") {
+        replies["recommended"] = {
+          text: intel.recommended.advice ?? "",
+          insight: intel.recommended.why_this_works ?? "",
+          action_steps: intel.recommended.action_steps,
+          what_to_avoid: intel.recommended.what_to_avoid,
+        };
+      }
+      if (intel.alternative && typeof intel.alternative === "object") {
+        replies["alternative"] = {
+          text: intel.alternative.advice ?? "",
+          insight: intel.alternative.why_this_works ?? "",
+          action_steps: intel.alternative.action_steps,
+        };
+      }
+    }
+
+    const scoring = topScoring ?? intel.scoring ?? {};
+
     const intelligenceResult: IntelligenceResult = {
       mode,
-      riskLevel: analysis.risk_level ?? "low",
-      analysis: analysis.intent ?? analysis.tone ?? "",
-      strategy: analysis.strategy ?? "",
-      recommended: intel.recommended,
-      replies,
-      scores: intel.scoring
-        ? {
-            confidence: intel.scoring.confidence_score ?? 0,
-            clarity: intel.scoring.intent_clarity_score ?? 0,
-            toneMatch: intel.scoring.tone_detected ?? "",
-            escalationRisk:
-              intel.scoring.escalation_probability > 0.5
-                ? "high"
-                : intel.scoring.escalation_probability > 0.25
-                  ? "medium"
-                  : "low",
-            riskScore: intel.scoring.risk_score ?? 0,
-            escalationProbability: intel.scoring.escalation_probability != null
-              ? Math.round(intel.scoring.escalation_probability * 100)
-              : undefined,
-            relationshipImpact: intel.scoring.relationship_impact ?? undefined,
-          }
-        : undefined,
-      next_best_action: intel.next_best_action,
+      riskLevel:
+        (scoring.risk_score ?? 0) > 65
+          ? "high"
+          : (scoring.risk_score ?? 0) > 35
+            ? "medium"
+            : "low",
+      analysis: intel.answer ?? intel.strategic_reasoning ?? "",
+      strategy:
+        intel.strategic_reasoning && intel.answer
+          ? intel.strategic_reasoning
+          : "",
+      recommended: intel.recommended ? "recommended" : undefined,
+      replies: Object.keys(replies).length > 0 ? replies : undefined,
+      scores:
+        Object.keys(scoring).length > 0
+          ? {
+              confidence: scoring.confidence_score ?? 0,
+              clarity: scoring.intent_clarity_score ?? 0,
+              toneMatch: scoring.tone_detected ?? "",
+              escalationRisk:
+                (scoring.escalation_probability ?? 0) > 0.5
+                  ? "high"
+                  : (scoring.escalation_probability ?? 0) > 0.25
+                    ? "medium"
+                    : "low",
+              riskScore: scoring.risk_score ?? 0,
+              escalationProbability:
+                scoring.escalation_probability != null
+                  ? Math.round(scoring.escalation_probability * 100)
+                  : undefined,
+              relationshipImpact: scoring.relationship_impact ?? undefined,
+            }
+          : undefined,
+      next_best_action: intel.next_best_action ?? msg.next_best_action,
       situation_read: intel.situation_read,
-      coach_note: intel.coach_note,
+      coach_note: intel.coach_note ?? msg.coach_note,
     };
     return {
       id: msg.id ?? generateId(),
@@ -91,7 +138,38 @@ function normaliseHistoryMessage(msg: any, mode: ModeId): ChatMessage {
 // ── Normalise live complete output → IntelligenceResult ──────────────────────
 function normaliseLiveResult(output: any, mode: ModeId): IntelligenceResult {
   const scoring = output.scoring ?? {};
-  const replies = output.replies ?? output.responses ?? output.emails ?? {};
+
+  // Build replies from whatever shape came back
+  let replies: Record<string, any> = {};
+  let recommendedKey: string | undefined;
+
+  if (output.replies) {
+    replies = output.replies;
+    recommendedKey = output.recommended;
+  } else if (output.emails) {
+    replies = output.emails;
+    recommendedKey = output.recommended;
+  } else if (output.responses) {
+    replies = output.responses;
+  } else {
+    // New shape: recommended + alternative objects
+    if (output.recommended && typeof output.recommended === "object") {
+      replies["recommended"] = {
+        text: output.recommended.advice ?? "",
+        insight: output.recommended.why_this_works ?? "",
+        action_steps: output.recommended.action_steps,
+        what_to_avoid: output.recommended.what_to_avoid,
+      };
+      recommendedKey = "recommended";
+    }
+    if (output.alternative && typeof output.alternative === "object") {
+      replies["alternative"] = {
+        text: output.alternative.advice ?? "",
+        insight: output.alternative.why_this_works ?? "",
+        action_steps: output.alternative.action_steps,
+      };
+    }
+  }
 
   return {
     mode,
@@ -101,24 +179,28 @@ function normaliseLiveResult(output: any, mode: ModeId): IntelligenceResult {
         : scoring.risk_score > 35
           ? "medium"
           : "low",
-    analysis: "",
-    strategy: "",
-    recommended: output.recommended,
-    replies,
+    analysis: output.answer ?? output.strategic_reasoning ?? "",
+    strategy:
+      output.strategic_reasoning && output.answer
+        ? output.strategic_reasoning
+        : "",
+    recommended: recommendedKey,
+    replies: Object.keys(replies).length > 0 ? replies : undefined,
     scores: {
       confidence: scoring.confidence_score ?? 0,
       clarity: scoring.intent_clarity_score ?? 0,
       toneMatch: scoring.tone_detected ?? "",
       escalationRisk:
-        scoring.escalation_probability > 0.5
+        (scoring.escalation_probability ?? 0) > 0.5
           ? "high"
-          : scoring.escalation_probability > 0.25
+          : (scoring.escalation_probability ?? 0) > 0.25
             ? "medium"
             : "low",
       riskScore: scoring.risk_score ?? 0,
-      escalationProbability: scoring.escalation_probability != null
-        ? Math.round(scoring.escalation_probability * 100)
-        : undefined,
+      escalationProbability:
+        scoring.escalation_probability != null
+          ? Math.round(scoring.escalation_probability * 100)
+          : undefined,
       relationshipImpact: scoring.relationship_impact ?? undefined,
     },
     next_best_action: output.next_best_action,
@@ -251,7 +333,6 @@ export function useChat(): UseChatReturn {
     localStorage.removeItem(LAST_CONV_KEY);
   }, []);
 
-  // ── handleComplete — called by both streaming onComplete and non-streaming ──
   const handleComplete = useCallback(
     (
       data: any,
@@ -277,7 +358,6 @@ export function useChat(): UseChatReturn {
         threadIdRef.current = convId;
         setModeLocked(true);
         localStorage.setItem(LAST_CONV_KEY, convId);
-        setRefreshSidebar((n) => n + 1);
       }
 
       // ── Insufficient credits ──
@@ -293,7 +373,7 @@ export function useChat(): UseChatReturn {
         setPendingChallenge({
           challenge: output.challenge ?? data.challenge ?? "",
           risk_type: output.risk_type ?? data.risk_type ?? "",
-          originalMessage: "", // set at call site
+          originalMessage: "",
         });
         return;
       }
@@ -322,7 +402,7 @@ export function useChat(): UseChatReturn {
         return;
       }
 
-      // ── Generate ──
+      // ── Generate ── FIXED VERSION
       const hasReplies =
         output.replies ||
         output.responses ||
@@ -330,53 +410,54 @@ export function useChat(): UseChatReturn {
         turnType === "generate";
 
       if (hasReplies) {
-        // Prefer fetching the canonical conversation from server.
-        // Only fall back to the live-assembled result if the fetch fails.
+        // ✅ FIX: Display the response IMMEDIATELY from the stream data
+        const intelligenceResult = normaliseLiveResult(output, currentMode);
+        const assistantMsgId = generateId();
+
+        // Add the assistant message RIGHT NOW
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantMsgId,
+            role: "assistant",
+            content: "",
+            timestamp: new Date(),
+            intelligenceResult,
+            turnType: "generate",
+            conversationId: convId ?? threadIdRef.current,
+          } as ChatMessage & { conversationId?: string },
+        ]);
+
+        // Then refresh stats in the background (don't block the UI)
         const fetchConvId = convId ?? threadIdRef.current;
         const token = localStorage.getItem("access_token");
         if (fetchConvId && token) {
           getConversationMessages(token, fetchConvId)
             .then((d) => {
               if (d.stats) setSessionStats(d.stats);
-              if (d.messages && d.messages.length > 0) {
-                const serverMode = (d.conversation?.mode as ModeId) ?? currentMode;
+              setRefreshSidebar((n) => n + 1);
+              // Don't replace messages - just update stats
+              // Only update messages if needed (like if server has additional data)
+              if (
+                d.messages &&
+                d.messages.length > 0 &&
+                d.messages.length > messages.length + 1
+              ) {
+                const serverMode =
+                  (d.conversation?.mode as ModeId) ?? currentMode;
                 const loaded = d.messages.map((m: any) =>
                   normaliseHistoryMessage(m, serverMode),
                 );
-                setMessages(loaded);
+                // Only update if we're missing messages
+                if (loaded.length > messages.length) {
+                  setMessages(loaded);
+                }
               }
             })
             .catch(() => {
-              // Fallback: render live-assembled result
-              const intelligenceResult = normaliseLiveResult(output, currentMode);
-              setMessages((prev) => [
-                ...prev,
-                {
-                  id: generateId(),
-                  role: "assistant",
-                  content: "",
-                  timestamp: new Date(),
-                  intelligenceResult,
-                  turnType: "generate",
-                  conversationId: fetchConvId,
-                } as ChatMessage & { conversationId?: string },
-              ]);
+              // Silent fail - we already showed the message
+              console.debug("Failed to refresh conversation stats");
             });
-        } else {
-          // No conv ID yet — render live result directly
-          const intelligenceResult = normaliseLiveResult(output, currentMode);
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: generateId(),
-              role: "assistant",
-              content: "",
-              timestamp: new Date(),
-              intelligenceResult,
-              turnType: "generate",
-              conversationId: convId ?? threadIdRef.current,
-            } as ChatMessage & { conversationId?: string },
-          ]);
         }
         return;
       }
@@ -402,9 +483,10 @@ export function useChat(): UseChatReturn {
         ]);
       }
     },
-    [],
+    [setRefreshSidebar], // Add any other dependencies
   );
 
+  // ── Core send logic ────────────────────────────────────────────────────────
   // ── Core send logic ────────────────────────────────────────────────────────
   const sendMessageInternal = useCallback(
     async (content: string, skipChallenge = false) => {
@@ -444,19 +526,140 @@ export function useChat(): UseChatReturn {
             onCredits: ({ credits_used, credits_remaining }) => {
               applyUsage(credits_used, credits_remaining);
             },
-            // ⚠️  Chunks are raw JSON fragments — we NEVER display them.
-            // We only flip phase to "receiving" so the UI shows "building response…"
             onChunk: () => {
               setStreamingPhase("receiving");
             },
-            onComplete: (output) => {
-              handleComplete(output, currentMode, userMsgId);
+            onComplete: (data) => {
+              console.log("🔵 COMPLETE EVENT RECEIVED:", data);
+              console.log("🔵 DATA STRUCTURE:", Object.keys(data));
+              // Extract the actual output from the wrapper
+              const output = data.output ?? data;
+              console.log("🔵 OUTPUT:", Object.keys(output));
+              console.log("🔵 TURN TYPE:", output.turn_type);
+              const turnType = output.turn_type ?? "";
+
+              // Turn off loading states
+              setStreamingPhase("idle");
+              setIsTyping(false);
+              setDetectedCapability("");
+
+              // Save conversation ID
+              const convId =
+                output.conversation_id ??
+                output.thread_id ??
+                data.conversation_id ??
+                data.thread_id;
+              if (convId && !threadIdRef.current) {
+                setThreadId(convId);
+                threadIdRef.current = convId;
+                setModeLocked(true);
+                localStorage.setItem(LAST_CONV_KEY, convId);
+              }
+
+              // Handle different response types
+              if (turnType === "insufficient_credits") {
+                setInsufficientCredits(true);
+                setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
+                return;
+              }
+
+              if (turnType === "challenge") {
+                setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
+                setPendingChallenge({
+                  challenge: output.challenge ?? "",
+                  risk_type: output.risk_type ?? "",
+                  originalMessage: content,
+                });
+                return;
+              }
+
+              if (turnType === "clarify") {
+                const questions = (output.questions ?? []).map(
+                  (q: any) => q.question ?? q,
+                );
+                const text = questions.length
+                  ? "I need a bit more context:\n\n" +
+                    questions.map((q: string) => `• ${q}`).join("\n")
+                  : (output.reply ?? "Can you give me more context?");
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    id: generateId(),
+                    role: "assistant",
+                    content: text,
+                    timestamp: new Date(),
+                    turnType: "clarify",
+                  },
+                ]);
+                return;
+              }
+
+              // ✅ GENERATE RESPONSE - Show immediately from the stream data
+              const hasReplies =
+                output.replies ||
+                output.responses ||
+                output.emails ||
+                turnType === "generate";
+
+              if (hasReplies) {
+                // Create intelligence result from the output
+                const intelligenceResult = normaliseLiveResult(
+                  output,
+                  currentMode,
+                );
+
+                // After setMessages
+                setMessages((prev) => {
+                  console.log("🔵 Messages after update:", prev.length);
+                  return [
+                    ...prev,
+                    {
+                      id: generateId(),
+                      role: "assistant",
+                      content: "",
+                      timestamp: new Date(),
+                      intelligenceResult,
+                      turnType: "generate",
+                      conversationId: convId ?? threadIdRef.current,
+                    } as ChatMessage,
+                  ];
+                });
+                // Refresh stats in background (don't await, don't block UI)
+                const fetchConvId = convId ?? threadIdRef.current;
+                if (fetchConvId && token) {
+                  getConversationMessages(token, fetchConvId)
+                    .then((d) => {
+                      if (d.stats) setSessionStats(d.stats);
+                      setRefreshSidebar((n) => n + 1);
+                    })
+                    .catch(() => console.debug("Stats refresh failed"));
+                }
+                return;
+              }
+
+              // Free reply / followup
+              const text =
+                output.reply ?? output.followup_prompt ?? output.message ?? "";
+              if (text) {
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    id: generateId(),
+                    role: "assistant",
+                    content: text,
+                    timestamp: new Date(),
+                    turnType,
+                  },
+                ]);
+              }
             },
             onNonStream: (data) => {
-              const turnType: string = data.turn_type ?? "";
+              // Only used for non-streaming responses
+              const turnType = data.turn_type ?? "";
+              setStreamingPhase("idle");
+              setIsTyping(false);
+
               if (turnType === "challenge") {
-                setStreamingPhase("idle");
-                setIsTyping(false);
                 setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
                 setPendingChallenge({
                   challenge: data.challenge ?? "",
@@ -465,12 +668,56 @@ export function useChat(): UseChatReturn {
                 });
                 return;
               }
-              handleComplete(data, currentMode, userMsgId);
+
+              // Handle non-streaming generate response
+              if (data.recommended || data.alternative || data.answer) {
+                const intelligenceResult = normaliseLiveResult(
+                  data,
+                  currentMode,
+                );
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    id: generateId(),
+                    role: "assistant",
+                    content: "",
+                    timestamp: new Date(),
+                    intelligenceResult,
+                    turnType: "generate",
+                    conversationId: data.thread_id ?? threadIdRef.current,
+                  } as ChatMessage,
+                ]);
+
+                // Save conversation ID if present
+                const convId = data.thread_id;
+                if (convId && !threadIdRef.current) {
+                  setThreadId(convId);
+                  threadIdRef.current = convId;
+                  setModeLocked(true);
+                  localStorage.setItem(LAST_CONV_KEY, convId);
+                }
+                return;
+              }
+
+              // Default: show plain text response
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: generateId(),
+                  role: "assistant",
+                  content: data.reply ?? data.message ?? "Response received",
+                  timestamp: new Date(),
+                },
+              ]);
             },
             onError: (message) => {
               setStreamingPhase("idle");
               setIsTyping(false);
-              setChatError(message || "Something went wrong. Please try again.");
+              setChatError(
+                message || "Something went wrong. Please try again.",
+              );
+              // Remove the user message if no response was shown
+              setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
             },
           },
         );
@@ -478,9 +725,10 @@ export function useChat(): UseChatReturn {
         setStreamingPhase("idle");
         setIsTyping(false);
         setChatError(err?.message ?? "Something went wrong. Please try again.");
+        setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
       }
     },
-    [applyUsage, handleComplete],
+    [applyUsage, setRefreshSidebar],
   );
 
   const proceedChallenge = useCallback(() => {
