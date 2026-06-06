@@ -87,35 +87,32 @@ function normaliseHistoryMessage(msg: any, mode: ModeId): ChatMessage {
             ? "medium"
             : "low",
       analysis: intel.answer ?? intel.strategic_reasoning ?? "",
-      strategy:
-        intel.strategic_reasoning && intel.answer
-          ? intel.strategic_reasoning
-          : "",
+      strategy: intel.strategic_reasoning && intel.answer ? intel.strategic_reasoning : "",
       recommended: intel.recommended ? "recommended" : undefined,
       replies: Object.keys(replies).length > 0 ? replies : undefined,
-      scores:
-        Object.keys(scoring).length > 0
-          ? {
-              confidence: scoring.confidence_score ?? 0,
-              clarity: scoring.intent_clarity_score ?? 0,
-              toneMatch: scoring.tone_detected ?? "",
-              escalationRisk:
-                (scoring.escalation_probability ?? 0) > 0.5
-                  ? "high"
-                  : (scoring.escalation_probability ?? 0) > 0.25
-                    ? "medium"
-                    : "low",
-              riskScore: scoring.risk_score ?? 0,
-              escalationProbability:
-                scoring.escalation_probability != null
-                  ? Math.round(scoring.escalation_probability * 100)
-                  : undefined,
-              relationshipImpact: scoring.relationship_impact ?? undefined,
-            }
-          : undefined,
+      scores: Object.keys(scoring).length > 0
+        ? {
+            confidence: scoring.confidence_score ?? 0,
+            clarity: scoring.intent_clarity_score ?? 0,
+            toneMatch: scoring.tone_detected ?? "",
+            escalationRisk:
+              (scoring.escalation_probability ?? 0) > 0.5
+                ? "high"
+                : (scoring.escalation_probability ?? 0) > 0.25
+                  ? "medium"
+                  : "low",
+            riskScore: scoring.risk_score ?? 0,
+            escalationProbability:
+              scoring.escalation_probability != null
+                ? Math.round(scoring.escalation_probability * 100)
+                : undefined,
+            relationshipImpact: scoring.relationship_impact ?? undefined,
+          }
+        : undefined,
       next_best_action: intel.next_best_action ?? msg.next_best_action,
       situation_read: intel.situation_read,
       coach_note: intel.coach_note ?? msg.coach_note,
+      scenario_planning: intel.scenario_planning,
     };
     return {
       id: msg.id ?? generateId(),
@@ -180,10 +177,7 @@ function normaliseLiveResult(output: any, mode: ModeId): IntelligenceResult {
           ? "medium"
           : "low",
     analysis: output.answer ?? output.strategic_reasoning ?? "",
-    strategy:
-      output.strategic_reasoning && output.answer
-        ? output.strategic_reasoning
-        : "",
+    strategy: output.strategic_reasoning && output.answer ? output.strategic_reasoning : "",
     recommended: recommendedKey,
     replies: Object.keys(replies).length > 0 ? replies : undefined,
     scores: {
@@ -206,6 +200,7 @@ function normaliseLiveResult(output: any, mode: ModeId): IntelligenceResult {
     next_best_action: output.next_best_action,
     situation_read: output.situation_read,
     coach_note: output.coach_note,
+    scenario_planning: output.scenario_planning,
   };
 }
 
@@ -231,6 +226,7 @@ export interface UseChatReturn {
   } | null;
   dismissCreditsAlert: () => void;
   dismissChatError: () => void;
+  silentRefreshStats: (conversationId: string) => Promise<void>;
   proceedChallenge: () => void;
   dismissChallenge: () => void;
   setActiveMode: (mode: ModeId) => void;
@@ -287,6 +283,17 @@ export function useChat(): UseChatReturn {
   const dismissChatError = useCallback(() => setChatError(null), []);
   const dismissChallenge = useCallback(() => setPendingChallenge(null), []);
 
+  // ── Silent stats refresh — no spinner, no message replacement ──────────────
+  const silentRefreshStats = useCallback(async (conversationId: string) => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+    try {
+      const data = await getConversationMessages(token, conversationId);
+      if (data.stats) setSessionStats(data.stats);
+      setRefreshSidebar((n) => n + 1);
+    } catch {}
+  }, []);
+
   // ── Load conversation ──────────────────────────────────────────────────────
   const loadConversation = useCallback(async (conversationId: string) => {
     const token = localStorage.getItem("access_token");
@@ -333,21 +340,23 @@ export function useChat(): UseChatReturn {
     localStorage.removeItem(LAST_CONV_KEY);
   }, []);
 
+  // ── handleComplete — called by both streaming onComplete and non-streaming ──
   const handleComplete = useCallback(
     (
       data: any,
       currentMode: ModeId,
       userMsgId: string,
-      skipConvCheck = false,
+      pendingSuggestedPrompts?: any[],
     ) => {
       setStreamingPhase("idle");
       setIsTyping(false);
       setDetectedCapability("");
 
       const output = data.output ?? data;
-      const turnType: string = output.turn_type ?? data.turn_type ?? "";
+      const turnType: string =
+        output.turn_type ?? data.turn_type ?? "";
 
-      // Save conversation ID
+      // Save conversation ID (always present per spec)
       const convId =
         output.conversation_id ??
         output.thread_id ??
@@ -360,7 +369,27 @@ export function useChat(): UseChatReturn {
         localStorage.setItem(LAST_CONV_KEY, convId);
       }
 
-      // ── Insufficient credits ──
+      // Suggested prompts from the event stream (arrive after complete)
+      const suggestions: string[] =
+        (pendingSuggestedPrompts ?? output.suggested_prompts ?? data.suggested_prompts ?? [])
+          .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
+          .map((p: any) => p.text ?? p);
+
+      // ── Error turn (business errors — HTTP 200 with turn_type: error) ──
+      if (turnType === "error") {
+        const code: string = output.code ?? data.code ?? "";
+        const msg: string = output.message ?? output.error ?? data.message ?? data.error ?? "Something went wrong.";
+        if (code === "INSUFFICIENT_CREDITS") {
+          setInsufficientCredits(true);
+          setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
+        } else {
+          setChatError(msg);
+          setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
+        }
+        return;
+      }
+
+      // ── Insufficient credits (legacy key) ──
       if (turnType === "insufficient_credits") {
         setInsufficientCredits(true);
         setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
@@ -386,8 +415,7 @@ export function useChat(): UseChatReturn {
           []
         ).map((q: any) => q.question ?? q);
         const text = questions.length
-          ? "I need a bit more context:\n\n" +
-            questions.map((q: string) => `• ${q}`).join("\n")
+          ? questions[0]
           : (output.reply ?? data.reply ?? "Can you give me more context?");
         setMessages((prev) => [
           ...prev,
@@ -397,72 +425,87 @@ export function useChat(): UseChatReturn {
             content: text,
             timestamp: new Date(),
             turnType: "clarify",
+            suggestions,
           },
         ]);
         return;
       }
 
-      // ── Generate ── FIXED VERSION
-      const hasReplies =
-        output.replies ||
-        output.responses ||
-        output.emails ||
-        turnType === "generate";
-
-      if (hasReplies) {
-        // ✅ FIX: Display the response IMMEDIATELY from the stream data
-        const intelligenceResult = normaliseLiveResult(output, currentMode);
-        const assistantMsgId = generateId();
-
-        // Add the assistant message RIGHT NOW
+      // ── Greeting ──
+      if (turnType === "greeting") {
+        const text = output.reply ?? output.message ?? data.reply ?? data.message ?? "";
         setMessages((prev) => [
           ...prev,
           {
-            id: assistantMsgId,
+            id: generateId(),
             role: "assistant",
-            content: "",
+            content: text,
             timestamp: new Date(),
-            intelligenceResult,
-            turnType: "generate",
-            conversationId: convId ?? threadIdRef.current,
-          } as ChatMessage & { conversationId?: string },
+            turnType: "greeting",
+            suggestions,
+          },
         ]);
+        return;
+      }
 
-        // Then refresh stats in the background (don't block the UI)
+      // ── Generate ──
+      const isGenerate =
+        turnType === "generate" ||
+        output.ready_to_generate === true ||
+        output.output ||
+        output.recommended ||
+        output.emails ||
+        output.replies ||
+        output.responses;
+
+      if (isGenerate) {
         const fetchConvId = convId ?? threadIdRef.current;
         const token = localStorage.getItem("access_token");
+
+        // Build the local result immediately so the user sees it now
+        const intelligenceResult = normaliseLiveResult(output, currentMode);
+        const newAssistantMsg: ChatMessage = {
+          id: generateId(),
+          role: "assistant",
+          content: "",
+          timestamp: new Date(),
+          intelligenceResult,
+          turnType: "generate",
+          suggestions,
+          conversationId: fetchConvId ?? undefined,
+        };
+        setMessages((prev) => [...prev, newAssistantMsg]);
+
+        // Background: update stats + sidebar only — do NOT replace messages
         if (fetchConvId && token) {
           getConversationMessages(token, fetchConvId)
             .then((d) => {
               if (d.stats) setSessionStats(d.stats);
               setRefreshSidebar((n) => n + 1);
-              // Don't replace messages - just update stats
-              // Only update messages if needed (like if server has additional data)
-              if (
-                d.messages &&
-                d.messages.length > 0 &&
-                d.messages.length > messages.length + 1
-              ) {
-                const serverMode =
-                  (d.conversation?.mode as ModeId) ?? currentMode;
-                const loaded = d.messages.map((m: any) =>
-                  normaliseHistoryMessage(m, serverMode),
-                );
-                // Only update if we're missing messages
-                if (loaded.length > messages.length) {
-                  setMessages(loaded);
-                }
-              }
             })
-            .catch(() => {
-              // Silent fail - we already showed the message
-              console.debug("Failed to refresh conversation stats");
-            });
+            .catch(() => {});
         }
         return;
       }
 
-      // ── Free reply / followup ──
+      // ── Refinement ──
+      if (turnType === "refinement") {
+        const text = output.reply ?? output.message ?? data.reply ?? data.message ?? "";
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: generateId(),
+            role: "assistant",
+            content: text,
+            timestamp: new Date(),
+            turnType: "refinement",
+            suggestions,
+          },
+        ]);
+        return;
+      }
+
+      // ── Free reply / followup / any other text turn ──
       const text =
         output.reply ??
         output.followup_prompt ??
@@ -478,15 +521,15 @@ export function useChat(): UseChatReturn {
             role: "assistant",
             content: text,
             timestamp: new Date(),
-            turnType,
+            turnType: turnType || "free_reply",
+            suggestions,
           },
         ]);
       }
     },
-    [setRefreshSidebar], // Add any other dependencies
+    [],
   );
 
-  // ── Core send logic ────────────────────────────────────────────────────────
   // ── Core send logic ────────────────────────────────────────────────────────
   const sendMessageInternal = useCallback(
     async (content: string, skipChallenge = false) => {
@@ -509,6 +552,9 @@ export function useChat(): UseChatReturn {
       setStreamingPhase("thinking");
       setDetectedCapability("");
 
+      // Collect suggested_prompts from SSE — arrives after complete event
+      let pendingPrompts: any[] | undefined;
+
       try {
         await analyseMessageStream(
           token,
@@ -529,137 +575,17 @@ export function useChat(): UseChatReturn {
             onChunk: () => {
               setStreamingPhase("receiving");
             },
-            onComplete: (data) => {
-              console.log("🔵 COMPLETE EVENT RECEIVED:", data);
-              console.log("🔵 DATA STRUCTURE:", Object.keys(data));
-              // Extract the actual output from the wrapper
-              const output = data.output ?? data;
-              console.log("🔵 OUTPUT:", Object.keys(output));
-              console.log("🔵 TURN TYPE:", output.turn_type);
-              const turnType = output.turn_type ?? "";
-
-              // Turn off loading states
-              setStreamingPhase("idle");
-              setIsTyping(false);
-              setDetectedCapability("");
-
-              // Save conversation ID
-              const convId =
-                output.conversation_id ??
-                output.thread_id ??
-                data.conversation_id ??
-                data.thread_id;
-              if (convId && !threadIdRef.current) {
-                setThreadId(convId);
-                threadIdRef.current = convId;
-                setModeLocked(true);
-                localStorage.setItem(LAST_CONV_KEY, convId);
-              }
-
-              // Handle different response types
-              if (turnType === "insufficient_credits") {
-                setInsufficientCredits(true);
-                setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
-                return;
-              }
-
-              if (turnType === "challenge") {
-                setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
-                setPendingChallenge({
-                  challenge: output.challenge ?? "",
-                  risk_type: output.risk_type ?? "",
-                  originalMessage: content,
-                });
-                return;
-              }
-
-              if (turnType === "clarify") {
-                const questions = (output.questions ?? []).map(
-                  (q: any) => q.question ?? q,
-                );
-                const text = questions.length
-                  ? "I need a bit more context:\n\n" +
-                    questions.map((q: string) => `• ${q}`).join("\n")
-                  : (output.reply ?? "Can you give me more context?");
-                setMessages((prev) => [
-                  ...prev,
-                  {
-                    id: generateId(),
-                    role: "assistant",
-                    content: text,
-                    timestamp: new Date(),
-                    turnType: "clarify",
-                  },
-                ]);
-                return;
-              }
-
-              // ✅ GENERATE RESPONSE - Show immediately from the stream data
-              const hasReplies =
-                output.replies ||
-                output.responses ||
-                output.emails ||
-                turnType === "generate";
-
-              if (hasReplies) {
-                // Create intelligence result from the output
-                const intelligenceResult = normaliseLiveResult(
-                  output,
-                  currentMode,
-                );
-
-                // After setMessages
-                setMessages((prev) => {
-                  console.log("🔵 Messages after update:", prev.length);
-                  return [
-                    ...prev,
-                    {
-                      id: generateId(),
-                      role: "assistant",
-                      content: "",
-                      timestamp: new Date(),
-                      intelligenceResult,
-                      turnType: "generate",
-                      conversationId: convId ?? threadIdRef.current,
-                    } as ChatMessage,
-                  ];
-                });
-                // Refresh stats in background (don't await, don't block UI)
-                const fetchConvId = convId ?? threadIdRef.current;
-                if (fetchConvId && token) {
-                  getConversationMessages(token, fetchConvId)
-                    .then((d) => {
-                      if (d.stats) setSessionStats(d.stats);
-                      setRefreshSidebar((n) => n + 1);
-                    })
-                    .catch(() => console.debug("Stats refresh failed"));
-                }
-                return;
-              }
-
-              // Free reply / followup
-              const text =
-                output.reply ?? output.followup_prompt ?? output.message ?? "";
-              if (text) {
-                setMessages((prev) => [
-                  ...prev,
-                  {
-                    id: generateId(),
-                    role: "assistant",
-                    content: text,
-                    timestamp: new Date(),
-                    turnType,
-                  },
-                ]);
-              }
+            onSuggestedPrompts: (prompts) => {
+              pendingPrompts = prompts;
+            },
+            onComplete: (output) => {
+              handleComplete(output, currentMode, userMsgId, pendingPrompts);
             },
             onNonStream: (data) => {
-              // Only used for non-streaming responses
-              const turnType = data.turn_type ?? "";
-              setStreamingPhase("idle");
-              setIsTyping(false);
-
+              const turnType: string = data.turn_type ?? "";
               if (turnType === "challenge") {
+                setStreamingPhase("idle");
+                setIsTyping(false);
                 setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
                 setPendingChallenge({
                   challenge: data.challenge ?? "",
@@ -668,56 +594,20 @@ export function useChat(): UseChatReturn {
                 });
                 return;
               }
-
-              // Handle non-streaming generate response
-              if (data.recommended || data.alternative || data.answer) {
-                const intelligenceResult = normaliseLiveResult(
-                  data,
-                  currentMode,
-                );
-                setMessages((prev) => [
-                  ...prev,
-                  {
-                    id: generateId(),
-                    role: "assistant",
-                    content: "",
-                    timestamp: new Date(),
-                    intelligenceResult,
-                    turnType: "generate",
-                    conversationId: data.thread_id ?? threadIdRef.current,
-                  } as ChatMessage,
-                ]);
-
-                // Save conversation ID if present
-                const convId = data.thread_id;
-                if (convId && !threadIdRef.current) {
-                  setThreadId(convId);
-                  threadIdRef.current = convId;
-                  setModeLocked(true);
-                  localStorage.setItem(LAST_CONV_KEY, convId);
-                }
-                return;
-              }
-
-              // Default: show plain text response
-              setMessages((prev) => [
-                ...prev,
-                {
-                  id: generateId(),
-                  role: "assistant",
-                  content: data.reply ?? data.message ?? "Response received",
-                  timestamp: new Date(),
-                },
-              ]);
+              const prompts =
+                (data.suggested_prompts ?? [])
+                  .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
+              handleComplete(data, currentMode, userMsgId, prompts);
             },
-            onError: (message) => {
+            onError: (message, code) => {
               setStreamingPhase("idle");
               setIsTyping(false);
-              setChatError(
-                message || "Something went wrong. Please try again.",
-              );
-              // Remove the user message if no response was shown
-              setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
+              if (code === "INSUFFICIENT_CREDITS") {
+                setInsufficientCredits(true);
+                setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
+              } else {
+                setChatError(message || "Something went wrong. Please try again.");
+              }
             },
           },
         );
@@ -725,10 +615,9 @@ export function useChat(): UseChatReturn {
         setStreamingPhase("idle");
         setIsTyping(false);
         setChatError(err?.message ?? "Something went wrong. Please try again.");
-        setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
       }
     },
-    [applyUsage, setRefreshSidebar],
+    [applyUsage, handleComplete],
   );
 
   const proceedChallenge = useCallback(() => {
@@ -760,6 +649,7 @@ export function useChat(): UseChatReturn {
     pendingChallenge,
     dismissCreditsAlert,
     dismissChatError,
+    silentRefreshStats,
     proceedChallenge,
     dismissChallenge,
     setActiveMode,

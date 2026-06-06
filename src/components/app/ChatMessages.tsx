@@ -16,6 +16,7 @@ interface ChatMessagesProps {
   onPasteToInput?: (s: string) => void;
   activeConversationId?: string;
   activeMode?: ModeId;
+  onRefetch?: () => void;
 }
 
 function AvertuneAvatar() {
@@ -190,6 +191,7 @@ export function ChatMessages({
   onPasteToInput,
   activeConversationId,
   activeMode = "professional",
+  onRefetch,
 }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   // Track which mode the last fetch was for to avoid stale updates
@@ -280,6 +282,8 @@ export function ChatMessages({
                       conversationId={
                         msg.conversationId ?? activeConversationId
                       }
+                      messageId={msg.id}
+                      onRefetch={onRefetch}
                     />
                   ) : (
                     <>
@@ -287,7 +291,6 @@ export function ChatMessages({
                         className="text-[14px] leading-[1.7] rounded-2xl px-4 py-3 text-[var(--text-primary)]"
                         style={{ background: "rgba(120,120,140,0.13)" }}
                       >
-                        {/* Render newlines for clarify multi-line messages */}
                         {msg.content.split("\n").map((line, i) => (
                           <span key={i}>
                             {line.startsWith("•") ? (
@@ -306,6 +309,20 @@ export function ChatMessages({
                       <div className="mt-1">
                         <CopyButton text={msg.content} />
                       </div>
+                      {/* Suggested prompts on clarify / greeting / free_reply / refinement */}
+                      {msg.suggestions && msg.suggestions.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {msg.suggestions.map((s, i) => (
+                            <button
+                              key={i}
+                              onClick={() => onSuggestionClick?.(s)}
+                              className="px-3 py-1.5 rounded-full text-[12.5px] border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-muted)] hover:border-violet-400/50 hover:text-[var(--text-primary)] transition-all text-left"
+                            >
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>

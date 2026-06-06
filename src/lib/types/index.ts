@@ -80,8 +80,6 @@ export interface IntelligenceReply {
   text: string;
   insight: string;
   tone_profile: { warmth: number; respect: number; confidence: number };
-  action_steps?: string[]; // ADD THIS
-  what_to_avoid?: string[]; // ADD THIS
 }
 
 export interface IntelligenceResult {
@@ -98,15 +96,10 @@ export interface IntelligenceResult {
   next_best_action?: string;
   coach_note?: string;
   situation_read?: string;
-  alternative?: {
-    advice: string;
-    why_this_works: string;
-    action_steps?: string[];
-  };
   scenario_planning?: {
-    worst_case?: string;
     if_things_go_well?: string;
     if_things_get_complicated?: string;
+    worst_case?: string;
   };
 }
 
