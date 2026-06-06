@@ -17,6 +17,7 @@ const CATEGORIES: { id: ModeId; label: string }[] = [
 
 export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
   const [openTab, setOpenTab] = useState<ModeId | null>(null);
+  const [dropUp, setDropUp] = useState(true);
   const [samples, setSamples] = useState<Record<ModeId, string[]>>({
     professional: [],
     sales: [],
@@ -24,9 +25,9 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
   });
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRefs = useRef<Partial<Record<ModeId, HTMLButtonElement>>>({});
   const fetched = useRef(false);
 
-  // Fetch all samples once
   useEffect(() => {
     if (fetched.current) return;
     fetched.current = true;
@@ -54,7 +55,6 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
       .finally(() => setLoading(false));
   }, []);
 
-  // Close when clicking outside
   useEffect(() => {
     if (!openTab) return;
     const handler = (e: MouseEvent) => {
@@ -65,6 +65,22 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [openTab]);
+
+  const handleToggle = (id: ModeId) => {
+    if (openTab === id) {
+      setOpenTab(null);
+      return;
+    }
+    // Detect whether to open up or down based on available space
+    const btn = buttonRefs.current[id];
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      setDropUp(spaceBelow < 280 || spaceAbove > spaceBelow);
+    }
+    setOpenTab(id);
+  };
 
   const handleSelect = (msg: string) => {
     onSelect(msg);
@@ -80,7 +96,8 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
         return (
           <div key={cat.id} className="relative">
             <button
-              onClick={() => setOpenTab(isOpen ? null : cat.id)}
+              ref={(el) => { if (el) buttonRefs.current[cat.id] = el; }}
+              onClick={() => handleToggle(cat.id)}
               className={cn(
                 "px-3.5 py-1.5 rounded-full text-[13px] border transition-all",
                 isOpen
@@ -92,7 +109,12 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
             </button>
 
             {isOpen && (
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-[340px] bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl shadow-xl overflow-hidden z-50">
+              <div
+                className={cn(
+                  "absolute left-1/2 -translate-x-1/2 w-[340px] bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl shadow-xl overflow-hidden z-50",
+                  dropUp ? "bottom-full mb-2" : "top-full mt-2",
+                )}
+              >
                 {loading ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="w-5 h-5 rounded-full border-2 border-violet-500/30 border-t-violet-500 animate-spin" />

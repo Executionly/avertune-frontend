@@ -35,6 +35,7 @@ export default function AppPage() {
     pendingChallenge,
     dismissCreditsAlert,
     dismissChatError,
+    silentRefreshStats,
     proceedChallenge,
     dismissChallenge,
     setActiveMode,
@@ -116,6 +117,7 @@ export default function AppPage() {
             onPasteToInput={handlePasteToInput}
             activeConversationId={threadId}
             activeMode={activeMode}
+            onRefetch={() => threadId && silentRefreshStats(threadId)}
           />
 
           {/* Challenge warning */}
