@@ -144,7 +144,111 @@ export function IntelligenceResultCard({
 
   return (
     <div className="space-y-3 text-[14px] max-w-[640px]">
-      {/* ── Header row: risk badge + scores ── */}
+
+      {/* ── Degraded / preview plan ── */}
+      {result.is_degraded && (
+        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 overflow-hidden">
+          {/* Preview badge */}
+          <div className="flex items-center gap-2 px-4 pt-3 pb-2 border-b border-amber-500/15">
+            <span className="px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-amber-400/15 text-amber-400 border border-amber-400/25 uppercase tracking-wide">
+              Preview
+            </span>
+            <span className="text-[12px] text-[var(--text-muted)]">
+              Limited response — upgrade to unlock full analysis
+            </span>
+          </div>
+
+          <div className="px-4 py-3 space-y-3">
+            {/* Situation read */}
+            {result.situation_read && (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)] mb-1">
+                  Situation read
+                </p>
+                <p className="text-[13.5px] text-[var(--text-primary)] leading-[1.65]">
+                  {result.situation_read}
+                </p>
+              </div>
+            )}
+
+            {/* Advice */}
+            {result.replies?.advice?.insight && (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)] mb-1">
+                  Basic advice
+                </p>
+                <p className="text-[13.5px] text-[var(--text-secondary)] leading-[1.65]">
+                  {result.replies.advice.insight}
+                </p>
+              </div>
+            )}
+
+            {/* Suggested message */}
+            {result.replies?.advice?.text && (
+              <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)] mb-2">
+                  Suggested message
+                </p>
+                <p className="text-[13.5px] text-[var(--text-primary)] leading-[1.7] whitespace-pre-wrap">
+                  {result.replies.advice.text}
+                </p>
+                <CopyBtn text={result.replies.advice.text} />
+              </div>
+            )}
+
+            {/* Next best action */}
+            {result.next_best_action && (
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-violet-500/8 border border-violet-500/20">
+                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5 text-violet-400 flex-shrink-0 mt-0.5">
+                  <path d="M7 1v6l3 3" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="7" cy="7" r="6" />
+                </svg>
+                <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">
+                  {result.next_best_action}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Locked features + upgrade CTA */}
+          {result.upgrade_message && (
+            <div className="px-4 pb-4 space-y-3">
+              <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card-muted-bg)] p-3">
+                <p className="text-[12px] text-[var(--text-muted)] leading-[1.55] mb-2">
+                  {result.upgrade_message}
+                </p>
+                {result.locked_features && result.locked_features.length > 0 && (
+                  <ul className="space-y-1">
+                    {result.locked_features.map((f, i) => (
+                      <li key={i} className="flex items-center gap-2 text-[12px] text-[var(--text-muted)]">
+                        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-2.5 h-2.5 text-violet-400/60 flex-shrink-0">
+                          <rect x="2" y="4.5" width="6" height="4.5" rx=".8" />
+                          <path d="M3.5 4.5V3a1.5 1.5 0 013 0v1.5" strokeLinecap="round"/>
+                        </svg>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {result.available_plans && result.available_plans.length > 0 && (
+                <div className="flex gap-2 flex-wrap">
+                  {result.available_plans.map((plan) => (
+                    <div key={plan.name} className="flex-1 min-w-[120px] rounded-xl border border-violet-500/30 bg-violet-500/8 px-3 py-2">
+                      <p className="text-[12px] font-semibold text-violet-400">{plan.name}</p>
+                      <p className="text-[13px] font-bold text-[var(--text-primary)]">{plan.price}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Normal (non-degraded) card body ── */}
+      {!result.is_degraded && (<>
       <div className="flex items-center gap-2 flex-wrap">
         <span
           className={cn(
@@ -453,6 +557,8 @@ export function IntelligenceResultCard({
       )}
 
       {/* ── Outcome reporter — always shown on generate messages ── */}
+      {!result.is_degraded && null}
+      </>)}
       {conversationId && (
         <OutcomeReporter
           conversationId={conversationId}

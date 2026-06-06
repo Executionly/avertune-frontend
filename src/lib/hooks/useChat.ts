@@ -47,18 +47,32 @@ function normaliseHistoryMessage(msg: any, mode: ModeId): ChatMessage {
     turnType === "generate";
 
   if (isGenerateShape) {
-    // Build replies map from whatever shape the API returned
-    let replies: Record<string, any> = {};
+    const rawReplies = intel.replies ?? intel.emails ?? intel.responses;
+    const isDegraded =
+      rawReplies?.is_degraded === true ||
+      (rawReplies && typeof rawReplies.basic_advice === "string");
 
-    if (intel.replies) {
-      // Already in replies map shape
-      replies = intel.replies;
-    } else if (intel.emails) {
-      replies = intel.emails;
-    } else if (intel.responses) {
-      replies = intel.responses;
+    let replies: Record<string, any> = {};
+    let recommendedKey: string | undefined;
+    let situationRead: string | undefined = intel.situation_read;
+    let nextBestAction: string | undefined = intel.next_best_action ?? msg.next_best_action;
+
+    if (isDegraded) {
+      situationRead = rawReplies?.situation_read ?? situationRead;
+      nextBestAction = rawReplies?.next_best_action ?? nextBestAction;
+      if (rawReplies?.basic_advice || rawReplies?.balanced) {
+        replies = {
+          advice: {
+            text: rawReplies?.balanced ?? rawReplies?.basic_advice ?? "",
+            insight: rawReplies?.basic_advice ?? "",
+          },
+        };
+        recommendedKey = "advice";
+      }
+    } else if (rawReplies) {
+      replies = rawReplies;
+      recommendedKey = intel.recommended;
     } else {
-      // New shape: recommended + alternative objects
       if (intel.recommended && typeof intel.recommended === "object") {
         replies["recommended"] = {
           text: intel.recommended.advice ?? "",
@@ -66,6 +80,7 @@ function normaliseHistoryMessage(msg: any, mode: ModeId): ChatMessage {
           action_steps: intel.recommended.action_steps,
           what_to_avoid: intel.recommended.what_to_avoid,
         };
+        recommendedKey = "recommended";
       }
       if (intel.alternative && typeof intel.alternative === "object") {
         replies["alternative"] = {
@@ -88,7 +103,7 @@ function normaliseHistoryMessage(msg: any, mode: ModeId): ChatMessage {
             : "low",
       analysis: intel.answer ?? intel.strategic_reasoning ?? "",
       strategy: intel.strategic_reasoning && intel.answer ? intel.strategic_reasoning : "",
-      recommended: intel.recommended ? "recommended" : undefined,
+      recommended: recommendedKey,
       replies: Object.keys(replies).length > 0 ? replies : undefined,
       scores: Object.keys(scoring).length > 0
         ? {
@@ -109,10 +124,15 @@ function normaliseHistoryMessage(msg: any, mode: ModeId): ChatMessage {
             relationshipImpact: scoring.relationship_impact ?? undefined,
           }
         : undefined,
-      next_best_action: intel.next_best_action ?? msg.next_best_action,
-      situation_read: intel.situation_read,
+      next_best_action: nextBestAction,
+      situation_read: situationRead,
       coach_note: intel.coach_note ?? msg.coach_note,
       scenario_planning: intel.scenario_planning,
+      is_degraded: isDegraded,
+      upgrade_message: rawReplies?.upgrade_message ?? intel.upgrade_message,
+      upgrade_required: rawReplies?.upgrade_required ?? intel.upgrade_required,
+      locked_features: rawReplies?.locked_features ?? intel.locked_features,
+      available_plans: rawReplies?.available_plans ?? intel.available_plans,
     };
     return {
       id: msg.id ?? generateId(),
@@ -136,34 +156,55 @@ function normaliseHistoryMessage(msg: any, mode: ModeId): ChatMessage {
 function normaliseLiveResult(output: any, mode: ModeId): IntelligenceResult {
   const scoring = output.scoring ?? {};
 
-  // Build replies from whatever shape came back
-  let replies: Record<string, any> = {};
-  let recommendedKey: string | undefined;
+  // The top-level output may wrap things under output.output (streaming complete event)
+  const payload = output.output ?? output;
 
-  if (output.replies) {
-    replies = output.replies;
-    recommendedKey = output.recommended;
-  } else if (output.emails) {
-    replies = output.emails;
-    recommendedKey = output.recommended;
-  } else if (output.responses) {
-    replies = output.responses;
-  } else {
-    // New shape: recommended + alternative objects
-    if (output.recommended && typeof output.recommended === "object") {
-      replies["recommended"] = {
-        text: output.recommended.advice ?? "",
-        insight: output.recommended.why_this_works ?? "",
-        action_steps: output.recommended.action_steps,
-        what_to_avoid: output.recommended.what_to_avoid,
+  // Replies shape detection
+  const rawReplies = payload.replies ?? payload.emails ?? payload.responses;
+
+  // Detect flat/degraded shape — replies is a plain object with string values
+  // (situation_read, basic_advice, balanced, next_best_action, is_degraded…)
+  const isDegraded =
+    payload.replies?.is_degraded === true ||
+    (rawReplies && typeof rawReplies.basic_advice === "string");
+
+  let replies: Record<string, any> | undefined;
+  let recommendedKey: string | undefined;
+  let situationRead: string | undefined = payload.situation_read;
+  let nextBestAction: string | undefined = payload.next_best_action;
+
+  if (isDegraded) {
+    // Flat shape — pull fields out directly, don't treat as tab variants
+    situationRead = rawReplies?.situation_read ?? situationRead;
+    nextBestAction = rawReplies?.next_best_action ?? nextBestAction;
+    // Build a single "response" reply tab from basic_advice + balanced
+    if (rawReplies?.basic_advice || rawReplies?.balanced) {
+      replies = {
+        advice: {
+          text: rawReplies?.balanced ?? rawReplies?.basic_advice ?? "",
+          insight: rawReplies?.basic_advice ?? "",
+        },
       };
-      recommendedKey = "recommended";
+      recommendedKey = "advice";
     }
-    if (output.alternative && typeof output.alternative === "object") {
+  } else if (rawReplies) {
+    replies = rawReplies;
+    recommendedKey = payload.recommended;
+  } else if (payload.recommended && typeof payload.recommended === "object") {
+    replies = {
+      recommended: {
+        text: payload.recommended.advice ?? "",
+        insight: payload.recommended.why_this_works ?? "",
+        action_steps: payload.recommended.action_steps,
+        what_to_avoid: payload.recommended.what_to_avoid,
+      },
+    };
+    recommendedKey = "recommended";
+    if (payload.alternative && typeof payload.alternative === "object") {
       replies["alternative"] = {
-        text: output.alternative.advice ?? "",
-        insight: output.alternative.why_this_works ?? "",
-        action_steps: output.alternative.action_steps,
+        text: payload.alternative.advice ?? "",
+        insight: payload.alternative.why_this_works ?? "",
+        action_steps: payload.alternative.action_steps,
       };
     }
   }
@@ -176,11 +217,11 @@ function normaliseLiveResult(output: any, mode: ModeId): IntelligenceResult {
         : scoring.risk_score > 35
           ? "medium"
           : "low",
-    analysis: output.answer ?? output.strategic_reasoning ?? "",
-    strategy: output.strategic_reasoning && output.answer ? output.strategic_reasoning : "",
+    analysis: payload.answer ?? payload.strategic_reasoning ?? "",
+    strategy: payload.strategic_reasoning && payload.answer ? payload.strategic_reasoning : "",
     recommended: recommendedKey,
-    replies: Object.keys(replies).length > 0 ? replies : undefined,
-    scores: {
+    replies: replies && Object.keys(replies).length > 0 ? replies : undefined,
+    scores: Object.keys(scoring).length > 0 ? {
       confidence: scoring.confidence_score ?? 0,
       clarity: scoring.intent_clarity_score ?? 0,
       toneMatch: scoring.tone_detected ?? "",
@@ -196,11 +237,16 @@ function normaliseLiveResult(output: any, mode: ModeId): IntelligenceResult {
           ? Math.round(scoring.escalation_probability * 100)
           : undefined,
       relationshipImpact: scoring.relationship_impact ?? undefined,
-    },
-    next_best_action: output.next_best_action,
-    situation_read: output.situation_read,
-    coach_note: output.coach_note,
-    scenario_planning: output.scenario_planning,
+    } : undefined,
+    next_best_action: nextBestAction,
+    situation_read: situationRead,
+    coach_note: payload.coach_note,
+    scenario_planning: payload.scenario_planning,
+    is_degraded: isDegraded || payload.replies?.upgrade_required || false,
+    upgrade_message: payload.replies?.upgrade_message ?? payload.upgrade_message,
+    upgrade_required: payload.replies?.upgrade_required ?? payload.upgrade_required,
+    locked_features: payload.replies?.locked_features ?? payload.locked_features,
+    available_plans: payload.replies?.available_plans ?? payload.available_plans,
   };
 }
 
