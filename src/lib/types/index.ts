@@ -90,7 +90,6 @@ export interface IntelligenceResult {
   strategy: string;
   recommended?: string;
   replies?: Record<string, IntelligenceReply>;
-  // Legacy array shape (kept for any old normalised data)
   responses?: ResponseOption[];
   scores?: CommunicationScores;
   next_best_action?: string;
@@ -101,6 +100,12 @@ export interface IntelligenceResult {
     if_things_get_complicated?: string;
     worst_case?: string;
   };
+  // Degraded / preview plan fields
+  is_degraded?: boolean;
+  upgrade_message?: string;
+  upgrade_required?: boolean;
+  locked_features?: string[];
+  available_plans?: { name: string; price: string; features: string[] }[];
 }
 
 export interface ResponseOption {
