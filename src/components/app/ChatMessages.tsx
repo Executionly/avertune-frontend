@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { formatTime } from "@/lib/utils";
+import { formatTime, cn } from "@/lib/utils";
 import { IntelligenceResultCard } from "./IntelligenceResultCard";
 import { ModeSampleDropdown } from "./ModeSampleDropdown";
 import type { ChatMessage, ModeId } from "@/lib/types";
@@ -16,7 +16,7 @@ interface ChatMessagesProps {
   onPasteToInput?: (s: string) => void;
   activeConversationId?: string;
   activeMode?: ModeId;
-  onRefetch?: () => void;
+  onOutcomeResponse?: (text: string) => void;
 }
 
 function AvertuneAvatar() {
@@ -191,7 +191,7 @@ export function ChatMessages({
   onPasteToInput,
   activeConversationId,
   activeMode = "professional",
-  onRefetch,
+  onOutcomeResponse,
 }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   // Track which mode the last fetch was for to avoid stale updates
@@ -216,26 +216,11 @@ export function ChatMessages({
 
   if (messages.length === 0 && streamingPhase === "idle") {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-5 text-center px-6 overflow-hidden">
-        {/*<div className="w-12 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            className="w-6 h-6 text-violet-500"
-          >
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-        </div>*/}
+      <div className="flex-1 flex flex-col items-center justify-center gap-5 text-center px-6">
         <div className="max-w-[420px]">
           <TypedHeading />
-          {/*<p className="text-[14px] text-[var(--text-muted)] mt-2 leading-relaxed">
-            Paste any message you received. Avertune reads the intent, scores
-            the risk, and builds the best response with strategy.
-          </p>*/}
         </div>
-        <div className="max-w-[520px]">
+        <div className="max-w-[560px] w-full">
           <ModeSampleDropdown onSelect={(s) => onPasteToInput?.(s)} />
         </div>
       </div>
@@ -278,12 +263,14 @@ export function ChatMessages({
                     <IntelligenceResultCard
                       result={msg.intelligenceResult}
                       suggestions={msg.suggestions}
+                      suggestionCategories={msg.suggestionCategories}
                       onSuggestionClick={onSuggestionClick}
-                      conversationId={
-                        msg.conversationId ?? activeConversationId
-                      }
+                      conversationId={msg.conversationId ?? activeConversationId}
                       messageId={msg.id}
-                      onRefetch={onRefetch}
+                      capabilityDisplay={msg.capabilityDisplay}
+                      modelUsed={msg.modelUsed}
+                      naturalScore={msg.naturalScore}
+                      onOutcomeResponse={onOutcomeResponse}
                     />
                   ) : (
                     <>
@@ -312,15 +299,24 @@ export function ChatMessages({
                       {/* Suggested prompts on clarify / greeting / free_reply / refinement */}
                       {msg.suggestions && msg.suggestions.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-3">
-                          {msg.suggestions.map((s, i) => (
-                            <button
-                              key={i}
-                              onClick={() => onSuggestionClick?.(s)}
-                              className="px-3 py-1.5 rounded-full text-[12.5px] border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-muted)] hover:border-violet-400/50 hover:text-[var(--text-primary)] transition-all text-left"
-                            >
-                              {s}
-                            </button>
-                          ))}
+                          {msg.suggestions.map((s, i) => {
+                            const cat = msg.suggestionCategories?.[i] ?? "exploration";
+                            const isAction = cat === "action";
+                            return (
+                              <button
+                                key={i}
+                                onClick={() => onSuggestionClick?.(s)}
+                                className={cn(
+                                  "px-3 py-1.5 rounded-full text-[12.5px] border transition-all text-left",
+                                  isAction
+                                    ? "border-violet-500/40 bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 font-medium"
+                                    : "bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-muted)] hover:border-violet-400/60 hover:text-[var(--text-primary)]",
+                                )}
+                              >
+                                {s}
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
                     </>

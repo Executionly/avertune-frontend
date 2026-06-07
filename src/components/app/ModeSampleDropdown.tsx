@@ -124,7 +124,7 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
                     No samples available.
                   </p>
                 ) : (
-                  <div className="max-h-[260px] overflow-y-auto">
+                  <div className="max-h-[320px] overflow-y-auto overscroll-contain">
                     {catSamples.map((msg, i) => (
                       <button
                         key={i}

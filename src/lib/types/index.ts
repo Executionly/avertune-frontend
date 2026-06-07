@@ -64,7 +64,12 @@ export interface ChatMessage {
   intelligenceResult?: IntelligenceResult;
   turnType?: string;
   suggestions?: string[];
+  suggestionCategories?: string[];
   conversationId?: string;
+  messageId?: string;
+  capabilityDisplay?: string;
+  modelUsed?: string;
+  naturalScore?: number;
 }
 
 export interface ChatSession {
@@ -106,6 +111,18 @@ export interface IntelligenceResult {
   upgrade_required?: boolean;
   locked_features?: string[];
   available_plans?: { name: string; price: string; features: string[] }[];
+  // meeting_preparation extra fields
+  meeting_strategy?: string;
+  opening_statement?: string;
+  key_talking_points?: string[];
+  how_to_handle_pushback?: string;
+  // interview_prep extra fields
+  preparation_strategy?: string;
+  questions_to_ask_interviewer?: string[];
+  // cold_outreach extra fields
+  outreach_angle?: string;
+  power_dynamic?: string;
+  subject_lines?: string[];
 }
 
 export interface ResponseOption {

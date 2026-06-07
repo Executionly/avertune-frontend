@@ -247,6 +247,18 @@ function normaliseLiveResult(output: any, mode: ModeId): IntelligenceResult {
     upgrade_required: payload.replies?.upgrade_required ?? payload.upgrade_required,
     locked_features: payload.replies?.locked_features ?? payload.locked_features,
     available_plans: payload.replies?.available_plans ?? payload.available_plans,
+    // meeting_preparation
+    meeting_strategy: payload.meeting_strategy,
+    opening_statement: payload.opening_statement,
+    key_talking_points: payload.key_talking_points,
+    how_to_handle_pushback: payload.how_to_handle_pushback,
+    // interview_prep
+    preparation_strategy: payload.preparation_strategy,
+    questions_to_ask_interviewer: payload.questions_to_ask_interviewer,
+    // cold_outreach
+    outreach_angle: payload.outreach_angle,
+    power_dynamic: payload.power_dynamic,
+    subject_lines: payload.subject_lines,
   };
 }
 
@@ -265,10 +277,12 @@ export interface UseChatReturn {
   modeLocked: boolean;
   insufficientCredits: boolean;
   chatError: string | null;
+  chatErrorCode: string | null;
   pendingChallenge: {
     challenge: string;
     risk_type: string;
     originalMessage: string;
+    suggestions?: string[];
   } | null;
   dismissCreditsAlert: () => void;
   dismissChatError: () => void;
@@ -280,6 +294,7 @@ export interface UseChatReturn {
   startNewConversation: () => void;
   loadConversation: (conversationId: string) => Promise<void>;
   restoreLastConversation: () => void;
+  appendMessage: (content: string) => void;
   refreshSidebar: number;
 }
 
@@ -305,10 +320,12 @@ export function useChat(): UseChatReturn {
   const [modeLocked, setModeLocked] = useState(false);
   const [insufficientCredits, setInsufficientCredits] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  const [chatErrorCode, setChatErrorCode] = useState<string | null>(null);
   const [pendingChallenge, setPendingChallenge] = useState<{
     challenge: string;
     risk_type: string;
     originalMessage: string;
+    suggestions?: string[];
   } | null>(null);
   const [refreshSidebar, setRefreshSidebar] = useState(0);
 
@@ -326,8 +343,21 @@ export function useChat(): UseChatReturn {
     () => setInsufficientCredits(false),
     [],
   );
-  const dismissChatError = useCallback(() => setChatError(null), []);
+  const dismissChatError = useCallback(() => { setChatError(null); setChatErrorCode(null); }, []);
   const dismissChallenge = useCallback(() => setPendingChallenge(null), []);
+
+  const appendMessage = useCallback((content: string) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: generateId(),
+        role: "assistant",
+        content,
+        timestamp: new Date(),
+        turnType: "free_reply",
+      } as ChatMessage,
+    ]);
+  }, []);
 
   // ── Silent stats refresh — no spinner, no message replacement ──────────────
   const silentRefreshStats = useCallback(async (conversationId: string) => {
@@ -425,12 +455,28 @@ export function useChat(): UseChatReturn {
       if (turnType === "error") {
         const code: string = output.code ?? data.code ?? "";
         const msg: string = output.message ?? output.error ?? data.message ?? data.error ?? "Something went wrong.";
+        setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
+        setChatErrorCode(code);
+
         if (code === "INSUFFICIENT_CREDITS") {
           setInsufficientCredits(true);
-          setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
+        } else if (code === "CAPABILITY_LOCKED") {
+          setChatError(`This capability requires a higher plan. ${output.upgrade_required ? "Upgrade to unlock it." : ""}`);
+        } else if (code === "CREDIT_DEDUCTION_FAILED") {
+          setChatError("A temporary issue occurred. Your credits were not deducted — please try again.");
+        } else if (code === "GENERATION_FAILED") {
+          setChatError("Generation failed. Your credits have been refunded — please try again.");
+        } else if (code === "WORD_LIMIT_EXCEEDED") {
+          setChatError("Your message exceeds the word limit for your plan. Please shorten it and try again.");
+        } else if (code === "USER_NOT_FOUND") {
+          // Force logout — auth token valid but user record missing
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          if (typeof window !== "undefined") window.location.href = "/auth/signin";
+        } else if (code === "ACCOUNT_INACTIVE") {
+          setChatError("Your account is inactive. Please contact support.");
         } else {
           setChatError(msg);
-          setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
         }
         return;
       }
@@ -449,6 +495,7 @@ export function useChat(): UseChatReturn {
           challenge: output.challenge ?? data.challenge ?? "",
           risk_type: output.risk_type ?? data.risk_type ?? "",
           originalMessage: "",
+          suggestions,
         });
         return;
       }
@@ -508,7 +555,12 @@ export function useChat(): UseChatReturn {
         const fetchConvId = convId ?? threadIdRef.current;
         const token = localStorage.getItem("access_token");
 
-        // Build the local result immediately so the user sees it now
+        // Extract generate-specific fields from spec
+        const rawPrompts = pendingSuggestedPrompts ?? output.suggested_prompts ?? data.suggested_prompts ?? [];
+        const sortedPrompts = [...rawPrompts].sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
+        const suggestionTexts = sortedPrompts.map((p: any) => p.text ?? p);
+        const suggestionCats = sortedPrompts.map((p: any) => p.category ?? "exploration");
+
         const intelligenceResult = normaliseLiveResult(output, currentMode);
         const newAssistantMsg: ChatMessage = {
           id: generateId(),
@@ -517,8 +569,13 @@ export function useChat(): UseChatReturn {
           timestamp: new Date(),
           intelligenceResult,
           turnType: "generate",
-          suggestions,
+          suggestions: suggestionTexts,
+          suggestionCategories: suggestionCats,
           conversationId: fetchConvId ?? undefined,
+          messageId: output.message_id ?? data.message_id,
+          capabilityDisplay: output.capability_display ?? data.capability_display,
+          modelUsed: output.model_used ?? data.model_used,
+          naturalScore: output.natural_score ?? data.natural_score,
         };
         setMessages((prev) => [...prev, newAssistantMsg]);
 
@@ -648,9 +705,16 @@ export function useChat(): UseChatReturn {
             onError: (message, code) => {
               setStreamingPhase("idle");
               setIsTyping(false);
+              setChatErrorCode(code ?? null);
               if (code === "INSUFFICIENT_CREDITS") {
                 setInsufficientCredits(true);
                 setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
+              } else if (code === "USER_NOT_FOUND") {
+                localStorage.removeItem("access_token");
+                localStorage.removeItem("refresh_token");
+                if (typeof window !== "undefined") window.location.href = "/auth/signin";
+              } else if (code === "ACCOUNT_INACTIVE") {
+                setChatError("Your account is inactive. Please contact support.");
               } else {
                 setChatError(message || "Something went wrong. Please try again.");
               }
@@ -692,10 +756,12 @@ export function useChat(): UseChatReturn {
     modeLocked,
     insufficientCredits,
     chatError,
+    chatErrorCode,
     pendingChallenge,
     dismissCreditsAlert,
     dismissChatError,
     silentRefreshStats,
+    appendMessage,
     proceedChallenge,
     dismissChallenge,
     setActiveMode,
