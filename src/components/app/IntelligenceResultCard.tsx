@@ -8,10 +8,14 @@ import { OutcomeReporter } from "./OutcomeReporter";
 interface Props {
   result: IntelligenceResult;
   suggestions?: string[];
+  suggestionCategories?: string[];
   onSuggestionClick?: (s: string) => void;
   conversationId?: string;
   messageId?: string;
-  onRefetch?: () => void;
+  capabilityDisplay?: string;
+  modelUsed?: string;
+  naturalScore?: number;
+  onOutcomeResponse?: (text: string) => void;
 }
 
 function CopyBtn({ text }: { text: string }) {
@@ -117,10 +121,14 @@ const RISK_CONFIG = {
 export function IntelligenceResultCard({
   result,
   suggestions = [],
+  suggestionCategories = [],
   onSuggestionClick,
   conversationId,
   messageId,
-  onRefetch,
+  capabilityDisplay,
+  modelUsed,
+  naturalScore,
+  onOutcomeResponse,
 }: Props) {
   const [activeReply, setActiveReply] = useState<string | null>(null);
 
@@ -276,7 +284,22 @@ export function IntelligenceResultCard({
               Escalation: {result.scores.escalationRisk}
             </span>
           )}
+        {capabilityDisplay && (
+          <span className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-violet-500/30 text-violet-400 bg-violet-500/8">
+            {capabilityDisplay}
+          </span>
+        )}
+        {naturalScore != null && naturalScore > 0 && (
+          <span className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-teal-500/30 text-teal-400 bg-teal-500/8">
+            Natural {naturalScore}/100
+          </span>
+        )}
       </div>
+      {modelUsed && (
+        <p className="text-[11px] text-[var(--text-muted)] px-0.5">
+          Powered by {modelUsed}
+        </p>
+      )}
 
       {/* ── Situation read ── */}
       {result.situation_read && (
@@ -409,6 +432,19 @@ export function IntelligenceResultCard({
                   💡 {activeReplyData.insight}
                 </p>
               )}
+              {/* Tone profile */}
+              {activeReplyData.tone_profile && (
+                <div className="mt-3 pt-3 border-t border-[var(--card-border)] space-y-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)] mb-2">
+                    Tone profile
+                  </p>
+                  {(["respect", "warmth", "confidence"] as const).map((k) =>
+                    activeReplyData.tone_profile[k] != null ? (
+                      <ScoreBar key={k} label={k.charAt(0).toUpperCase() + k.slice(1)} value={activeReplyData.tone_profile[k]} />
+                    ) : null
+                  )}
+                </div>
+              )}
               <CopyBtn
                 text={
                   activeReplyData.text ?? (activeReplyData as any).body ?? ""
@@ -513,6 +549,89 @@ export function IntelligenceResultCard({
           </div>
         )}
 
+      {/* ── Capability-specific extra fields ── */}
+      {(result.meeting_strategy || result.opening_statement || result.key_talking_points?.length || result.how_to_handle_pushback ||
+        result.preparation_strategy || result.questions_to_ask_interviewer?.length ||
+        result.outreach_angle || result.power_dynamic || result.subject_lines?.length) && (
+        <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] px-4 py-3 space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)]">
+            Strategy details
+          </p>
+          {result.meeting_strategy && (
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Meeting strategy</p>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">{result.meeting_strategy}</p>
+            </div>
+          )}
+          {result.opening_statement && (
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Opening statement</p>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">{result.opening_statement}</p>
+            </div>
+          )}
+          {result.key_talking_points && result.key_talking_points.length > 0 && (
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1.5">Key talking points</p>
+              <ol className="space-y-1.5">
+                {result.key_talking_points.map((pt, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)] leading-[1.55]">
+                    <span className="w-4 h-4 rounded-full bg-violet-500/15 text-violet-400 text-[10px] font-semibold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
+                    {pt}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+          {result.how_to_handle_pushback && (
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Handling pushback</p>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">{result.how_to_handle_pushback}</p>
+            </div>
+          )}
+          {result.preparation_strategy && (
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Preparation strategy</p>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">{result.preparation_strategy}</p>
+            </div>
+          )}
+          {result.questions_to_ask_interviewer && result.questions_to_ask_interviewer.length > 0 && (
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1.5">Questions to ask</p>
+              <ul className="space-y-1">
+                {result.questions_to_ask_interviewer.map((q, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)] leading-[1.55]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400/60 flex-shrink-0 mt-[6px]" />
+                    {q}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {result.outreach_angle && (
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Outreach angle</p>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">{result.outreach_angle}</p>
+            </div>
+          )}
+          {result.power_dynamic && (
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Power dynamic</p>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">{result.power_dynamic}</p>
+            </div>
+          )}
+          {result.subject_lines && result.subject_lines.length > 0 && (
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1.5">Subject line options</p>
+              <ul className="space-y-1">
+                {result.subject_lines.map((s, i) => (
+                  <li key={i} className="text-[13px] text-[var(--text-secondary)] px-3 py-1.5 rounded-lg bg-[var(--card-muted-bg)] border border-[var(--card-border)]">{s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Next best action ── */}
       {result.next_best_action && (
         <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] px-4 py-3">
@@ -563,23 +682,31 @@ export function IntelligenceResultCard({
         <OutcomeReporter
           conversationId={conversationId}
           messageId={messageId ?? conversationId}
-          onRefetch={onRefetch}
+          onResponse={onOutcomeResponse}
         />
       )}
 
       {/* ── Follow-up suggestions ── */}
       {suggestions.length > 0 && (
         <div className="flex flex-wrap gap-2 pt-1">
-          {suggestions.map((s, i) => (
-            <button
-              key={i}
-              onClick={() => onSuggestionClick?.(s)}
-              className="px-3 py-1.5 rounded-full text-[12.5px] bg-[var(--card-bg)] border border-[var(--card-border)]
-                text-[var(--text-muted)] hover:border-violet-400/60 hover:text-[var(--text-primary)] transition-all"
-            >
-              {s}
-            </button>
-          ))}
+          {suggestions.map((s, i) => {
+            const cat = suggestionCategories[i] ?? "exploration";
+            const isAction = cat === "action";
+            return (
+              <button
+                key={i}
+                onClick={() => onSuggestionClick?.(s)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-[12.5px] border transition-all text-left",
+                  isAction
+                    ? "border-violet-500/40 bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 font-medium"
+                    : "bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-muted)] hover:border-violet-400/60 hover:text-[var(--text-primary)]",
+                )}
+              >
+                {s}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

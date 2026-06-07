@@ -307,8 +307,8 @@ export async function reportOutcome(
   token: string,
   conversationId: string,
   outcome: OutcomeRequest,
-): Promise<void> {
-  await authFetch(
+): Promise<any> {
+  return authFetch(
     `${BASE}/intelligence/conversations/${conversationId}/outcome`,
     token,
     { method: "POST", body: JSON.stringify(outcome) },

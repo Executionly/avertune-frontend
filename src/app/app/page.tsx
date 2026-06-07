@@ -32,10 +32,12 @@ export default function AppPage() {
     modeLocked,
     insufficientCredits,
     chatError,
+    chatErrorCode,
     pendingChallenge,
     dismissCreditsAlert,
     dismissChatError,
     silentRefreshStats,
+    appendMessage,
     proceedChallenge,
     dismissChallenge,
     setActiveMode,
@@ -117,7 +119,7 @@ export default function AppPage() {
             onPasteToInput={handlePasteToInput}
             activeConversationId={threadId}
             activeMode={activeMode}
-            onRefetch={() => threadId && silentRefreshStats(threadId)}
+            onOutcomeResponse={appendMessage}
           />
 
           {/* Challenge warning */}
@@ -142,20 +144,40 @@ export default function AppPage() {
                         Risk type: <span className="text-amber-400/80">{pendingChallenge.risk_type}</span>
                       </p>
                     )}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={proceedChallenge}
-                        className="px-3.5 py-1.5 rounded-lg text-[12.5px] font-medium bg-amber-400/10 border border-amber-400/30 text-amber-400 hover:bg-amber-400/20 transition-all"
-                      >
-                        Proceed anyway
-                      </button>
-                      <button
-                        onClick={dismissChallenge}
-                        className="px-3.5 py-1.5 rounded-lg text-[12.5px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-muted-bg)] transition-all"
-                      >
-                        Revise message
-                      </button>
-                    </div>
+                    {/* Use API-returned suggested_prompts if present, else fallback buttons */}
+                    {pendingChallenge.suggestions && pendingChallenge.suggestions.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {pendingChallenge.suggestions.map((s, i) => {
+                          const isProceed = s.toLowerCase().includes("yes") || s.toLowerCase().includes("proceed") || s.toLowerCase().includes("help me write");
+                          return (
+                            <button
+                              key={i}
+                              onClick={isProceed ? proceedChallenge : dismissChallenge}
+                              className={isProceed
+                                ? "px-3.5 py-1.5 rounded-lg text-[12.5px] font-medium bg-amber-400/10 border border-amber-400/30 text-amber-400 hover:bg-amber-400/20 transition-all"
+                                : "px-3.5 py-1.5 rounded-lg text-[12.5px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-muted-bg)] transition-all"}
+                            >
+                              {s}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={proceedChallenge}
+                          className="px-3.5 py-1.5 rounded-lg text-[12.5px] font-medium bg-amber-400/10 border border-amber-400/30 text-amber-400 hover:bg-amber-400/20 transition-all"
+                        >
+                          Proceed anyway
+                        </button>
+                        <button
+                          onClick={dismissChallenge}
+                          className="px-3.5 py-1.5 rounded-lg text-[12.5px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-muted-bg)] transition-all"
+                        >
+                          Revise message
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -166,7 +188,14 @@ export default function AppPage() {
           {chatError && (
             <div className="absolute inset-x-0 bottom-[84px] z-50 px-4 flex justify-center pointer-events-none">
               <div className="w-full max-w-[720px] pointer-events-auto">
-                <ChatError message={chatError} onDismiss={dismissChatError} />
+                <ChatError
+                  message={chatError}
+                  errorCode={chatErrorCode}
+                  onDismiss={dismissChatError}
+                  onRetry={chatErrorCode && ["CREDIT_DEDUCTION_FAILED","GENERATION_FAILED","PROCESSING_ERROR"].includes(chatErrorCode)
+                    ? dismissChatError
+                    : undefined}
+                />
               </div>
             </div>
           )}
