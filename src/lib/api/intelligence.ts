@@ -162,6 +162,7 @@ export async function analyseMessageStream(
     onChunk?: (text: string) => void;
     onComplete?: (output: any) => void;
     onSuggestedPrompts?: (prompts: any[]) => void;
+    onConversationId?: (id: string) => void;
     onError?: (message: string, code?: string) => void;
     onNonStream?: (data: any) => void;
   },
@@ -217,6 +218,11 @@ export async function analyseMessageStream(
 
       try {
         const parsed = JSON.parse(raw);
+
+        // Capture conversation_id from any SSE event that carries it
+        const cid = parsed.conversation_id ?? parsed.thread_id;
+        if (cid) callbacks.onConversationId?.(cid);
+
         if (eventType === "capability") callbacks.onCapability?.(parsed);
         else if (eventType === "credits") callbacks.onCredits?.(parsed);
         else if (eventType === "chunk") callbacks.onChunk?.(parsed.text ?? "");
