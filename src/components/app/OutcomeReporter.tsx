@@ -11,11 +11,35 @@ type OutcomeResult =
   | "no_response";
 
 const OPTIONS: { value: OutcomeResult; label: string; color: string }[] = [
-  { value: "worked",       label: "It worked",     color: "text-emerald-400 border-emerald-400/30 bg-emerald-400/8 hover:bg-emerald-400/15" },
-  { value: "partially",   label: "Partially",      color: "text-amber-400 border-amber-400/30 bg-amber-400/8 hover:bg-amber-400/15" },
-  { value: "did_not_work",label: "Didn't work",    color: "text-red-400 border-red-400/30 bg-red-400/8 hover:bg-red-400/15" },
-  { value: "still_ongoing",label: "Still ongoing", color: "text-blue-400 border-blue-400/30 bg-blue-400/8 hover:bg-blue-400/15" },
-  { value: "no_response", label: "No response",    color: "text-[var(--text-muted)] border-[var(--border-default)] bg-[var(--card-muted-bg)] hover:bg-[var(--card-bg)]" },
+  {
+    value: "worked",
+    label: "It worked",
+    color:
+      "text-emerald-400 border-emerald-400/30 bg-emerald-400/8 hover:bg-emerald-400/15",
+  },
+  {
+    value: "partially",
+    label: "Partially",
+    color:
+      "text-amber-400 border-amber-400/30 bg-amber-400/8 hover:bg-amber-400/15",
+  },
+  {
+    value: "did_not_work",
+    label: "Didn't work",
+    color: "text-red-400 border-red-400/30 bg-red-400/8 hover:bg-red-400/15",
+  },
+  {
+    value: "still_ongoing",
+    label: "Still ongoing",
+    color:
+      "text-blue-400 border-blue-400/30 bg-blue-400/8 hover:bg-blue-400/15",
+  },
+  {
+    value: "no_response",
+    label: "No response",
+    color:
+      "text-[var(--text-muted)] border-[var(--border-default)] bg-[var(--card-muted-bg)] hover:bg-[var(--card-bg)]",
+  },
 ];
 
 interface OutcomeReporterProps {
@@ -25,11 +49,16 @@ interface OutcomeReporterProps {
   onResponse?: (text: string) => void;
 }
 
-export function OutcomeReporter({ conversationId, messageId, onResponse }: OutcomeReporterProps) {
+export function OutcomeReporter({
+  conversationId,
+  messageId,
+  onResponse,
+}: OutcomeReporterProps) {
   const storageKey = `outcome_done_${messageId}`;
 
   const [step, setStep] = useState<"prompt" | "detail" | "done">(() => {
-    if (typeof window !== "undefined" && localStorage.getItem(storageKey)) return "done";
+    if (typeof window !== "undefined" && localStorage.getItem(storageKey))
+      return "done";
     return "prompt";
   });
   const [selected, setSelected] = useState<OutcomeResult | null>(null);
@@ -60,7 +89,8 @@ export function OutcomeReporter({ conversationId, messageId, onResponse }: Outco
           what_happened: detail || undefined,
         });
         // The outcome endpoint returns the follow-up message directly in the response body
-        const text: string = data?.message ?? data?.response?.acknowledgment ?? "";
+        const text: string =
+          data?.message ?? data?.response?.acknowledgment ?? "";
         if (text) onResponse?.(text);
       } catch {}
     }
@@ -69,6 +99,22 @@ export function OutcomeReporter({ conversationId, messageId, onResponse }: Outco
   };
 
   if (step === "done") return null;
+
+  // Thinking loader — shown while waiting for Avertune's outcome response
+  if (submitting) {
+    return (
+      <div className="mt-3 flex items-center gap-2.5">
+        <div className="flex items-center gap-1 px-3 py-2 rounded-xl bg-[var(--card-muted-bg)] border border-[var(--card-border)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce [animation-delay:0ms]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce [animation-delay:150ms]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce [animation-delay:300ms]" />
+        </div>
+        <span className="text-[11.5px] text-[var(--text-muted)]">
+          Avertune is thinking…
+        </span>
+      </div>
+    );
+  }
 
   if (step === "detail") {
     return (
@@ -85,7 +131,10 @@ export function OutcomeReporter({ conversationId, messageId, onResponse }: Outco
             focus:border-violet-500/50 transition-all"
         />
         <div className="flex items-center justify-end gap-2 mt-2">
-          <button onClick={() => setStep("prompt")} className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+          <button
+            onClick={() => setStep("prompt")}
+            className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+          >
             Back
           </button>
           <button
@@ -93,7 +142,7 @@ export function OutcomeReporter({ conversationId, messageId, onResponse }: Outco
             disabled={submitting}
             className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-violet-600 hover:bg-violet-500 text-white transition-all disabled:opacity-50"
           >
-            {submitting ? "Saving…" : "Submit"}
+            Submit
           </button>
         </div>
       </div>
@@ -102,7 +151,9 @@ export function OutcomeReporter({ conversationId, messageId, onResponse }: Outco
 
   return (
     <div className="mt-3">
-      <p className="text-[11.5px] text-[var(--text-muted)] mb-2 px-0.5">How did this go?</p>
+      <p className="text-[11.5px] text-[var(--text-muted)] mb-2 px-0.5">
+        How did this go?
+      </p>
       <div className="flex flex-wrap gap-1.5">
         {OPTIONS.map((opt) => (
           <button

@@ -6,6 +6,7 @@ import { generateId } from "@/lib/utils";
 import {
   analyseMessageStream,
   getConversationMessages,
+  getConversations,
   type Conversation,
   type ConversationStats,
 } from "@/lib/api/intelligence";
@@ -14,7 +15,7 @@ import { useCredits } from "@/lib/contexts/CreditsContext";
 const LAST_CONV_KEY = "avertune_last_conversation_id";
 
 // ── Normalise a history message → ChatMessage ─────────────────────────────────
-function normaliseHistoryMessage(msg: any, mode: ModeId): ChatMessage {
+function normaliseHistoryMessage(msg: any, mode: ModeId, conversationId?: string): ChatMessage {
   const intel = msg.intelligence ?? msg.intelligence_result ?? null;
   // scoring may live at top level on the message or inside intelligence
   const topScoring = msg.scoring ?? null;
@@ -141,6 +142,7 @@ function normaliseHistoryMessage(msg: any, mode: ModeId): ChatMessage {
       timestamp: new Date(msg.created_at ?? Date.now()),
       intelligenceResult,
       turnType: "generate",
+      conversationId,
     };
   }
 
@@ -382,7 +384,7 @@ export function useChat(): UseChatReturn {
       const data = await getConversationMessages(token, conversationId);
       const mode = (data.conversation?.mode as ModeId) ?? "professional";
       const loaded: ChatMessage[] = (data.messages ?? []).map((m) =>
-        normaliseHistoryMessage(m, mode),
+        normaliseHistoryMessage(m, mode, conversationId),
       );
       setMessages(loaded);
       setThreadId(conversationId);
@@ -437,10 +439,12 @@ export function useChat(): UseChatReturn {
         output.conversation_id ??
         output.thread_id ??
         data.conversation_id ??
-        data.thread_id;
-      if (convId && !threadIdRef.current) {
-        setThreadId(convId);
+        data.thread_id ??
+        (data.output ? (data.output.conversation_id ?? data.output.thread_id) : undefined);
+      if (convId) {
+        // Always sync the ref so fetchConvId is correct for all turn types
         threadIdRef.current = convId;
+        setThreadId(convId);
         setModeLocked(true);
         localStorage.setItem(LAST_CONV_KEY, convId);
       }
@@ -521,6 +525,16 @@ export function useChat(): UseChatReturn {
             suggestions,
           },
         ]);
+        const clarifyConvId = convId ?? threadIdRef.current;
+        const clarifyToken = localStorage.getItem("access_token");
+        if (clarifyConvId && clarifyToken) {
+          getConversationMessages(clarifyToken, clarifyConvId)
+            .then((d) => {
+              if (d.stats) setSessionStats(d.stats);
+              setRefreshSidebar((n) => n + 1);
+            })
+            .catch(() => {});
+        }
         return;
       }
 
@@ -538,6 +552,16 @@ export function useChat(): UseChatReturn {
             suggestions,
           },
         ]);
+        const greetConvId = convId ?? threadIdRef.current;
+        const greetToken = localStorage.getItem("access_token");
+        if (greetConvId && greetToken) {
+          getConversationMessages(greetToken, greetConvId)
+            .then((d) => {
+              if (d.stats) setSessionStats(d.stats);
+              setRefreshSidebar((n) => n + 1);
+            })
+            .catch(() => {});
+        }
         return;
       }
 
@@ -552,7 +576,7 @@ export function useChat(): UseChatReturn {
         output.responses;
 
       if (isGenerate) {
-        const fetchConvId = convId ?? threadIdRef.current;
+        const fetchConvId = convId ?? threadIdRef.current ?? localStorage.getItem(LAST_CONV_KEY) ?? undefined;
         const token = localStorage.getItem("access_token");
 
         // Extract generate-specific fields from spec
@@ -562,8 +586,9 @@ export function useChat(): UseChatReturn {
         const suggestionCats = sortedPrompts.map((p: any) => p.category ?? "exploration");
 
         const intelligenceResult = normaliseLiveResult(output, currentMode);
+        const msgLocalId = generateId();
         const newAssistantMsg: ChatMessage = {
-          id: generateId(),
+          id: msgLocalId,
           role: "assistant",
           content: "",
           timestamp: new Date(),
@@ -579,12 +604,42 @@ export function useChat(): UseChatReturn {
         };
         setMessages((prev) => [...prev, newAssistantMsg]);
 
-        // Background: update stats + sidebar only — do NOT replace messages
-        if (fetchConvId && token) {
+        if (!token) return;
+
+        if (fetchConvId) {
+          // Known conversation — fetch stats directly
           getConversationMessages(token, fetchConvId)
             .then((d) => {
               if (d.stats) setSessionStats(d.stats);
               setRefreshSidebar((n) => n + 1);
+            })
+            .catch(() => {});
+        } else {
+          // The SSE stream never carries conversation_id — use getConversations
+          // to discover the ID that the server just created, then fetch its stats
+          // and patch it onto the message so OutcomeReporter renders
+          getConversations(token)
+            .then((d) => {
+              const latest = d.conversations?.[0];
+              if (!latest) return;
+              const cid = latest.id;
+              // Persist so subsequent turns can use it directly
+              threadIdRef.current = cid;
+              setThreadId(cid);
+              setModeLocked(true);
+              localStorage.setItem(LAST_CONV_KEY, cid);
+              // Patch the message so OutcomeReporter shows immediately
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === msgLocalId ? { ...m, conversationId: cid } : m,
+                ),
+              );
+              setRefreshSidebar((n) => n + 1);
+              // Now fetch full stats for this conversation
+              return getConversationMessages(token, cid);
+            })
+            .then((d) => {
+              if (d?.stats) setSessionStats(d.stats);
             })
             .catch(() => {});
         }
@@ -605,6 +660,16 @@ export function useChat(): UseChatReturn {
             suggestions,
           },
         ]);
+        const refineConvId = convId ?? threadIdRef.current;
+        const refineToken = localStorage.getItem("access_token");
+        if (refineConvId && refineToken) {
+          getConversationMessages(refineToken, refineConvId)
+            .then((d) => {
+              if (d.stats) setSessionStats(d.stats);
+              setRefreshSidebar((n) => n + 1);
+            })
+            .catch(() => {});
+        }
         return;
       }
 
@@ -628,6 +693,16 @@ export function useChat(): UseChatReturn {
             suggestions,
           },
         ]);
+        const freeConvId = convId ?? threadIdRef.current;
+        const freeToken = localStorage.getItem("access_token");
+        if (freeConvId && freeToken) {
+          getConversationMessages(freeToken, freeConvId)
+            .then((d) => {
+              if (d.stats) setSessionStats(d.stats);
+              setRefreshSidebar((n) => n + 1);
+            })
+            .catch(() => {});
+        }
       }
     },
     [],
@@ -674,6 +749,16 @@ export function useChat(): UseChatReturn {
             },
             onCredits: ({ credits_used, credits_remaining }) => {
               applyUsage(credits_used, credits_remaining);
+            },
+            onConversationId: (id) => {
+              // Capture conversation ID as soon as the server sends it — this
+              // fires before onComplete so fetchConvId is always populated
+              if (!threadIdRef.current) {
+                threadIdRef.current = id;
+                setThreadId(id);
+                setModeLocked(true);
+                localStorage.setItem(LAST_CONV_KEY, id);
+              }
             },
             onChunk: () => {
               setStreamingPhase("receiving");

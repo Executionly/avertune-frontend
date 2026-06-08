@@ -11,8 +11,8 @@ interface ModeSampleDropdownProps {
 
 const CATEGORIES: { id: ModeId; label: string }[] = [
   { id: "professional", label: "Professional messages" },
-  { id: "sales",        label: "Sales & negotiation"  },
-  { id: "relationship", label: "Relationship advice"  },
+  { id: "sales", label: "Sales & negotiation" },
+  { id: "relationship", label: "Relationship advice" },
 ];
 
 export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
@@ -32,7 +32,9 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
     if (fetched.current) return;
     fetched.current = true;
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+      typeof window !== "undefined"
+        ? localStorage.getItem("access_token")
+        : null;
     if (!token) return;
 
     setLoading(true);
@@ -58,7 +60,10 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
   useEffect(() => {
     if (!openTab) return;
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setOpenTab(null);
       }
     };
@@ -96,7 +101,9 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
         return (
           <div key={cat.id} className="relative">
             <button
-              ref={(el) => { if (el) buttonRefs.current[cat.id] = el; }}
+              ref={(el) => {
+                if (el) buttonRefs.current[cat.id] = el;
+              }}
               onClick={() => handleToggle(cat.id)}
               className={cn(
                 "px-3.5 py-1.5 rounded-full text-[13px] border transition-all",
@@ -111,7 +118,18 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
             {isOpen && (
               <div
                 className={cn(
-                  "absolute left-1/2 -translate-x-1/2 w-[340px] bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl shadow-xl overflow-hidden z-50",
+                  "absolute z-50",
+                  "bg-[var(--card-bg)]",
+                  "border border-[var(--card-border)]",
+                  "rounded-2xl",
+                  "shadow-xl",
+                  "overflow-hidden",
+
+                  "w-[90vw] sm:w-[340px]",
+                  "max-w-[calc(100vw-16px)]",
+
+                  "left-1/2 -translate-x-1/2",
+
                   dropUp ? "bottom-full mb-2" : "top-full mt-2",
                 )}
               >
@@ -124,7 +142,7 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
                     No samples available.
                   </p>
                 ) : (
-                  <div className="max-h-[320px] overflow-y-auto overscroll-contain">
+                  <div className="max-h-[50vh] overflow-y-auto overscroll-contain">
                     {catSamples.map((msg, i) => (
                       <button
                         key={i}
