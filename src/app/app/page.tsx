@@ -44,6 +44,10 @@ export default function AppPage() {
     sendMessage,
     sendFile,
     sendVoice,
+    pendingVoice,
+    isTranscribing,
+    confirmVoiceSend,
+    dismissPendingVoice,
     startNewConversation,
     loadConversation,
     restoreLastConversation,
@@ -211,6 +215,10 @@ export default function AppPage() {
             modeLocked={modeLocked}
             pasteValue={pasteValue}
             onPasteConsumed={() => setPasteValue("")}
+            pendingVoice={pendingVoice}
+            isTranscribing={isTranscribing}
+            onConfirmVoice={confirmVoiceSend}
+            onDismissVoice={dismissPendingVoice}
           />
 
           {/* Insufficient credits toast */}

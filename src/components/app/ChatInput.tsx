@@ -15,6 +15,11 @@ interface ChatInputProps {
   modeLocked?: boolean;
   pasteValue?: string;
   onPasteConsumed?: () => void;
+  // Two-step voice review
+  pendingVoice?: { audio: Blob; transcript: string } | null;
+  isTranscribing?: boolean;
+  onConfirmVoice?: (editedTranscript: string) => Promise<void>;
+  onDismissVoice?: () => void;
 }
 
 const MODES: { id: ModeId; label: string }[] = [
@@ -73,12 +78,17 @@ export function ChatInput({
   modeLocked = false,
   pasteValue,
   onPasteConsumed,
+  pendingVoice,
+  isTranscribing,
+  onConfirmVoice,
+  onDismissVoice,
 }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [voiceTranscriptEdit, setVoiceTranscriptEdit] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -94,6 +104,13 @@ export function ChatInput({
       setTimeout(() => textareaRef.current?.focus(), 0);
     }
   }, [pasteValue, onPasteConsumed]);
+
+  // Sync transcript editor when a new transcription arrives
+  useEffect(() => {
+    if (pendingVoice) {
+      setVoiceTranscriptEdit(pendingVoice.transcript);
+    }
+  }, [pendingVoice]);
 
   const handleSend = async () => {
     if (isSending) return;
@@ -210,6 +227,76 @@ export function ChatInput({
   return (
     <div className="flex-shrink-0 border-t border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-3">
       <div className="max-w-[720px] mx-auto">
+
+        {/* ── Transcribing indicator ── */}
+        {isTranscribing && (
+          <div className="mb-2.5 px-1">
+            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl
+              bg-[var(--card-bg)] border border-[var(--card-border)] text-[13px] text-[var(--text-muted)]">
+              <div className="w-3.5 h-3.5 border-2 border-violet-400/40 border-t-violet-400 rounded-full animate-spin flex-shrink-0" />
+              Transcribing your recording…
+            </div>
+          </div>
+        )}
+
+        {/* ── Voice transcript review panel ── */}
+        {pendingVoice && !isTranscribing && (
+          <div className="mb-2.5 px-1">
+            <div className="rounded-xl bg-[var(--card-bg)] border border-violet-500/30 shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5 border-b border-[var(--card-border)]">
+                <span className="text-[12px] font-medium text-violet-400 flex items-center gap-1.5">
+                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.7" className="w-3.5 h-3.5">
+                    <rect x="4.5" y="1" width="5" height="8" rx="2.5" />
+                    <path d="M2 7a5 5 0 0010 0" strokeLinecap="round" />
+                    <line x1="7" y1="12" x2="7" y2="10" strokeLinecap="round" />
+                  </svg>
+                  Voice transcript — review &amp; edit before sending
+                </span>
+                <button
+                  onClick={onDismissVoice}
+                  className="w-5 h-5 rounded-full flex items-center justify-center
+                    text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-muted-bg)] transition-all"
+                  title="Discard"
+                >
+                  <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-2.5 h-2.5">
+                    <path d="M2 2l6 6M8 2L2 8" />
+                  </svg>
+                </button>
+              </div>
+              <textarea
+                value={voiceTranscriptEdit}
+                onChange={(e) => setVoiceTranscriptEdit(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 text-[13.5px] text-[var(--text-primary)] leading-[1.6]
+                  bg-transparent border-none outline-none resize-none
+                  placeholder:text-[var(--input-placeholder)] font-[var(--font-body)]"
+                placeholder="Transcript will appear here…"
+              />
+              <div className="flex items-center justify-end gap-2 px-3 pb-2.5">
+                <button
+                  onClick={onDismissVoice}
+                  className="px-3 py-1.5 rounded-lg text-[12px] text-[var(--text-muted)]
+                    hover:text-[var(--text-primary)] hover:bg-[var(--card-muted-bg)] transition-all"
+                >
+                  Discard
+                </button>
+                <button
+                  onClick={async () => {
+                    const text = voiceTranscriptEdit.trim();
+                    if (!text || !onConfirmVoice) return;
+                    await onConfirmVoice(text);
+                  }}
+                  disabled={!voiceTranscriptEdit.trim()}
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-medium
+                    bg-violet-600 hover:bg-violet-500 text-white
+                    disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Claude-style file attachment pill ── */}
         {pendingFile && (
