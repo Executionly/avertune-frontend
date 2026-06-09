@@ -42,6 +42,8 @@ export default function AppPage() {
     dismissChallenge,
     setActiveMode,
     sendMessage,
+    sendFile,
+    sendVoice,
     startNewConversation,
     loadConversation,
     restoreLastConversation,
@@ -202,6 +204,8 @@ export default function AppPage() {
 
           <ChatInput
             onSend={sendMessage}
+            onSendFile={sendFile}
+            onSendVoice={sendVoice}
             activeMode={activeMode}
             onModeChange={setActiveMode}
             modeLocked={modeLocked}

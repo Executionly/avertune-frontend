@@ -392,6 +392,18 @@ export function IntelligenceResultCard({
                   {activeReplyData.text ?? (activeReplyData as any).body}
                 </p>
               )}
+              {/* Generated reply */}
+              {(activeReplyData as any).generated_reply && (
+                <div className="mt-3 pt-3 border-t border-[var(--card-border)]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)] mb-2">
+                    Generated reply
+                  </p>
+                  <p className="text-[13.5px] text-[var(--text-primary)] leading-[1.7] whitespace-pre-wrap">
+                    {(activeReplyData as any).generated_reply}
+                  </p>
+                  <CopyBtn text={(activeReplyData as any).generated_reply} />
+                </div>
+              )}
               {/* Action steps */}
               {(activeReplyData as any).action_steps?.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-[var(--card-border)]">
@@ -447,7 +459,10 @@ export function IntelligenceResultCard({
               )}
               <CopyBtn
                 text={
-                  activeReplyData.text ?? (activeReplyData as any).body ?? ""
+                  (activeReplyData as any).generated_reply ??
+                  activeReplyData.text ??
+                  (activeReplyData as any).body ??
+                  ""
                 }
               />
             </div>

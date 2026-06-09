@@ -14,13 +14,13 @@ export default function AuthCallbackPage() {
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    // Tokens arrive in the URL hash — e.g. #access_token=...&refresh_token=...
-    // The hash is only available client-side, never sent to the server
-    const hash = window.location.hash.slice(1); // strip leading #
+    // Tokens arrive in the URL hash — e.g. #access_token=...&refresh_token=...&type=recovery
+    const hash = window.location.hash.slice(1);
     const params = new URLSearchParams(hash);
 
     const accessToken = params.get("access_token");
     const refreshToken = params.get("refresh_token");
+    const type = params.get("type");
     const error = params.get("error");
     const errorDescription = params.get("error_description");
 
@@ -28,7 +28,7 @@ export default function AuthCallbackPage() {
       setErrorMsg(
         errorDescription?.replace(/\+/g, " ") ||
           error ||
-          "Google sign-in was cancelled or failed.",
+          "Sign-in was cancelled or failed.",
       );
       setStatus("error");
       return;
@@ -40,20 +40,25 @@ export default function AuthCallbackPage() {
       return;
     }
 
-    // Store tokens
+    // ── Password recovery flow ──────────────────────────────────
+    // Supabase sends type=recovery for forgot-password links.
+    // Redirect to the reset-password page with the token in the URL.
+    if (type === "recovery") {
+      router.replace(`/auth/reset-password?access_token=${accessToken}`);
+      return;
+    }
+
+    // ── Normal OAuth / magic-link flow ──────────────────────────
     localStorage.setItem("access_token", accessToken);
     if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
 
-    // Pre-fetch the user so AuthContext has it immediately after redirect
     getMe(accessToken)
       .then((user) => {
         queryClient.setQueryData(["user", accessToken], user);
         setStatus("success");
-        // Small delay so the success state is visible briefly
         setTimeout(() => router.replace("/app"), 600);
       })
       .catch(() => {
-        // Tokens stored — redirect anyway, AuthContext will validate
         setStatus("success");
         setTimeout(() => router.replace("/app"), 600);
       });

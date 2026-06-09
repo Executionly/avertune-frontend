@@ -7,6 +7,8 @@ import {
   analyseMessageStream,
   getConversationMessages,
   getConversations,
+  uploadFile,
+  uploadVoice,
   type Conversation,
   type ConversationStats,
 } from "@/lib/api/intelligence";
@@ -78,6 +80,7 @@ function normaliseHistoryMessage(msg: any, mode: ModeId, conversationId?: string
         replies["recommended"] = {
           text: intel.recommended.advice ?? "",
           insight: intel.recommended.why_this_works ?? "",
+          generated_reply: intel.recommended.generated_reply,
           action_steps: intel.recommended.action_steps,
           what_to_avoid: intel.recommended.what_to_avoid,
         };
@@ -87,6 +90,7 @@ function normaliseHistoryMessage(msg: any, mode: ModeId, conversationId?: string
         replies["alternative"] = {
           text: intel.alternative.advice ?? "",
           insight: intel.alternative.why_this_works ?? "",
+          generated_reply: intel.alternative.generated_reply,
           action_steps: intel.alternative.action_steps,
         };
       }
@@ -197,6 +201,7 @@ function normaliseLiveResult(output: any, mode: ModeId): IntelligenceResult {
       recommended: {
         text: payload.recommended.advice ?? "",
         insight: payload.recommended.why_this_works ?? "",
+        generated_reply: payload.recommended.generated_reply,
         action_steps: payload.recommended.action_steps,
         what_to_avoid: payload.recommended.what_to_avoid,
       },
@@ -206,6 +211,7 @@ function normaliseLiveResult(output: any, mode: ModeId): IntelligenceResult {
       replies["alternative"] = {
         text: payload.alternative.advice ?? "",
         insight: payload.alternative.why_this_works ?? "",
+        generated_reply: payload.alternative.generated_reply,
         action_steps: payload.alternative.action_steps,
       };
     }
@@ -293,6 +299,8 @@ export interface UseChatReturn {
   dismissChallenge: () => void;
   setActiveMode: (mode: ModeId) => void;
   sendMessage: (content: string, skipChallenge?: boolean) => Promise<void>;
+  sendFile: (file: File, text?: string) => Promise<void>;
+  sendVoice: (audio: Blob) => Promise<void>;
   startNewConversation: () => void;
   loadConversation: (conversationId: string) => Promise<void>;
   restoreLastConversation: () => void;
@@ -828,6 +836,131 @@ export function useChat(): UseChatReturn {
     [sendMessageInternal],
   );
 
+  // ── Shared upload stream handler ──────────────────────────────────────────
+  const handleUploadStream = useCallback(
+    async (
+      label: string,
+      doUpload: (callbacks: Parameters<typeof uploadFile>[3]) => Promise<void>,
+      attachedFile?: { name: string; size: number; fileType: string },
+    ) => {
+      const token = localStorage.getItem("access_token") ?? "";
+      const currentMode = activeModeRef.current;
+
+      const userMsgId = generateId();
+      const userMsg: ChatMessage = {
+        id: userMsgId,
+        role: "user",
+        content: label,           // context text typed by user (may be empty)
+        timestamp: new Date(),
+        attachedFile,
+      };
+
+      setMessages((prev) => [...prev, userMsg]);
+      setIsTyping(true);
+      setStreamingPhase("thinking");
+      setDetectedCapability("");
+
+      let pendingPrompts: any[] | undefined;
+
+      try {
+        await doUpload({
+          onCapability: ({ display_name }) => {
+            setDetectedCapability(display_name ?? "");
+          },
+          onCredits: ({ credits_used, credits_remaining }) => {
+            applyUsage(credits_used, credits_remaining);
+          },
+          onConversationId: (id) => {
+            if (!threadIdRef.current) {
+              threadIdRef.current = id;
+              setThreadId(id);
+              setModeLocked(true);
+              localStorage.setItem(LAST_CONV_KEY, id);
+            }
+          },
+          onChunk: () => {
+            setStreamingPhase("receiving");
+          },
+          onSuggestedPrompts: (prompts) => {
+            pendingPrompts = prompts;
+          },
+          onComplete: (output) => {
+            handleComplete(output, currentMode, userMsgId, pendingPrompts);
+          },
+          onNonStream: (data) => {
+            // Non-stream upload: intelligence_response drives the flow
+            const ir = data.intelligence_response ?? data;
+            const prompts =
+              (ir.suggested_prompts ?? [])
+                .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
+            handleComplete(ir, currentMode, userMsgId, prompts);
+          },
+          onError: (message, code) => {
+            setStreamingPhase("idle");
+            setIsTyping(false);
+            setChatErrorCode(code ?? null);
+            if (code === "INSUFFICIENT_CREDITS") {
+              setInsufficientCredits(true);
+              setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
+            } else if (code === "USER_NOT_FOUND") {
+              localStorage.removeItem("access_token");
+              localStorage.removeItem("refresh_token");
+              if (typeof window !== "undefined") window.location.href = "/auth/signin";
+            } else if (code === "ACCOUNT_INACTIVE") {
+              setChatError("Your account is inactive. Please contact support.");
+            } else {
+              setChatError(message || "Something went wrong. Please try again.");
+            }
+          },
+        });
+      } catch (err: any) {
+        setStreamingPhase("idle");
+        setIsTyping(false);
+        setChatError(err?.message ?? "Something went wrong. Please try again.");
+      }
+    },
+    [applyUsage, handleComplete],
+  );
+
+  const sendFile = useCallback(
+    async (file: File, text?: string) => {
+      const token = localStorage.getItem("access_token") ?? "";
+      const currentMode = activeModeRef.current;
+      const currentThreadId = threadIdRef.current;
+      await handleUploadStream(
+        text?.trim() || "",
+        (callbacks) =>
+          uploadFile(
+            token,
+            file,
+            { mode: currentMode, thread_id: currentThreadId ?? undefined },
+            callbacks,
+          ),
+        { name: file.name, size: file.size, fileType: file.type },
+      );
+    },
+    [handleUploadStream],
+  );
+
+  const sendVoice = useCallback(
+    async (audio: Blob) => {
+      const token = localStorage.getItem("access_token") ?? "";
+      const currentMode = activeModeRef.current;
+      const currentThreadId = threadIdRef.current;
+      await handleUploadStream(
+        "🎙️ Voice recording",
+        (callbacks) =>
+          uploadVoice(
+            token,
+            audio,
+            { mode: currentMode, thread_id: currentThreadId ?? undefined },
+            callbacks,
+          ),
+      );
+    },
+    [handleUploadStream],
+  );
+
   return {
     messages,
     isTyping,
@@ -851,6 +984,8 @@ export function useChat(): UseChatReturn {
     dismissChallenge,
     setActiveMode,
     sendMessage,
+    sendFile,
+    sendVoice,
     startNewConversation,
     loadConversation,
     restoreLastConversation,

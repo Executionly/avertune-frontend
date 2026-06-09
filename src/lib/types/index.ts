@@ -70,6 +70,7 @@ export interface ChatMessage {
   capabilityDisplay?: string;
   modelUsed?: string;
   naturalScore?: number;
+  attachedFile?: { name: string; size: number; fileType: string };
 }
 
 export interface ChatSession {
