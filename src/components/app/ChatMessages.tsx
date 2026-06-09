@@ -239,7 +239,43 @@ export function ChatMessages({
                     className="text-[14px] leading-[1.7] rounded-2xl px-4 py-3 text-[var(--text-primary)]"
                     style={{ background: "rgba(120,120,140,0.18)" }}
                   >
-                    {msg.content}
+                    {/* Attached file pill */}
+                    {msg.attachedFile && (
+                      <div className="flex items-center gap-2.5 mb-2 pb-2 border-b border-white/10">
+                        <div className="w-8 h-8 rounded-lg bg-violet-500/20 border border-violet-500/30 flex items-center justify-center flex-shrink-0">
+                          {msg.attachedFile.fileType?.startsWith("image/") ? (
+                            <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4">
+                              <rect x="1" y="2" width="14" height="12" rx="2" stroke="#67e8f9" strokeWidth="1.3" />
+                              <circle cx="5.5" cy="6.5" r="1.5" fill="#67e8f9" />
+                              <path d="M1 11l3.5-3.5 3 3 2.5-3 4 4.5" stroke="#67e8f9" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          ) : (
+                            <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4">
+                              <path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="#a78bfa" strokeWidth="1.3" strokeLinejoin="round" />
+                              <path d="M10 2v3h3" stroke="#a78bfa" strokeWidth="1.3" strokeLinecap="round" />
+                              <path d="M5 8h6M5 10.5h4" stroke="#a78bfa" strokeWidth="1.2" strokeLinecap="round" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[12.5px] font-medium text-[var(--text-primary)] truncate leading-tight">
+                            {msg.attachedFile.name}
+                          </p>
+                          <p className="text-[11px] text-[var(--text-muted)] leading-tight mt-0.5">
+                            {msg.attachedFile.fileType === "application/pdf" ? "PDF" :
+                             msg.attachedFile.fileType?.startsWith("image/") ? "Image" :
+                             msg.attachedFile.fileType?.includes("word") ? "Word doc" : "Document"}
+                            {msg.attachedFile.size ? ` · ${msg.attachedFile.size < 1024 * 1024
+                              ? `${Math.round(msg.attachedFile.size / 1024)} KB`
+                              : `${(msg.attachedFile.size / (1024 * 1024)).toFixed(1)} MB`}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {/* Context text if any */}
+                    {msg.content && msg.content}
+                    {/* Plain text message when no attachment */}
+                    {!msg.attachedFile && !msg.content && null}
                   </div>
                   <div className="flex justify-end mt-1">
                     <CopyButton text={msg.content} />

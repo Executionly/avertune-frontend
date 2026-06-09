@@ -8,6 +8,8 @@ import { getCharCountStatus } from "@/lib/utils/CharLimits";
 
 interface ChatInputProps {
   onSend: (content: string) => void;
+  onSendFile?: (file: File, text?: string) => Promise<void>;
+  onSendVoice?: (audio: Blob) => Promise<void>;
   activeMode: ModeId;
   onModeChange: (mode: ModeId) => void;
   modeLocked?: boolean;
@@ -21,8 +23,51 @@ const MODES: { id: ModeId; label: string }[] = [
   { id: "relationship", label: "Relationship" },
 ];
 
+function FileIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className}>
+      <rect x="3" y="2" width="14" height="16" rx="2" fill="#7c3aed" fillOpacity="0.15" stroke="#7c3aed" strokeWidth="1.4" strokeOpacity="0.6" />
+      <path d="M7 7h6M7 10h6M7 13h4" stroke="#a78bfa" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ImageIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className}>
+      <rect x="2" y="3" width="16" height="14" rx="2" fill="#0891b2" fillOpacity="0.12" stroke="#0891b2" strokeWidth="1.4" strokeOpacity="0.6" />
+      <circle cx="7" cy="8" r="1.5" fill="#67e8f9" />
+      <path d="M2 14l4-4 3 3 3-4 6 5" stroke="#67e8f9" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function DocIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className}>
+      <rect x="3" y="2" width="14" height="16" rx="2" fill="#0d9488" fillOpacity="0.12" stroke="#0d9488" strokeWidth="1.4" strokeOpacity="0.6" />
+      <path d="M7 7h6M7 10h6M7 13h4" stroke="#5eead4" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function getFileIcon(file: File) {
+  const t = file.type;
+  if (t.startsWith("image/")) return <ImageIcon className="w-8 h-8" />;
+  if (t === "application/pdf") return <FileIcon className="w-8 h-8" />;
+  return <DocIcon className="w-8 h-8" />;
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function ChatInput({
   onSend,
+  onSendFile,
+  onSendVoice,
   activeMode,
   onModeChange,
   modeLocked = false,
@@ -32,7 +77,8 @@ export function ChatInput({
   const [value, setValue] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [attachmentName, setAttachmentName] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [isSending, setIsSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -41,7 +87,6 @@ export function ChatInput({
 
   const charStatus = getCharCountStatus(value.length, charLimit);
 
-  // Paste sample message
   useEffect(() => {
     if (pasteValue) {
       setValue(pasteValue);
@@ -50,12 +95,32 @@ export function ChatInput({
     }
   }, [pasteValue, onPasteConsumed]);
 
-  const handleSend = () => {
-    if (!value.trim() || charStatus === "error") return;
-    onSend(value.trim());
+  const handleSend = async () => {
+    if (isSending) return;
+    const trimmed = value.trim();
+
+    if (pendingFile && onSendFile) {
+      // Clear the form immediately — don't wait for the response
+      const fileToSend = pendingFile;
+      const textToSend = trimmed || undefined;
+      setPendingFile(null);
+      setValue("");
+      if (textareaRef.current) textareaRef.current.style.height = "auto";
+
+      setIsSending(true);
+      try {
+        await onSendFile(fileToSend, textToSend);
+      } finally {
+        setIsSending(false);
+      }
+      return;
+    }
+
+    if (!trimmed || charStatus === "error") return;
+    // Clear immediately
     setValue("");
-    setAttachmentName(null);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
+    onSend(trimmed);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -71,38 +136,14 @@ export function ChatInput({
     e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
   };
 
-  // ── File/PDF upload ──────────────────────────────────────────
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ── File select — hold in state, don't send yet ──────────────
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
-
-    setAttachmentName(file.name);
-
-    try {
-      let text = "";
-      if (file.type === "text/plain") {
-        text = await file.text();
-      } else if (file.type === "application/pdf") {
-        // For PDFs, we append a note and the filename; actual extraction would need a lib
-        text = `[PDF attached: ${file.name}]\n\nPlease analyse the content of this PDF document.`;
-      } else {
-        text = await file.text();
-      }
-
-      // Truncate to char limit
-      const truncated = text.slice(0, charLimit);
-      setValue(truncated);
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.style.height = "auto";
-          textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
-          textareaRef.current.focus();
-        }
-      }, 0);
-    } catch {
-      setAttachmentName(null);
-    }
+    setPendingFile(file);
+    // Focus textarea so user can optionally add context
+    setTimeout(() => textareaRef.current?.focus(), 0);
   };
 
   // ── Voice recording ──────────────────────────────────────────
@@ -118,12 +159,10 @@ export function ChatInput({
 
       mr.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
-        // We show a placeholder; real transcription would call a speech-to-text API
-        setValue((prev) =>
-          prev
-            ? prev + "\n[Voice recording transcription pending]"
-            : "[Voice recording transcription pending]",
-        );
+        const audioBlob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
+        if (onSendVoice) {
+          await onSendVoice(audioBlob);
+        }
       };
 
       mr.start();
@@ -137,7 +176,7 @@ export function ChatInput({
     } catch {
       // Permission denied or not supported
     }
-  }, []);
+  }, [onSendVoice]);
 
   const stopRecording = useCallback(() => {
     mediaRecorderRef.current?.stop();
@@ -166,21 +205,41 @@ export function ChatInput({
 
   const formatRecTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
+  const canSend = !isSending && !isRecording && (pendingFile != null || (value.trim().length > 0 && charStatus !== "error"));
+
   return (
     <div className="flex-shrink-0 border-t border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-3">
       <div className="max-w-[720px] mx-auto">
-        {/* Attachment badge */}
-        {attachmentName && (
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-500/10 border border-violet-500/20 text-[11.5px] text-violet-400 font-medium">
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" className="w-3 h-3">
-                <path d="M6.5 1H2.5A.5.5 0 002 1.5v9a.5.5 0 00.5.5h7a.5.5 0 00.5-.5V4L6.5 1z" strokeLinejoin="round" />
-                <path d="M6.5 1v3H10" strokeLinecap="round" />
-              </svg>
-              <span className="max-w-[180px] truncate">{attachmentName}</span>
+
+        {/* ── Claude-style file attachment pill ── */}
+        {pendingFile && (
+          <div className="mb-2.5 px-1">
+            <div className="inline-flex items-center gap-3 px-3 py-2.5 rounded-xl
+              bg-[var(--card-bg)] border border-[var(--card-border)]
+              shadow-sm max-w-[280px] group relative">
+              {/* File type icon */}
+              <div className="flex-shrink-0">
+                {getFileIcon(pendingFile)}
+              </div>
+              {/* File info */}
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium text-[var(--text-primary)] truncate leading-tight">
+                  {pendingFile.name}
+                </p>
+                <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-tight">
+                  {pendingFile.type === "application/pdf" ? "PDF" :
+                   pendingFile.type.startsWith("image/") ? "Image" :
+                   pendingFile.type.includes("word") ? "Word doc" : "Document"}
+                  {" · "}{formatFileSize(pendingFile.size)}
+                </p>
+              </div>
+              {/* Remove button */}
               <button
-                onClick={() => { setAttachmentName(null); setValue(""); }}
-                className="ml-0.5 text-violet-400/60 hover:text-violet-400 transition-colors"
+                onClick={() => setPendingFile(null)}
+                className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center
+                  text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-muted-bg)]
+                  transition-all"
+                title="Remove file"
               >
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-2.5 h-2.5">
                   <path d="M2 2l6 6M8 2L2 8" />
@@ -200,7 +259,6 @@ export function ChatInput({
                 : "border-[var(--input-border)] focus-within:border-violet-500/60 focus-within:shadow-[0_0_0_3px_rgba(124,79,232,0.1)]",
           )}
         >
-          {/* Recording indicator inside textarea area */}
           {isRecording ? (
             <div className="flex items-center gap-3 min-h-[44px] mb-2">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -217,14 +275,13 @@ export function ChatInput({
               value={value}
               onChange={handleInput}
               onKeyDown={handleKeyDown}
-              placeholder="Paste a message to analyse…"
+              placeholder={pendingFile ? "Add context or just hit send…" : "Paste a message to analyse…"}
               rows={2}
               className="w-full border-none outline-none resize-none bg-transparent text-[14px] text-[var(--input-text)] leading-[1.6]
                 max-h-[160px] min-h-[44px] placeholder:text-[var(--input-placeholder)] font-[var(--font-body)]"
             />
           )}
 
-          {/* Error message when over limit */}
           {charStatus === "error" && (
             <p className="text-[11.5px] text-red-400 mb-2 flex items-center gap-1">
               <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3 h-3 flex-shrink-0">
@@ -237,7 +294,6 @@ export function ChatInput({
           )}
 
           <div className="flex items-center justify-between mt-2 gap-2">
-            {/* Mode selector + upload + voice */}
             <div className="flex items-center gap-1 flex-wrap min-w-0">
               {!modeLocked && (
                 <>
@@ -259,7 +315,6 @@ export function ChatInput({
                 </>
               )}
 
-              {/* Divider if mode locked */}
               <div className={cn("flex items-center gap-1", modeLocked ? "" : "ml-1 pl-1 border-l border-[var(--border-default)]")}>
                 {/* File upload */}
                 <button
@@ -275,7 +330,7 @@ export function ChatInput({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".txt,.pdf,text/plain,application/pdf"
+                  accept=".txt,.pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,text/plain,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*"
                   onChange={handleFileChange}
                   className="hidden"
                 />
@@ -307,22 +362,25 @@ export function ChatInput({
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Character counter */}
-              {!isRecording && (
+              {!isRecording && !pendingFile && (
                 <span className={cn("text-[11px] tabular-nums transition-colors", counterColor)}>
                   {value.length}/{charLimit}
                 </span>
               )}
               <button
                 onClick={handleSend}
-                disabled={(!value.trim() && !isRecording) || charStatus === "error"}
+                disabled={!canSend}
                 className="w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center text-white flex-shrink-0
                   hover:bg-[var(--accent-hover)] disabled:opacity-35 disabled:cursor-not-allowed transition-all hover:scale-[1.05]"
               >
-                <svg viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" className="w-3.5 h-3.5">
-                  <line x1="8" y1="13" x2="8" y2="3" />
-                  <polyline points="4,7 8,3 12,7" />
-                </svg>
+                {isSending ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <svg viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" className="w-3.5 h-3.5">
+                    <line x1="8" y1="13" x2="8" y2="3" />
+                    <polyline points="4,7 8,3 12,7" />
+                  </svg>
+                )}
               </button>
             </div>
           </div>
