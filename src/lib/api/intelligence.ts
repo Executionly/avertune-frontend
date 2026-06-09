@@ -494,7 +494,7 @@ export async function uploadVoice(
   callbacks: UploadCallbacks,
 ): Promise<void> {
   const form = new FormData();
-  form.append("file", audio, "recording.webm");
+  form.append("audio", audio, "recording.webm");
   form.append("mode", params.mode);
   if (params.capability) form.append("capability", params.capability);
   if (params.thread_id) form.append("thread_id", params.thread_id);
@@ -520,7 +520,7 @@ export async function transcribeVoice(
   params: { language?: string } = {},
 ): Promise<{ text: string; metadata?: Record<string, any> }> {
   const form = new FormData();
-  form.append("file", audio, "recording.webm");
+  form.append("audio", audio, "recording.webm");
   if (params.language) form.append("language", params.language);
 
   const res = await fetch(`${BASE}/intelligence/upload/voice/transcribe`, {

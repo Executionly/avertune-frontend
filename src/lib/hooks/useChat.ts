@@ -9,6 +9,7 @@ import {
   getConversations,
   uploadFile,
   uploadVoice,
+  transcribeVoice,
   type Conversation,
   type ConversationStats,
 } from "@/lib/api/intelligence";
@@ -17,7 +18,11 @@ import { useCredits } from "@/lib/contexts/CreditsContext";
 const LAST_CONV_KEY = "avertune_last_conversation_id";
 
 // ── Normalise a history message → ChatMessage ─────────────────────────────────
-function normaliseHistoryMessage(msg: any, mode: ModeId, conversationId?: string): ChatMessage {
+function normaliseHistoryMessage(
+  msg: any,
+  mode: ModeId,
+  conversationId?: string,
+): ChatMessage {
   const intel = msg.intelligence ?? msg.intelligence_result ?? null;
   // scoring may live at top level on the message or inside intelligence
   const topScoring = msg.scoring ?? null;
@@ -58,7 +63,8 @@ function normaliseHistoryMessage(msg: any, mode: ModeId, conversationId?: string
     let replies: Record<string, any> = {};
     let recommendedKey: string | undefined;
     let situationRead: string | undefined = intel.situation_read;
-    let nextBestAction: string | undefined = intel.next_best_action ?? msg.next_best_action;
+    let nextBestAction: string | undefined =
+      intel.next_best_action ?? msg.next_best_action;
 
     if (isDegraded) {
       situationRead = rawReplies?.situation_read ?? situationRead;
@@ -107,28 +113,32 @@ function normaliseHistoryMessage(msg: any, mode: ModeId, conversationId?: string
             ? "medium"
             : "low",
       analysis: intel.answer ?? intel.strategic_reasoning ?? "",
-      strategy: intel.strategic_reasoning && intel.answer ? intel.strategic_reasoning : "",
+      strategy:
+        intel.strategic_reasoning && intel.answer
+          ? intel.strategic_reasoning
+          : "",
       recommended: recommendedKey,
       replies: Object.keys(replies).length > 0 ? replies : undefined,
-      scores: Object.keys(scoring).length > 0
-        ? {
-            confidence: scoring.confidence_score ?? 0,
-            clarity: scoring.intent_clarity_score ?? 0,
-            toneMatch: scoring.tone_detected ?? "",
-            escalationRisk:
-              (scoring.escalation_probability ?? 0) > 0.5
-                ? "high"
-                : (scoring.escalation_probability ?? 0) > 0.25
-                  ? "medium"
-                  : "low",
-            riskScore: scoring.risk_score ?? 0,
-            escalationProbability:
-              scoring.escalation_probability != null
-                ? Math.round(scoring.escalation_probability * 100)
-                : undefined,
-            relationshipImpact: scoring.relationship_impact ?? undefined,
-          }
-        : undefined,
+      scores:
+        Object.keys(scoring).length > 0
+          ? {
+              confidence: scoring.confidence_score ?? 0,
+              clarity: scoring.intent_clarity_score ?? 0,
+              toneMatch: scoring.tone_detected ?? "",
+              escalationRisk:
+                (scoring.escalation_probability ?? 0) > 0.5
+                  ? "high"
+                  : (scoring.escalation_probability ?? 0) > 0.25
+                    ? "medium"
+                    : "low",
+              riskScore: scoring.risk_score ?? 0,
+              escalationProbability:
+                scoring.escalation_probability != null
+                  ? Math.round(scoring.escalation_probability * 100)
+                  : undefined,
+              relationshipImpact: scoring.relationship_impact ?? undefined,
+            }
+          : undefined,
       next_best_action: nextBestAction,
       situation_read: situationRead,
       coach_note: intel.coach_note ?? msg.coach_note,
@@ -226,35 +236,45 @@ function normaliseLiveResult(output: any, mode: ModeId): IntelligenceResult {
           ? "medium"
           : "low",
     analysis: payload.answer ?? payload.strategic_reasoning ?? "",
-    strategy: payload.strategic_reasoning && payload.answer ? payload.strategic_reasoning : "",
+    strategy:
+      payload.strategic_reasoning && payload.answer
+        ? payload.strategic_reasoning
+        : "",
     recommended: recommendedKey,
     replies: replies && Object.keys(replies).length > 0 ? replies : undefined,
-    scores: Object.keys(scoring).length > 0 ? {
-      confidence: scoring.confidence_score ?? 0,
-      clarity: scoring.intent_clarity_score ?? 0,
-      toneMatch: scoring.tone_detected ?? "",
-      escalationRisk:
-        (scoring.escalation_probability ?? 0) > 0.5
-          ? "high"
-          : (scoring.escalation_probability ?? 0) > 0.25
-            ? "medium"
-            : "low",
-      riskScore: scoring.risk_score ?? 0,
-      escalationProbability:
-        scoring.escalation_probability != null
-          ? Math.round(scoring.escalation_probability * 100)
-          : undefined,
-      relationshipImpact: scoring.relationship_impact ?? undefined,
-    } : undefined,
+    scores:
+      Object.keys(scoring).length > 0
+        ? {
+            confidence: scoring.confidence_score ?? 0,
+            clarity: scoring.intent_clarity_score ?? 0,
+            toneMatch: scoring.tone_detected ?? "",
+            escalationRisk:
+              (scoring.escalation_probability ?? 0) > 0.5
+                ? "high"
+                : (scoring.escalation_probability ?? 0) > 0.25
+                  ? "medium"
+                  : "low",
+            riskScore: scoring.risk_score ?? 0,
+            escalationProbability:
+              scoring.escalation_probability != null
+                ? Math.round(scoring.escalation_probability * 100)
+                : undefined,
+            relationshipImpact: scoring.relationship_impact ?? undefined,
+          }
+        : undefined,
     next_best_action: nextBestAction,
     situation_read: situationRead,
     coach_note: payload.coach_note,
     scenario_planning: payload.scenario_planning,
     is_degraded: isDegraded || payload.replies?.upgrade_required || false,
-    upgrade_message: payload.replies?.upgrade_message ?? payload.upgrade_message,
-    upgrade_required: payload.replies?.upgrade_required ?? payload.upgrade_required,
-    locked_features: payload.replies?.locked_features ?? payload.locked_features,
-    available_plans: payload.replies?.available_plans ?? payload.available_plans,
+    upgrade_message:
+      payload.replies?.upgrade_message ?? payload.upgrade_message,
+    upgrade_required:
+      payload.replies?.upgrade_required ?? payload.upgrade_required,
+    locked_features:
+      payload.replies?.locked_features ?? payload.locked_features,
+    available_plans:
+      payload.replies?.available_plans ?? payload.available_plans,
     // meeting_preparation
     meeting_strategy: payload.meeting_strategy,
     opening_statement: payload.opening_statement,
@@ -301,6 +321,10 @@ export interface UseChatReturn {
   sendMessage: (content: string, skipChallenge?: boolean) => Promise<void>;
   sendFile: (file: File, text?: string) => Promise<void>;
   sendVoice: (audio: Blob) => Promise<void>;
+  pendingVoice: { audio: Blob; transcript: string } | null;
+  isTranscribing: boolean;
+  confirmVoiceSend: (editedTranscript: string) => Promise<void>;
+  dismissPendingVoice: () => void;
   startNewConversation: () => void;
   loadConversation: (conversationId: string) => Promise<void>;
   restoreLastConversation: () => void;
@@ -353,7 +377,10 @@ export function useChat(): UseChatReturn {
     () => setInsufficientCredits(false),
     [],
   );
-  const dismissChatError = useCallback(() => { setChatError(null); setChatErrorCode(null); }, []);
+  const dismissChatError = useCallback(() => {
+    setChatError(null);
+    setChatErrorCode(null);
+  }, []);
   const dismissChallenge = useCallback(() => setPendingChallenge(null), []);
 
   const appendMessage = useCallback((content: string) => {
@@ -439,8 +466,7 @@ export function useChat(): UseChatReturn {
       setDetectedCapability("");
 
       const output = data.output ?? data;
-      const turnType: string =
-        output.turn_type ?? data.turn_type ?? "";
+      const turnType: string = output.turn_type ?? data.turn_type ?? "";
 
       // Save conversation ID (always present per spec)
       const convId =
@@ -448,7 +474,9 @@ export function useChat(): UseChatReturn {
         output.thread_id ??
         data.conversation_id ??
         data.thread_id ??
-        (data.output ? (data.output.conversation_id ?? data.output.thread_id) : undefined);
+        (data.output
+          ? (data.output.conversation_id ?? data.output.thread_id)
+          : undefined);
       if (convId) {
         // Always sync the ref so fetchConvId is correct for all turn types
         threadIdRef.current = convId;
@@ -458,33 +486,51 @@ export function useChat(): UseChatReturn {
       }
 
       // Suggested prompts from the event stream (arrive after complete)
-      const suggestions: string[] =
-        (pendingSuggestedPrompts ?? output.suggested_prompts ?? data.suggested_prompts ?? [])
-          .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
-          .map((p: any) => p.text ?? p);
+      const suggestions: string[] = (
+        pendingSuggestedPrompts ??
+        output.suggested_prompts ??
+        data.suggested_prompts ??
+        []
+      )
+        .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
+        .map((p: any) => p.text ?? p);
 
       // ── Error turn (business errors — HTTP 200 with turn_type: error) ──
       if (turnType === "error") {
         const code: string = output.code ?? data.code ?? "";
-        const msg: string = output.message ?? output.error ?? data.message ?? data.error ?? "Something went wrong.";
+        const msg: string =
+          output.message ??
+          output.error ??
+          data.message ??
+          data.error ??
+          "Something went wrong.";
         setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
         setChatErrorCode(code);
 
         if (code === "INSUFFICIENT_CREDITS") {
           setInsufficientCredits(true);
         } else if (code === "CAPABILITY_LOCKED") {
-          setChatError(`This capability requires a higher plan. ${output.upgrade_required ? "Upgrade to unlock it." : ""}`);
+          setChatError(
+            `This capability requires a higher plan. ${output.upgrade_required ? "Upgrade to unlock it." : ""}`,
+          );
         } else if (code === "CREDIT_DEDUCTION_FAILED") {
-          setChatError("A temporary issue occurred. Your credits were not deducted — please try again.");
+          setChatError(
+            "A temporary issue occurred. Your credits were not deducted — please try again.",
+          );
         } else if (code === "GENERATION_FAILED") {
-          setChatError("Generation failed. Your credits have been refunded — please try again.");
+          setChatError(
+            "Generation failed. Your credits have been refunded — please try again.",
+          );
         } else if (code === "WORD_LIMIT_EXCEEDED") {
-          setChatError("Your message exceeds the word limit for your plan. Please shorten it and try again.");
+          setChatError(
+            "Your message exceeds the word limit for your plan. Please shorten it and try again.",
+          );
         } else if (code === "USER_NOT_FOUND") {
           // Force logout — auth token valid but user record missing
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
-          if (typeof window !== "undefined") window.location.href = "/auth/signin";
+          if (typeof window !== "undefined")
+            window.location.href = "/auth/signin";
         } else if (code === "ACCOUNT_INACTIVE") {
           setChatError("Your account is inactive. Please contact support.");
         } else {
@@ -548,7 +594,8 @@ export function useChat(): UseChatReturn {
 
       // ── Greeting ──
       if (turnType === "greeting") {
-        const text = output.reply ?? output.message ?? data.reply ?? data.message ?? "";
+        const text =
+          output.reply ?? output.message ?? data.reply ?? data.message ?? "";
         setMessages((prev) => [
           ...prev,
           {
@@ -584,14 +631,26 @@ export function useChat(): UseChatReturn {
         output.responses;
 
       if (isGenerate) {
-        const fetchConvId = convId ?? threadIdRef.current ?? localStorage.getItem(LAST_CONV_KEY) ?? undefined;
+        const fetchConvId =
+          convId ??
+          threadIdRef.current ??
+          localStorage.getItem(LAST_CONV_KEY) ??
+          undefined;
         const token = localStorage.getItem("access_token");
 
         // Extract generate-specific fields from spec
-        const rawPrompts = pendingSuggestedPrompts ?? output.suggested_prompts ?? data.suggested_prompts ?? [];
-        const sortedPrompts = [...rawPrompts].sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
+        const rawPrompts =
+          pendingSuggestedPrompts ??
+          output.suggested_prompts ??
+          data.suggested_prompts ??
+          [];
+        const sortedPrompts = [...rawPrompts].sort(
+          (a: any, b: any) => (a.position ?? 0) - (b.position ?? 0),
+        );
         const suggestionTexts = sortedPrompts.map((p: any) => p.text ?? p);
-        const suggestionCats = sortedPrompts.map((p: any) => p.category ?? "exploration");
+        const suggestionCats = sortedPrompts.map(
+          (p: any) => p.category ?? "exploration",
+        );
 
         const intelligenceResult = normaliseLiveResult(output, currentMode);
         const msgLocalId = generateId();
@@ -606,7 +665,8 @@ export function useChat(): UseChatReturn {
           suggestionCategories: suggestionCats,
           conversationId: fetchConvId ?? undefined,
           messageId: output.message_id ?? data.message_id,
-          capabilityDisplay: output.capability_display ?? data.capability_display,
+          capabilityDisplay:
+            output.capability_display ?? data.capability_display,
           modelUsed: output.model_used ?? data.model_used,
           naturalScore: output.natural_score ?? data.natural_score,
         };
@@ -656,7 +716,8 @@ export function useChat(): UseChatReturn {
 
       // ── Refinement ──
       if (turnType === "refinement") {
-        const text = output.reply ?? output.message ?? data.reply ?? data.message ?? "";
+        const text =
+          output.reply ?? output.message ?? data.reply ?? data.message ?? "";
         setMessages((prev) => [
           ...prev,
           {
@@ -790,9 +851,9 @@ export function useChat(): UseChatReturn {
                 });
                 return;
               }
-              const prompts =
-                (data.suggested_prompts ?? [])
-                  .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
+              const prompts = (data.suggested_prompts ?? []).sort(
+                (a: any, b: any) => (a.position ?? 0) - (b.position ?? 0),
+              );
               handleComplete(data, currentMode, userMsgId, prompts);
             },
             onError: (message, code) => {
@@ -805,11 +866,16 @@ export function useChat(): UseChatReturn {
               } else if (code === "USER_NOT_FOUND") {
                 localStorage.removeItem("access_token");
                 localStorage.removeItem("refresh_token");
-                if (typeof window !== "undefined") window.location.href = "/auth/signin";
+                if (typeof window !== "undefined")
+                  window.location.href = "/auth/signin";
               } else if (code === "ACCOUNT_INACTIVE") {
-                setChatError("Your account is inactive. Please contact support.");
+                setChatError(
+                  "Your account is inactive. Please contact support.",
+                );
               } else {
-                setChatError(message || "Something went wrong. Please try again.");
+                setChatError(
+                  message || "Something went wrong. Please try again.",
+                );
               }
             },
           },
@@ -850,7 +916,7 @@ export function useChat(): UseChatReturn {
       const userMsg: ChatMessage = {
         id: userMsgId,
         role: "user",
-        content: label,           // context text typed by user (may be empty)
+        content: label, // context text typed by user (may be empty)
         timestamp: new Date(),
         attachedFile,
       };
@@ -890,9 +956,9 @@ export function useChat(): UseChatReturn {
           onNonStream: (data) => {
             // Non-stream upload: intelligence_response drives the flow
             const ir = data.intelligence_response ?? data;
-            const prompts =
-              (ir.suggested_prompts ?? [])
-                .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
+            const prompts = (ir.suggested_prompts ?? []).sort(
+              (a: any, b: any) => (a.position ?? 0) - (b.position ?? 0),
+            );
             handleComplete(ir, currentMode, userMsgId, prompts);
           },
           onError: (message, code) => {
@@ -905,11 +971,14 @@ export function useChat(): UseChatReturn {
             } else if (code === "USER_NOT_FOUND") {
               localStorage.removeItem("access_token");
               localStorage.removeItem("refresh_token");
-              if (typeof window !== "undefined") window.location.href = "/auth/signin";
+              if (typeof window !== "undefined")
+                window.location.href = "/auth/signin";
             } else if (code === "ACCOUNT_INACTIVE") {
               setChatError("Your account is inactive. Please contact support.");
             } else {
-              setChatError(message || "Something went wrong. Please try again.");
+              setChatError(
+                message || "Something went wrong. Please try again.",
+              );
             }
           },
         });
@@ -942,24 +1011,49 @@ export function useChat(): UseChatReturn {
     [handleUploadStream],
   );
 
-  const sendVoice = useCallback(
-    async (audio: Blob) => {
+  // ── Two-step voice: transcribe → review → send ────────────────────────────
+  const [pendingVoice, setPendingVoice] = useState<{
+    audio: Blob;
+    transcript: string;
+  } | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+
+  // Step 1: transcribe only — result shown to user for review/editing
+  const sendVoice = useCallback(async (audio: Blob) => {
+    const token = localStorage.getItem("access_token") ?? "";
+    setIsTranscribing(true);
+    try {
+      const result = await transcribeVoice(token, audio);
+      setPendingVoice({ audio, transcript: result.text });
+    } catch (err: any) {
+      setChatError(err?.message ?? "Transcription failed. Please try again.");
+    } finally {
+      setIsTranscribing(false);
+    }
+  }, []);
+
+  // Step 2: user confirms/edits transcript → send for full intelligence analysis
+  const confirmVoiceSend = useCallback(
+    async (editedTranscript: string) => {
+      if (!pendingVoice) return;
+      const { audio } = pendingVoice;
+      setPendingVoice(null);
       const token = localStorage.getItem("access_token") ?? "";
       const currentMode = activeModeRef.current;
       const currentThreadId = threadIdRef.current;
-      await handleUploadStream(
-        "🎙️ Voice recording",
-        (callbacks) =>
-          uploadVoice(
-            token,
-            audio,
-            { mode: currentMode, thread_id: currentThreadId ?? undefined },
-            callbacks,
-          ),
+      await handleUploadStream(`${editedTranscript}`, (callbacks) =>
+        uploadVoice(
+          token,
+          audio,
+          { mode: currentMode, thread_id: currentThreadId ?? undefined },
+          callbacks,
+        ),
       );
     },
-    [handleUploadStream],
+    [pendingVoice, handleUploadStream],
   );
+
+  const dismissPendingVoice = useCallback(() => setPendingVoice(null), []);
 
   return {
     messages,
@@ -986,6 +1080,10 @@ export function useChat(): UseChatReturn {
     sendMessage,
     sendFile,
     sendVoice,
+    pendingVoice,
+    isTranscribing,
+    confirmVoiceSend,
+    dismissPendingVoice,
     startNewConversation,
     loadConversation,
     restoreLastConversation,
