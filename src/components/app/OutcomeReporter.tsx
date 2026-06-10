@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { reportOutcome } from "@/lib/api/intelligence";
+import { OutcomeResponseDisplay } from "./OutcomeResponseDisplay";
 
 type OutcomeResult =
   | "worked"
@@ -10,43 +11,21 @@ type OutcomeResult =
   | "still_ongoing"
   | "no_response";
 
-const OPTIONS: { value: OutcomeResult; label: string; color: string }[] = [
-  {
-    value: "worked",
-    label: "It worked",
-    color:
-      "text-emerald-400 border-emerald-400/30 bg-emerald-400/8 hover:bg-emerald-400/15",
-  },
-  {
-    value: "partially",
-    label: "Partially",
-    color:
-      "text-amber-400 border-amber-400/30 bg-amber-400/8 hover:bg-amber-400/15",
-  },
-  {
-    value: "did_not_work",
-    label: "Didn't work",
-    color: "text-red-400 border-red-400/30 bg-red-400/8 hover:bg-red-400/15",
-  },
-  {
-    value: "still_ongoing",
-    label: "Still ongoing",
-    color:
-      "text-blue-400 border-blue-400/30 bg-blue-400/8 hover:bg-blue-400/15",
-  },
-  {
-    value: "no_response",
-    label: "No response",
-    color:
-      "text-[var(--text-muted)] border-[var(--border-default)] bg-[var(--card-muted-bg)] hover:bg-[var(--card-bg)]",
-  },
+const OPTIONS: { value: OutcomeResult; label: string }[] = [
+  { value: "worked", label: "It worked" },
+  { value: "partially", label: "Partially" },
+  { value: "did_not_work", label: "Didn't work" },
+  { value: "still_ongoing", label: "Still ongoing" },
+  { value: "no_response", label: "No response" },
 ];
 
 interface OutcomeReporterProps {
   conversationId: string;
   messageId: string;
-  // Called with the backend's response message text so the parent can append it
-  onResponse?: (text: string) => void;
+  onResponse?: (
+    text: string,
+    suggestions?: Array<{ text: string; category: string; position: number }>,
+  ) => void;
 }
 
 export function OutcomeReporter({
@@ -56,19 +35,17 @@ export function OutcomeReporter({
 }: OutcomeReporterProps) {
   const storageKey = `outcome_done_${messageId}`;
 
-  const [step, setStep] = useState<"prompt" | "detail" | "done">(() => {
-    if (typeof window !== "undefined" && localStorage.getItem(storageKey))
-      return "done";
-    return "prompt";
-  });
+  const [step, setStep] = useState<"prompt" | "detail" | "done" | "response">(
+    () => {
+      if (typeof window !== "undefined" && localStorage.getItem(storageKey))
+        return "done";
+      return "prompt";
+    },
+  );
   const [selected, setSelected] = useState<OutcomeResult | null>(null);
   const [whatHappened, setWhatHappened] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  const markDone = () => {
-    localStorage.setItem(storageKey, "1");
-    setStep("done");
-  };
+  const [outcomeResponse, setOutcomeResponse] = useState<any>(null);
 
   const handleSelect = (val: OutcomeResult) => {
     setSelected(val);
@@ -88,26 +65,54 @@ export function OutcomeReporter({
           result,
           what_happened: detail || undefined,
         });
-        // The outcome endpoint returns the follow-up message directly in the response body
-        const text: string =
-          data?.message ?? data?.response?.acknowledgment ?? "";
-        if (text) onResponse?.(text);
-      } catch {}
+
+        setOutcomeResponse(data);
+        setStep("response");
+
+        if (
+          data.suggested_prompt &&
+          data.suggested_prompt.length > 0 &&
+          onResponse
+        ) {
+          onResponse(data.message || "", data.suggested_prompt);
+        } else if (data.message && onResponse) {
+          onResponse(data.message);
+        }
+      } catch (err) {
+        console.error("Failed to report outcome:", err);
+      }
     }
     setSubmitting(false);
-    markDone();
   };
 
   if (step === "done") return null;
 
-  // Thinking loader — shown while waiting for Avertune's outcome response
+  if (step === "response" && outcomeResponse) {
+    const resp = outcomeResponse.response;
+    return (
+      <div className="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+        <OutcomeResponseDisplay
+          acknowledgment={resp?.acknowledgment}
+          analysis={resp?.analysis}
+          next_steps={resp?.next_steps}
+          what_to_watch_for={resp?.what_to_watch_for}
+          alternative_path={resp?.alternative_path}
+          encouragement={resp?.encouragement}
+          suggested_prompts={outcomeResponse.suggested_prompt}
+          onSuggestionClick={(text) => onResponse?.(text)}
+          outcome_recorded={outcomeResponse.outcome_recorded}
+        />
+      </div>
+    );
+  }
+
   if (submitting) {
     return (
       <div className="mt-3 flex items-center gap-2.5">
         <div className="flex items-center gap-1 px-3 py-2 rounded-xl bg-[var(--card-muted-bg)] border border-[var(--card-border)]">
-          <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce [animation-delay:0ms]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce [animation-delay:150ms]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce [animation-delay:300ms]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0ms]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:150ms]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:300ms]" />
         </div>
         <span className="text-[11.5px] text-[var(--text-muted)]">
           Avertune is thinking…
@@ -128,7 +133,7 @@ export function OutcomeReporter({
           rows={2}
           className="w-full text-[13px] bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-3 py-2
             text-[var(--text-primary)] placeholder:text-[var(--input-placeholder)] outline-none resize-none
-            focus:border-violet-500/50 transition-all"
+            focus:border-gray-400 transition-all"
         />
         <div className="flex items-center justify-end gap-2 mt-2">
           <button
@@ -140,7 +145,7 @@ export function OutcomeReporter({
           <button
             onClick={() => submit(selected!, whatHappened)}
             disabled={submitting}
-            className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-violet-600 hover:bg-violet-500 text-white transition-all disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-gray-800 hover:bg-gray-700 text-white transition-all disabled:opacity-50"
           >
             Submit
           </button>
@@ -159,7 +164,7 @@ export function OutcomeReporter({
           <button
             key={opt.value}
             onClick={() => handleSelect(opt.value)}
-            className={`px-2.5 py-1 rounded-lg border text-[12px] font-medium transition-all ${opt.color}`}
+            className="px-2.5 py-1 rounded-lg border border-gray-300 dark:border-gray-600 text-[12px] font-medium text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
           >
             {opt.label}
           </button>

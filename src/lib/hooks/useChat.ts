@@ -23,6 +23,16 @@ function normaliseHistoryMessage(
   mode: ModeId,
   conversationId?: string,
 ): ChatMessage {
+  // ADD THIS DEBUG LOG
+  console.log("=== normaliseHistoryMessage ===");
+  console.log("Message ID:", msg.id);
+  console.log("Message has intelligence?", !!msg.intelligence);
+  console.log(
+    "Message intelligence keys:",
+    msg.intelligence ? Object.keys(msg.intelligence) : "none",
+  );
+  console.log("Message turn_type:", msg.intelligence?.turn_type);
+  console.log("=================================");
   const intel = msg.intelligence ?? msg.intelligence_result ?? null;
   // scoring may live at top level on the message or inside intelligence
   const topScoring = msg.scoring ?? null;
@@ -40,6 +50,7 @@ function normaliseHistoryMessage(
       content: msg.content ?? "",
       timestamp: new Date(msg.created_at ?? Date.now()),
       turnType: turnType || undefined,
+      intelligence: msg.intelligence, // ADD THIS LINE
     };
   }
 
@@ -157,6 +168,7 @@ function normaliseHistoryMessage(
       intelligenceResult,
       turnType: "generate",
       conversationId,
+      intelligence: msg.intelligence, // ADD THIS LINE
     };
   }
 
@@ -165,6 +177,7 @@ function normaliseHistoryMessage(
     role: msg.role === "assistant" ? "assistant" : "user",
     content: msg.content ?? "",
     timestamp: new Date(msg.created_at ?? Date.now()),
+    intelligence: msg.intelligence, // ADD THIS LINE
   };
 }
 
@@ -291,7 +304,6 @@ function normaliseLiveResult(output: any, mode: ModeId): IntelligenceResult {
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
 export interface UseChatReturn {
   messages: ChatMessage[];
   isTyping: boolean;
@@ -320,7 +332,10 @@ export interface UseChatReturn {
   setActiveMode: (mode: ModeId) => void;
   sendMessage: (content: string, skipChallenge?: boolean) => Promise<void>;
   sendFile: (file: File, text?: string) => Promise<void>;
-  sendVoice: (audio: Blob) => Promise<void>;
+  sendVoice: (
+    audio: Blob,
+    onTranscript: (text: string) => void,
+  ) => Promise<void>;
   pendingVoice: { audio: Blob; transcript: string } | null;
   isTranscribing: boolean;
   confirmVoiceSend: (editedTranscript: string) => Promise<void>;
@@ -330,12 +345,20 @@ export interface UseChatReturn {
   restoreLastConversation: () => void;
   appendMessage: (content: string) => void;
   refreshSidebar: number;
+  conversationSuggestions: Array<{
+    text: string;
+    position: number;
+    category: string;
+  }>;
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 export function useChat(): UseChatReturn {
   const { applyUsage } = useCredits();
-
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
+    null,
+  );
+  const [chunkBuffer, setChunkBuffer] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   // "thinking" = connected, waiting for first chunk | "receiving" = chunks arriving
@@ -428,6 +451,9 @@ export function useChat(): UseChatReturn {
       setActiveMode(mode);
       setModeLocked(loaded.length > 0);
       localStorage.setItem(LAST_CONV_KEY, conversationId);
+
+      // Force refresh of conversationSuggestions
+      setRefreshSidebar((n) => n + 1);
     } catch (err) {
       console.error("Failed to load conversation:", err);
       localStorage.removeItem(LAST_CONV_KEY);
@@ -820,8 +846,6 @@ export function useChat(): UseChatReturn {
               applyUsage(credits_used, credits_remaining);
             },
             onConversationId: (id) => {
-              // Capture conversation ID as soon as the server sends it — this
-              // fires before onComplete so fetchConvId is always populated
               if (!threadIdRef.current) {
                 threadIdRef.current = id;
                 setThreadId(id);
@@ -829,20 +853,123 @@ export function useChat(): UseChatReturn {
                 localStorage.setItem(LAST_CONV_KEY, id);
               }
             },
-            onChunk: () => {
+            onChunk: (chunkData) => {
               setStreamingPhase("receiving");
+
+              // Buffer the incoming chunk
+              setChunkBuffer((prev) => prev + chunkData);
+
+              // Try to extract complete JSON objects from buffer
+              let completeJsonEnd = -1;
+              let braceCount = 0;
+              let inString = false;
+              let escapeNext = false;
+              const buffer = chunkBuffer + chunkData;
+
+              for (let i = 0; i < buffer.length; i++) {
+                const char = buffer[i];
+
+                if (escapeNext) {
+                  escapeNext = false;
+                  continue;
+                }
+
+                if (char === "\\") {
+                  escapeNext = true;
+                  continue;
+                }
+
+                if (char === '"' && !escapeNext) {
+                  inString = !inString;
+                  continue;
+                }
+
+                if (!inString) {
+                  if (char === "{") braceCount++;
+                  if (char === "}") {
+                    braceCount--;
+                    if (braceCount === 0) {
+                      completeJsonEnd = i;
+                      break;
+                    }
+                  }
+                }
+              }
+
+              if (completeJsonEnd !== -1) {
+                // Extract complete JSON string
+                const jsonStr = buffer.substring(0, completeJsonEnd + 1);
+                setChunkBuffer(buffer.substring(completeJsonEnd + 1));
+
+                try {
+                  const parsed = JSON.parse(jsonStr);
+                  const text = parsed.text || parsed.content || "";
+
+                  if (text) {
+                    if (!streamingMessageId) {
+                      const newId = generateId();
+                      setStreamingMessageId(newId);
+                      setMessages((prev) => [
+                        ...prev,
+                        {
+                          id: newId,
+                          role: "assistant",
+                          content: text,
+                          timestamp: new Date(),
+                          isStreaming: true,
+                        },
+                      ]);
+                    } else {
+                      setMessages((prev) =>
+                        prev.map((msg) =>
+                          msg.id === streamingMessageId
+                            ? { ...msg, content: msg.content + text }
+                            : msg,
+                        ),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  // Invalid JSON, ignore
+                  console.debug("Failed to parse JSON chunk:", jsonStr);
+                }
+              }
             },
             onSuggestedPrompts: (prompts) => {
               pendingPrompts = prompts;
             },
             onComplete: (output) => {
+              setStreamingPhase("idle");
+              setIsTyping(false);
+
+              // Clear buffer
+              setChunkBuffer("");
+
+              // Remove streaming message
+              if (streamingMessageId) {
+                setMessages((prev) =>
+                  prev.filter((m) => m.id !== streamingMessageId),
+                );
+                setStreamingMessageId(null);
+              }
+
               handleComplete(output, currentMode, userMsgId, pendingPrompts);
             },
             onNonStream: (data) => {
-              const turnType: string = data.turn_type ?? "";
+              setStreamingPhase("idle");
+              setIsTyping(false);
+
+              setChunkBuffer("");
+
+              if (streamingMessageId) {
+                setMessages((prev) =>
+                  prev.filter((m) => m.id !== streamingMessageId),
+                );
+                setStreamingMessageId(null);
+              }
+
+              const turnType = data.turn_type ?? "";
               if (turnType === "challenge") {
-                setStreamingPhase("idle");
-                setIsTyping(false);
                 setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
                 setPendingChallenge({
                   challenge: data.challenge ?? "",
@@ -860,6 +987,16 @@ export function useChat(): UseChatReturn {
               setStreamingPhase("idle");
               setIsTyping(false);
               setChatErrorCode(code ?? null);
+
+              setChunkBuffer("");
+
+              if (streamingMessageId) {
+                setMessages((prev) =>
+                  prev.filter((m) => m.id !== streamingMessageId),
+                );
+                setStreamingMessageId(null);
+              }
+
               if (code === "INSUFFICIENT_CREDITS") {
                 setInsufficientCredits(true);
                 setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
@@ -1019,18 +1156,22 @@ export function useChat(): UseChatReturn {
   const [isTranscribing, setIsTranscribing] = useState(false);
 
   // Step 1: transcribe only — result shown to user for review/editing
-  const sendVoice = useCallback(async (audio: Blob) => {
-    const token = localStorage.getItem("access_token") ?? "";
-    setIsTranscribing(true);
-    try {
-      const result = await transcribeVoice(token, audio);
-      setPendingVoice({ audio, transcript: result.text });
-    } catch (err: any) {
-      setChatError(err?.message ?? "Transcription failed. Please try again.");
-    } finally {
-      setIsTranscribing(false);
-    }
-  }, []);
+
+  const sendVoice = useCallback(
+    async (audio: Blob, onTranscript: (text: string) => void) => {
+      const token = localStorage.getItem("access_token") ?? "";
+      setIsTranscribing(true);
+      try {
+        const result = await transcribeVoice(token, audio);
+        onTranscript(result.text);
+      } catch (err: any) {
+        setChatError(err?.message ?? "Transcription failed. Please try again.");
+      } finally {
+        setIsTranscribing(false);
+      }
+    },
+    [],
+  );
 
   // Step 2: user confirms/edits transcript → send for full intelligence analysis
   const confirmVoiceSend = useCallback(
@@ -1080,13 +1221,15 @@ export function useChat(): UseChatReturn {
     sendMessage,
     sendFile,
     sendVoice,
-    pendingVoice,
     isTranscribing,
+    pendingVoice: null,
     confirmVoiceSend,
     dismissPendingVoice,
     startNewConversation,
     loadConversation,
     restoreLastConversation,
     refreshSidebar,
+    // In useChat.ts return object, add:
+    conversationSuggestions: activeConversation?.last_suggested_prompts || [],
   };
 }

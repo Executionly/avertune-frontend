@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { HeroSection } from "@/components/ui/HeroSection";
 import { fetchSamplesByMode } from "@/lib/utils/samplesCache";
-import { fetchCharLimit } from "@/lib/utils/CharLimits";
+import { getStoredWordLimit } from "@/lib/utils/CharLimits";
 import type { Mode } from "@/lib/types";
 
 interface ModeDetailHeroProps {
@@ -14,7 +14,7 @@ export function ModeDetailHero({ mode }: ModeDetailHeroProps) {
   const [samplesByMode, setSamplesByMode] = useState<Record<string, string[]>>(
     {},
   );
-  const [charLimit, setCharLimit] = useState<number>(500);
+  const [charLimit, setCharLimit] = useState<number>(800);
 
   useEffect(() => {
     // Fetch all samples grouped by mode (no token required)
@@ -23,9 +23,7 @@ export function ModeDetailHero({ mode }: ModeDetailHeroProps) {
       .catch(() => {});
 
     // Fetch char limit from subscription/plans
-    fetchCharLimit()
-      .then(setCharLimit)
-      .catch(() => {});
+    setCharLimit(getStoredWordLimit());
   }, []);
 
   const handleAnalyse = (message: string, modeId: string) => {

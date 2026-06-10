@@ -14,7 +14,7 @@ import {
   type CreditsResponse,
   type CreditTransaction,
 } from "@/lib/api/intelligence";
-import { fetchCharLimit } from "@/lib/utils/CharLimits";
+import { useAuth } from "./AuthContext";
 
 interface CreditsContextType {
   credits: CreditsResponse | null;
@@ -29,10 +29,10 @@ interface CreditsContextType {
 const CreditsContext = createContext<CreditsContextType | undefined>(undefined);
 
 export function CreditsProvider({ children }: { children: ReactNode }) {
+  const { wordLimit } = useAuth();
   const [credits, setCredits] = useState<CreditsResponse | null>(null);
   const [history, setHistory] = useState<CreditTransaction[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [charLimit, setCharLimit] = useState<number>(500);
 
   const refresh = useCallback(async () => {
     const token = localStorage.getItem("access_token");
@@ -43,7 +43,6 @@ export function CreditsProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, []);
 
-  // Live update from SSE credits event — no extra API call needed
   const applyUsage = useCallback((used: number, remaining: number) => {
     setCredits((prev) => {
       if (!prev) return prev;
@@ -68,13 +67,9 @@ export function CreditsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Fetch credits and char limit on mount once token is available
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (token) refresh();
-    fetchCharLimit()
-      .then(setCharLimit)
-      .catch(() => {});
   }, [refresh]);
 
   return (
@@ -83,7 +78,7 @@ export function CreditsProvider({ children }: { children: ReactNode }) {
         credits,
         history,
         historyLoading,
-        charLimit,
+        charLimit: wordLimit,
         refresh,
         applyUsage,
         fetchHistory,

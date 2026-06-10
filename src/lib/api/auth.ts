@@ -1,6 +1,5 @@
 const API_URL = "https://avertuneserver.xyz/api";
 const SUB_URL = "https://avertuneserver.xyz/api/v2/subscription";
-
 export interface User {
   id: string;
   email: string;
@@ -13,11 +12,13 @@ export interface User {
   plan_tier: string;
   plan_name: string;
   billing_period: string;
+  billing_anchor_day?: number;
   trial_days_left: number;
   credits_balance: number;
   credits_used: number;
   credits_limit: number;
   credits_remaining: number;
+  word_limit?: number;
   features: string[];
 }
 
