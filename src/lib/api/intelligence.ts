@@ -46,6 +46,16 @@ export interface Conversation {
   is_archived: boolean;
   created_at: string;
   updated_at: string;
+  last_turn_type?: string;
+  pending_followup?: boolean;
+  risk_trend?: string;
+  conversation_state?: string;
+  needs_followup?: boolean;
+  last_suggested_prompts?: Array<{
+    text: string;
+    position: number;
+    category: string;
+  }>;
 }
 
 export interface ConversationsResponse {
@@ -230,8 +240,7 @@ export async function analyseMessageStream(
         else if (eventType === "complete") {
           // Buffer — don't fire yet; suggested_prompts arrives after complete
           pendingComplete = parsed;
-        }
-        else if (eventType === "suggested_prompts") {
+        } else if (eventType === "suggested_prompts") {
           callbacks.onSuggestedPrompts?.(parsed.suggested_prompts ?? parsed);
           // Fire buffered complete now — prompts are delivered
           if (pendingComplete !== undefined) {
@@ -390,8 +399,15 @@ export async function getSampleMessages(
 // ── File Upload ────────────────────────────────────────────────────────────────
 
 export interface UploadCallbacks {
-  onCapability?: (data: { capability: string; display_name: string; credit_cost: number }) => void;
-  onCredits?: (data: { credits_used: number; credits_remaining: number }) => void;
+  onCapability?: (data: {
+    capability: string;
+    display_name: string;
+    credit_cost: number;
+  }) => void;
+  onCredits?: (data: {
+    credits_used: number;
+    credits_remaining: number;
+  }) => void;
   onChunk?: (text: string) => void;
   onComplete?: (output: any) => void;
   onSuggestedPrompts?: (prompts: any[]) => void;
@@ -400,7 +416,10 @@ export interface UploadCallbacks {
   onNonStream?: (data: any) => void;
 }
 
-async function handleUploadStream(res: Response, callbacks: UploadCallbacks): Promise<void> {
+async function handleUploadStream(
+  res: Response,
+  callbacks: UploadCallbacks,
+): Promise<void> {
   const contentType = res.headers.get("content-type") || "";
   if (!contentType.includes("text/event-stream")) {
     const data = await res.json();
@@ -425,15 +444,23 @@ async function handleUploadStream(res: Response, callbacks: UploadCallbacks): Pr
 
     for (const line of lines) {
       const t = line.trim();
-      if (!t) { eventType = ""; continue; }
-      if (t.startsWith("event:")) { eventType = t.slice(6).trim(); continue; }
+      if (!t) {
+        eventType = "";
+        continue;
+      }
+      if (t.startsWith("event:")) {
+        eventType = t.slice(6).trim();
+        continue;
+      }
       if (!t.startsWith("data:")) continue;
       const raw = t.slice(5).trim();
 
       try {
         const parsed = JSON.parse(raw);
-        const cid = parsed.conversation_id ?? parsed.thread_id
-          ?? parsed.intelligence_response?.conversation_id;
+        const cid =
+          parsed.conversation_id ??
+          parsed.thread_id ??
+          parsed.intelligence_response?.conversation_id;
         if (cid) callbacks.onConversationId?.(cid);
 
         if (eventType === "capability") callbacks.onCapability?.(parsed);
@@ -441,8 +468,7 @@ async function handleUploadStream(res: Response, callbacks: UploadCallbacks): Pr
         else if (eventType === "chunk") callbacks.onChunk?.(parsed.text ?? "");
         else if (eventType === "complete") {
           pendingComplete = parsed;
-        }
-        else if (eventType === "suggested_prompts") {
+        } else if (eventType === "suggested_prompts") {
           callbacks.onSuggestedPrompts?.(parsed.suggested_prompts ?? parsed);
           if (pendingComplete !== undefined) {
             callbacks.onComplete?.(pendingComplete);
@@ -451,7 +477,10 @@ async function handleUploadStream(res: Response, callbacks: UploadCallbacks): Pr
         }
         // "done" event intentionally ignored — suggested_prompts arrives after it
         else if (eventType === "error")
-          callbacks.onError?.(parsed.message ?? parsed.error ?? "Upload error", parsed.code);
+          callbacks.onError?.(
+            parsed.message ?? parsed.error ?? "Upload error",
+            parsed.code,
+          );
       } catch {}
     }
   }
@@ -490,7 +519,12 @@ export async function uploadFile(
 export async function uploadVoice(
   token: string,
   audio: Blob,
-  params: { mode: string; capability?: string; thread_id?: string; language?: string },
+  params: {
+    mode: string;
+    capability?: string;
+    thread_id?: string;
+    language?: string;
+  },
   callbacks: UploadCallbacks,
 ): Promise<void> {
   const form = new FormData();

@@ -28,7 +28,7 @@ function CopyBtn({ text }: { text: string }) {
           setTimeout(() => setCopied(false), 1800);
         })
       }
-      className="flex items-center gap-1 text-[11px] text-[var(--text-muted)] hover:text-violet-400 transition-colors mt-2"
+      className="flex items-center gap-1 text-[11px] text-[var(--text-muted)] hover:text-gray-600 transition-colors mt-2"
     >
       {copied ? (
         <>
@@ -37,7 +37,7 @@ function CopyBtn({ text }: { text: string }) {
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
-            className="w-3 h-3 text-violet-500"
+            className="w-3 h-3 text-gray-600"
           >
             <path
               d="M2 6l3 3 5-5"
@@ -69,7 +69,6 @@ function CopyBtn({ text }: { text: string }) {
   );
 }
 
-// Scores bar
 function ScoreBar({
   label,
   value,
@@ -83,20 +82,28 @@ function ScoreBar({
 }) {
   const pct = Math.min(Math.round((value / max) * 100), 100);
   const color = invertColor
-    ? pct > 70 ? "bg-red-400" : pct > 40 ? "bg-amber-400" : "bg-emerald-500"
-    : pct > 70 ? "bg-emerald-500" : pct > 40 ? "bg-amber-400" : "bg-red-400";
+    ? pct > 70
+      ? "bg-red-500"
+      : pct > 40
+        ? "bg-amber-500"
+        : "bg-green-500"
+    : pct > 70
+      ? "bg-green-500"
+      : pct > 40
+        ? "bg-amber-500"
+        : "bg-red-500";
   return (
     <div className="flex items-center gap-2.5">
-      <span className="text-[11px] text-[var(--text-muted)] w-20 flex-shrink-0">
+      <span className="text-[11px] text-[var(--text-muted)] w-28 flex-shrink-0">
         {label}
       </span>
-      <div className="flex-1 h-1.5 rounded-full bg-[var(--card-border)]">
+      <div className="flex-1 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700">
         <div
           className={`h-full rounded-full transition-all ${color}`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="text-[11px] text-[var(--text-muted)] w-7 text-right">
+      <span className="text-[11px] font-medium text-[var(--text-primary)] w-7 text-right">
         {value}
       </span>
     </div>
@@ -106,15 +113,17 @@ function ScoreBar({
 const RISK_CONFIG = {
   low: {
     label: "Low risk",
-    className: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+    className:
+      "text-green-600 bg-green-50 dark:bg-green-950/30 border-green-200",
   },
   medium: {
     label: "Medium risk",
-    className: "text-amber-400 bg-amber-400/10 border-amber-400/20",
+    className:
+      "text-amber-600 bg-amber-50 dark:bg-amber-950/30 border-amber-200",
   },
   high: {
     label: "High risk",
-    className: "text-red-400 bg-red-400/10 border-red-400/20",
+    className: "text-red-600 bg-red-50 dark:bg-red-950/30 border-red-200",
   },
 };
 
@@ -132,7 +141,6 @@ export function IntelligenceResultCard({
 }: Props) {
   const [activeReply, setActiveReply] = useState<string | null>(null);
 
-  // Build ordered reply list — keep recommended first
   const replyKeys: string[] = result.replies
     ? [
         ...(result.recommended && result.replies[result.recommended]
@@ -150,113 +158,16 @@ export function IntelligenceResultCard({
 
   const risk = RISK_CONFIG[result.riskLevel ?? "low"];
 
+  const getPrimaryMessage = (replyData: any): string => {
+    if (replyData?.generated_reply) return replyData.generated_reply;
+    if (replyData?.text) return replyData.text;
+    if (replyData?.body) return replyData.body;
+    return "";
+  };
+
   return (
-    <div className="space-y-3 text-[14px] max-w-[640px]">
-
-      {/* ── Degraded / preview plan ── */}
-      {result.is_degraded && (
-        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 overflow-hidden">
-          {/* Preview badge */}
-          <div className="flex items-center gap-2 px-4 pt-3 pb-2 border-b border-amber-500/15">
-            <span className="px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-amber-400/15 text-amber-400 border border-amber-400/25 uppercase tracking-wide">
-              Preview
-            </span>
-            <span className="text-[12px] text-[var(--text-muted)]">
-              Limited response — upgrade to unlock full analysis
-            </span>
-          </div>
-
-          <div className="px-4 py-3 space-y-3">
-            {/* Situation read */}
-            {result.situation_read && (
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)] mb-1">
-                  Situation read
-                </p>
-                <p className="text-[13.5px] text-[var(--text-primary)] leading-[1.65]">
-                  {result.situation_read}
-                </p>
-              </div>
-            )}
-
-            {/* Advice */}
-            {result.replies?.advice?.insight && (
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)] mb-1">
-                  Basic advice
-                </p>
-                <p className="text-[13.5px] text-[var(--text-secondary)] leading-[1.65]">
-                  {result.replies.advice.insight}
-                </p>
-              </div>
-            )}
-
-            {/* Suggested message */}
-            {result.replies?.advice?.text && (
-              <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)] mb-2">
-                  Suggested message
-                </p>
-                <p className="text-[13.5px] text-[var(--text-primary)] leading-[1.7] whitespace-pre-wrap">
-                  {result.replies.advice.text}
-                </p>
-                <CopyBtn text={result.replies.advice.text} />
-              </div>
-            )}
-
-            {/* Next best action */}
-            {result.next_best_action && (
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-violet-500/8 border border-violet-500/20">
-                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5 text-violet-400 flex-shrink-0 mt-0.5">
-                  <path d="M7 1v6l3 3" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="7" cy="7" r="6" />
-                </svg>
-                <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">
-                  {result.next_best_action}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Locked features + upgrade CTA */}
-          {result.upgrade_message && (
-            <div className="px-4 pb-4 space-y-3">
-              <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card-muted-bg)] p-3">
-                <p className="text-[12px] text-[var(--text-muted)] leading-[1.55] mb-2">
-                  {result.upgrade_message}
-                </p>
-                {result.locked_features && result.locked_features.length > 0 && (
-                  <ul className="space-y-1">
-                    {result.locked_features.map((f, i) => (
-                      <li key={i} className="flex items-center gap-2 text-[12px] text-[var(--text-muted)]">
-                        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-2.5 h-2.5 text-violet-400/60 flex-shrink-0">
-                          <rect x="2" y="4.5" width="6" height="4.5" rx=".8" />
-                          <path d="M3.5 4.5V3a1.5 1.5 0 013 0v1.5" strokeLinecap="round"/>
-                        </svg>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              {result.available_plans && result.available_plans.length > 0 && (
-                <div className="flex gap-2 flex-wrap">
-                  {result.available_plans.map((plan) => (
-                    <div key={plan.name} className="flex-1 min-w-[120px] rounded-xl border border-violet-500/30 bg-violet-500/8 px-3 py-2">
-                      <p className="text-[12px] font-semibold text-violet-400">{plan.name}</p>
-                      <p className="text-[13px] font-bold text-[var(--text-primary)]">{plan.price}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Normal (non-degraded) card body ── */}
-      {!result.is_degraded && (<>
+    <div className="space-y-4 text-[14px] max-w-[640px]">
+      {/* Risk and badges */}
       <div className="flex items-center gap-2 flex-wrap">
         <span
           className={cn(
@@ -267,44 +178,44 @@ export function IntelligenceResultCard({
           {risk.label}
         </span>
         {result.scores?.toneMatch && (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-[var(--card-border)] text-[var(--text-muted)]">
+          <span className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-gray-200 dark:border-gray-700 text-[var(--text-muted)]">
             Tone: {result.scores.toneMatch}
           </span>
         )}
-        {result.scores?.escalationRisk &&
-          result.scores.escalationRisk !== "low" && (
-            <span
-              className={cn(
-                "px-2.5 py-1 rounded-full text-[11px] font-medium border",
-                result.scores.escalationRisk === "high"
-                  ? "text-red-400 bg-red-400/10 border-red-400/20"
-                  : "text-amber-400 bg-amber-400/10 border-amber-400/20",
-              )}
-            >
-              Escalation: {result.scores.escalationRisk}
-            </span>
-          )}
         {capabilityDisplay && (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-violet-500/30 text-violet-400 bg-violet-500/8">
+          <span className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-gray-200 dark:border-gray-700 text-[var(--text-muted)]">
             {capabilityDisplay}
           </span>
         )}
         {naturalScore != null && naturalScore > 0 && (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-teal-500/30 text-teal-400 bg-teal-500/8">
+          <span className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-gray-200 dark:border-gray-700 text-[var(--text-muted)]">
             Natural {naturalScore}/100
           </span>
         )}
       </div>
+
       {modelUsed && (
-        <p className="text-[11px] text-[var(--text-muted)] px-0.5">
+        <p className="text-[11px] text-[var(--text-muted)]">
           Powered by {modelUsed}
         </p>
       )}
 
-      {/* ── Situation read ── */}
+      {/* Question asked */}
+      {result.question_asked && (
+        <div className="border-l-2 border-gray-300 dark:border-gray-600 pl-3 py-1">
+          <p className="text-[11px] text-[var(--text-muted)] mb-1">
+            Your question
+          </p>
+          <p className="text-[13px] text-[var(--text-primary)] leading-[1.6] italic">
+            "{result.question_asked}"
+          </p>
+        </div>
+      )}
+
+      {/* Situation read */}
       {result.situation_read && (
-        <div className="rounded-xl border border-violet-500/20 bg-violet-500/[0.05] px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-violet-400 mb-1.5">
+        <div className="bg-gray-50 dark:bg-gray-900/30 rounded-xl px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">
             Situation read
           </p>
           <p className="text-[13px] text-[var(--text-secondary)] leading-[1.65]">
@@ -313,39 +224,32 @@ export function IntelligenceResultCard({
         </div>
       )}
 
-      {/* ── Analysis + Strategy (if present) ── */}
-      {(result.analysis || result.strategy) && (
-        <div className="rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] p-4 space-y-3">
-          {result.analysis && (
-            <p className="text-[13.5px] text-[var(--text-secondary)] leading-[1.7]">
-              {result.analysis}
-            </p>
-          )}
-          {result.strategy && (
-            <div
-              className={
-                result.analysis
-                  ? "border-t border-[var(--card-border)] pt-3"
-                  : ""
-              }
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-violet-400 mb-1.5">
-                Strategy
-              </p>
-              <p className="text-[13.5px] text-[var(--text-primary)] leading-[1.65]">
-                {result.strategy}
-              </p>
-            </div>
-          )}
+      {/* Strategic reasoning */}
+      {result.strategic_reasoning && (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">
+            Strategic reasoning
+          </p>
+          <p className="text-[13px] text-[var(--text-secondary)] leading-[1.65]">
+            {result.strategic_reasoning}
+          </p>
         </div>
       )}
 
-      {/* ── Replies — tab strip + active panel ── */}
+      {/* Analysis */}
+      {result.analysis && (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3">
+          <p className="text-[13px] text-[var(--text-secondary)] leading-[1.7]">
+            {result.analysis}
+          </p>
+        </div>
+      )}
+
+      {/* ── Replies with tabs (no Recommended badge) ── */}
       {hasReplies && (
-        <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] overflow-hidden">
-          {/* Tab strip */}
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl bg-[var(--card-bg)] overflow-hidden">
           {replyKeys.length > 1 && (
-            <div className="flex border-b border-[var(--card-border)] overflow-x-auto">
+            <div className="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
               {replyKeys.map((key) => {
                 const isActive =
                   (activeReply ?? result.recommended ?? replyKeys[0]) === key;
@@ -356,149 +260,465 @@ export function IntelligenceResultCard({
                     className={cn(
                       "flex-shrink-0 px-4 py-2.5 text-[12px] font-medium border-b-2 transition-all capitalize",
                       isActive
-                        ? "border-violet-500 text-violet-400"
+                        ? "border-gray-900 dark:border-gray-100 text-[var(--text-primary)]"
                         : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]",
                     )}
                   >
                     {key.replace(/_/g, " ")}
-                    {key === result.recommended && (
-                      <span className="ml-1.5 text-[9px] px-1 py-0.5 rounded-full bg-violet-500/15 text-violet-400">
-                        ★
-                      </span>
-                    )}
                   </button>
                 );
               })}
             </div>
           )}
 
-          {/* Active reply body */}
           {activeReplyData && (
             <div className="p-4">
-              {/* subject line for email variants */}
-              {(activeReplyData as any).subject && (
-                <div className="flex items-start gap-2 mb-3 pb-3 border-b border-[var(--card-border)]">
-                  <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mt-0.5 w-12 flex-shrink-0">
-                    Subject
-                  </span>
-                  <span className="text-[13px] text-[var(--text-primary)]">
-                    {(activeReplyData as any).subject}
-                  </span>
-                </div>
-              )}
-              {/* Main text / advice */}
-              {(activeReplyData.text ?? (activeReplyData as any).body) && (
-                <p className="text-[13.5px] text-[var(--text-primary)] leading-[1.7] whitespace-pre-wrap">
-                  {activeReplyData.text ?? (activeReplyData as any).body}
-                </p>
-              )}
-              {/* Generated reply */}
-              {(activeReplyData as any).generated_reply && (
-                <div className="mt-3 pt-3 border-t border-[var(--card-border)]">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)] mb-2">
-                    Generated reply
-                  </p>
-                  <p className="text-[13.5px] text-[var(--text-primary)] leading-[1.7] whitespace-pre-wrap">
-                    {(activeReplyData as any).generated_reply}
-                  </p>
-                  <CopyBtn text={(activeReplyData as any).generated_reply} />
-                </div>
-              )}
-              {/* Action steps */}
-              {(activeReplyData as any).action_steps?.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-[var(--card-border)]">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)] mb-2">
-                    Action steps
-                  </p>
-                  <ol className="space-y-1.5">
-                    {(activeReplyData as any).action_steps.map((step: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)] leading-[1.55]">
-                        <span className="w-4 h-4 rounded-full bg-violet-500/15 text-violet-400 text-[10px] font-semibold flex items-center justify-center flex-shrink-0 mt-0.5">
-                          {i + 1}
-                        </span>
-                        {step}
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              )}
-              {/* What to avoid */}
-              {(activeReplyData as any).what_to_avoid?.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-[var(--card-border)]">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)] mb-2">
-                    What to avoid
-                  </p>
-                  <ul className="space-y-1.5">
-                    {(activeReplyData as any).what_to_avoid.map((item: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)] leading-[1.55]">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-400/60 flex-shrink-0 mt-[6px]" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {/* Insight */}
+              {/* Primary message - generated_reply */}
+              {(() => {
+                const primaryMsg = getPrimaryMessage(activeReplyData);
+                if (primaryMsg) {
+                  return (
+                    <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
+                      <p className="text-[14px] text-[var(--text-primary)] leading-[1.7] whitespace-pre-wrap">
+                        {primaryMsg}
+                      </p>
+                      <CopyBtn text={primaryMsg} />
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* Insight / why this works */}
               {activeReplyData.insight && (
-                <p className="text-[12px] text-[var(--text-muted)] mt-3 pt-3 border-t border-[var(--card-border)] leading-[1.55]">
-                  💡 {activeReplyData.insight}
-                </p>
+                <div className="mb-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">
+                    Why this works
+                  </p>
+                  <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
+                    {activeReplyData.insight}
+                  </p>
+                </div>
               )}
+
+              {/* Action steps */}
+              {(activeReplyData as any).action_steps &&
+                (activeReplyData as any).action_steps.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-2">
+                      Action steps
+                    </p>
+                    <ol className="space-y-1.5">
+                      {(activeReplyData as any).action_steps.map(
+                        (step: string, i: number) => (
+                          <li
+                            key={i}
+                            className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)] leading-[1.55]"
+                          >
+                            <span className="w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-[10px] font-semibold flex items-center justify-center flex-shrink-0 mt-0.5">
+                              {i + 1}
+                            </span>
+                            {step}
+                          </li>
+                        ),
+                      )}
+                    </ol>
+                  </div>
+                )}
+
+              {/* What to avoid */}
+              {(activeReplyData as any).what_to_avoid &&
+                (activeReplyData as any).what_to_avoid.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-2">
+                      What to avoid
+                    </p>
+                    <ul className="space-y-1.5">
+                      {(activeReplyData as any).what_to_avoid.map(
+                        (item: string, i: number) => (
+                          <li
+                            key={i}
+                            className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)] leading-[1.55]"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0 mt-[6px]" />
+                            {item}
+                          </li>
+                        ),
+                      )}
+                    </ul>
+                  </div>
+                )}
+
               {/* Tone profile */}
               {activeReplyData.tone_profile && (
-                <div className="mt-3 pt-3 border-t border-[var(--card-border)] space-y-1.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)] mb-2">
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-2">
                     Tone profile
                   </p>
                   {(["respect", "warmth", "confidence"] as const).map((k) =>
                     activeReplyData.tone_profile[k] != null ? (
-                      <ScoreBar key={k} label={k.charAt(0).toUpperCase() + k.slice(1)} value={activeReplyData.tone_profile[k]} />
-                    ) : null
+                      <ScoreBar
+                        key={k}
+                        label={k.charAt(0).toUpperCase() + k.slice(1)}
+                        value={activeReplyData.tone_profile[k]}
+                      />
+                    ) : null,
                   )}
                 </div>
               )}
-              <CopyBtn
-                text={
-                  (activeReplyData as any).generated_reply ??
-                  activeReplyData.text ??
-                  (activeReplyData as any).body ??
-                  ""
-                }
-              />
             </div>
           )}
         </div>
       )}
 
-      {/* ── Scoring bars ── */}
+      {/* ── Alternative approach ── */}
+      {result.alternative && (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-2">
+            Alternative approach
+          </p>
+          {result.alternative.advice && (
+            <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6] mb-3">
+              {result.alternative.advice}
+            </p>
+          )}
+          {result.alternative.generated_reply && (
+            <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg">
+              <p className="text-[13px] text-[var(--text-primary)] leading-[1.6]">
+                {result.alternative.generated_reply}
+              </p>
+              <CopyBtn text={result.alternative.generated_reply} />
+            </div>
+          )}
+          {result.alternative.why_this_works && (
+            <p className="text-[12px] text-[var(--text-muted)] mt-2 italic">
+              💡 {result.alternative.why_this_works}
+            </p>
+          )}
+          {result.alternative.action_steps &&
+            result.alternative.action_steps.length > 0 && (
+              <div className="mt-2">
+                <p className="text-[11px] text-[var(--text-muted)] mb-1">
+                  Action steps
+                </p>
+                <ul className="space-y-1">
+                  {result.alternative.action_steps.map((step, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)]"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0 mt-1.5" />
+                      {step}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+        </div>
+      )}
+
+      {/* ── Preparation (what_to_know, what_to_gather, timing_guidance) ── */}
+      {result.preparation && (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+            Preparation
+          </p>
+          {result.preparation.what_to_know &&
+            result.preparation.what_to_know.length > 0 && (
+              <div>
+                <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1.5">
+                  What to know
+                </p>
+                <ul className="space-y-1">
+                  {result.preparation.what_to_know.map((item, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)] leading-[1.55]"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0 mt-[6px]" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          {result.preparation.what_to_gather &&
+            result.preparation.what_to_gather.length > 0 && (
+              <div>
+                <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1.5">
+                  What to gather
+                </p>
+                <ul className="space-y-1">
+                  {result.preparation.what_to_gather.map((item, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)] leading-[1.55]"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0 mt-[6px]" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          {result.preparation.timing_guidance && (
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">
+                Timing guidance
+              </p>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
+                {result.preparation.timing_guidance}
+              </p>
+            </div>
+          )}
+          {result.preparation.what_not_to_say &&
+            result.preparation.what_not_to_say.length > 0 && (
+              <div>
+                <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1.5">
+                  What not to say
+                </p>
+                <ul className="space-y-1">
+                  {result.preparation.what_not_to_say.map((item, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)] leading-[1.55]"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0 mt-[6px]" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+        </div>
+      )}
+
+      {/* ── Conversation Script ── */}
+      {result.conversation_script && (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+            Conversation script
+          </p>
+          {result.conversation_script.opening && (
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">
+                Opening
+              </p>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
+                {result.conversation_script.opening}
+              </p>
+            </div>
+          )}
+          {result.conversation_script.contribution_statement && (
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">
+                Contribution statement
+              </p>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
+                {result.conversation_script.contribution_statement}
+              </p>
+            </div>
+          )}
+          {result.conversation_script.the_ask && (
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">
+                The ask
+              </p>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
+                {result.conversation_script.the_ask}
+              </p>
+            </div>
+          )}
+          {result.conversation_script.if_they_ask_for_evidence && (
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">
+                If they ask for evidence
+              </p>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
+                {result.conversation_script.if_they_ask_for_evidence}
+              </p>
+            </div>
+          )}
+          {result.conversation_script.closing && (
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">
+                Closing
+              </p>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
+                {result.conversation_script.closing}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Scenario Planning ── */}
+      {result.scenario_planning && (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+            Scenario planning
+          </p>
+          {result.scenario_planning.if_things_go_well && (
+            <div className="flex items-start gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-1.5" />
+              <div>
+                <p className="text-[11px] text-green-600 dark:text-green-400 font-medium mb-0.5">
+                  If things go well
+                </p>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-[1.55]">
+                  {result.scenario_planning.if_things_go_well}
+                </p>
+              </div>
+            </div>
+          )}
+          {result.scenario_planning.if_they_push_back && (
+            <div className="flex items-start gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0 mt-1.5" />
+              <div>
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium mb-0.5">
+                  If they push back
+                </p>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-[1.55]">
+                  {result.scenario_planning.if_they_push_back}
+                </p>
+              </div>
+            </div>
+          )}
+          {result.scenario_planning.if_things_get_complicated && (
+            <div className="flex items-start gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0 mt-1.5" />
+              <div>
+                <p className="text-[11px] text-orange-600 dark:text-orange-400 font-medium mb-0.5">
+                  If things get complicated
+                </p>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-[1.55]">
+                  {result.scenario_planning.if_things_get_complicated}
+                </p>
+              </div>
+            </div>
+          )}
+          {result.scenario_planning.if_they_say_yes && (
+            <div className="flex items-start gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-1.5" />
+              <div>
+                <p className="text-[11px] text-green-600 dark:text-green-400 font-medium mb-0.5">
+                  If they say yes
+                </p>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-[1.55]">
+                  {result.scenario_planning.if_they_say_yes}
+                </p>
+              </div>
+            </div>
+          )}
+          {result.scenario_planning.if_they_say_not_now && (
+            <div className="flex items-start gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0 mt-1.5" />
+              <div>
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium mb-0.5">
+                  If they say not now
+                </p>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-[1.55]">
+                  {result.scenario_planning.if_they_say_not_now}
+                </p>
+              </div>
+            </div>
+          )}
+          {result.scenario_planning.if_they_say_budget_is_tight && (
+            <div className="flex items-start gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0 mt-1.5" />
+              <div>
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium mb-0.5">
+                  If budget is tight
+                </p>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-[1.55]">
+                  {result.scenario_planning.if_they_say_budget_is_tight}
+                </p>
+              </div>
+            </div>
+          )}
+          {result.scenario_planning.if_they_get_defensive && (
+            <div className="flex items-start gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 mt-1.5" />
+              <div>
+                <p className="text-[11px] text-red-600 dark:text-red-400 font-medium mb-0.5">
+                  If they get defensive
+                </p>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-[1.55]">
+                  {result.scenario_planning.if_they_get_defensive}
+                </p>
+              </div>
+            </div>
+          )}
+          {result.scenario_planning.worst_case && (
+            <div className="flex items-start gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 mt-1.5" />
+              <div>
+                <p className="text-[11px] text-red-600 dark:text-red-400 font-medium mb-0.5">
+                  Worst case
+                </p>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-[1.55]">
+                  {result.scenario_planning.worst_case}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Pushback Scripts ── */}
+      {result.pushback_scripts && result.pushback_scripts.length > 0 && (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+            Pushback scripts
+          </p>
+          {result.pushback_scripts.map((script, i) => (
+            <div
+              key={i}
+              className="border-l-2 border-gray-300 dark:border-gray-600 pl-3 py-1"
+            >
+              <p className="text-[12px] font-medium text-[var(--text-primary)] mb-1">
+                {script.objection}
+              </p>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
+                {script.response}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Scores ── */}
       {result.scores &&
-        (result.scores.confidence > 0 || result.scores.clarity > 0 || (result.scores.riskScore ?? 0) > 0) && (
-          <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] px-4 py-3 space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)] mb-2.5">
+        (result.scores.confidence > 0 ||
+          result.scores.clarity > 0 ||
+          (result.scores.riskScore ?? 0) > 0) && (
+          <div className="border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-2.5">
               Scores
             </p>
-            {result.scores.confidence > 0 && (
+            {result.scores.confidence && result.scores.confidence > 0 && (
               <ScoreBar label="Confidence" value={result.scores.confidence} />
             )}
-            {result.scores.clarity > 0 && (
+            {result.scores.clarity && result.scores.clarity > 0 && (
               <ScoreBar label="Clarity" value={result.scores.clarity} />
             )}
-            {(result.scores.riskScore ?? 0) > 0 && (
+            {result.scores.riskScore && result.scores.riskScore > 0 && (
               <ScoreBar
                 label="Risk"
-                value={result.scores.riskScore!}
+                value={result.scores.riskScore}
                 invertColor
               />
             )}
-            {result.scores.escalationProbability != null && result.scores.escalationProbability > 0 && (
-              <ScoreBar
-                label="Escalation %"
-                value={result.scores.escalationProbability}
-                invertColor
-              />
-            )}
+            {result.scores.escalationProbability != null &&
+              result.scores.escalationProbability > 0 && (
+                <ScoreBar
+                  label="Escalation %"
+                  value={result.scores.escalationProbability}
+                  invertColor
+                />
+              )}
             {result.scores.relationshipImpact && (
-              <div className="flex items-center gap-2.5 pt-1 mt-1 border-t border-[var(--card-border)]">
+              <div className="flex items-center gap-2.5 pt-1 mt-1 border-t border-gray-200 dark:border-gray-700">
                 <span className="text-[11px] text-[var(--text-muted)] w-20 flex-shrink-0">
                   Relationship
                 </span>
@@ -506,10 +726,10 @@ export function IntelligenceResultCard({
                   className={cn(
                     "text-[11px] font-semibold capitalize px-2 py-0.5 rounded-full",
                     result.scores.relationshipImpact === "positive"
-                      ? "text-emerald-400 bg-emerald-400/10"
+                      ? "text-green-600 bg-green-50 dark:bg-green-950/30"
                       : result.scores.relationshipImpact === "negative"
-                        ? "text-red-400 bg-red-400/10"
-                        : "text-[var(--text-muted)] bg-[var(--card-muted-bg)]",
+                        ? "text-red-600 bg-red-50 dark:bg-red-950/30"
+                        : "text-[var(--text-muted)] bg-gray-100 dark:bg-gray-800",
                   )}
                 >
                   {result.scores.relationshipImpact}
@@ -519,180 +739,31 @@ export function IntelligenceResultCard({
           </div>
         )}
 
-      {/* ── Scenario planning ── */}
-      {result.scenario_planning &&
-        (result.scenario_planning.if_things_go_well ||
-          result.scenario_planning.if_things_get_complicated ||
-          result.scenario_planning.worst_case) && (
-          <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] px-4 py-3 space-y-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)]">
-              Scenario planning
-            </p>
-            {result.scenario_planning.if_things_go_well && (
-              <div className="flex items-start gap-2.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0 mt-[5px]" />
-                <div>
-                  <p className="text-[11px] text-emerald-400 font-medium mb-0.5">If things go well</p>
-                  <p className="text-[13px] text-[var(--text-secondary)] leading-[1.55]">
-                    {result.scenario_planning.if_things_go_well}
-                  </p>
-                </div>
-              </div>
-            )}
-            {result.scenario_planning.if_things_get_complicated && (
-              <div className="flex items-start gap-2.5">
-                <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0 mt-[5px]" />
-                <div>
-                  <p className="text-[11px] text-amber-400 font-medium mb-0.5">If things get complicated</p>
-                  <p className="text-[13px] text-[var(--text-secondary)] leading-[1.55]">
-                    {result.scenario_planning.if_things_get_complicated}
-                  </p>
-                </div>
-              </div>
-            )}
-            {result.scenario_planning.worst_case && (
-              <div className="flex items-start gap-2.5">
-                <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0 mt-[5px]" />
-                <div>
-                  <p className="text-[11px] text-red-400 font-medium mb-0.5">Worst case</p>
-                  <p className="text-[13px] text-[var(--text-secondary)] leading-[1.55]">
-                    {result.scenario_planning.worst_case}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-      {/* ── Capability-specific extra fields ── */}
-      {(result.meeting_strategy || result.opening_statement || result.key_talking_points?.length || result.how_to_handle_pushback ||
-        result.preparation_strategy || result.questions_to_ask_interviewer?.length ||
-        result.outreach_angle || result.power_dynamic || result.subject_lines?.length) && (
-        <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] px-4 py-3 space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)]">
-            Strategy details
-          </p>
-          {result.meeting_strategy && (
-            <div>
-              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Meeting strategy</p>
-              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">{result.meeting_strategy}</p>
-            </div>
-          )}
-          {result.opening_statement && (
-            <div>
-              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Opening statement</p>
-              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">{result.opening_statement}</p>
-            </div>
-          )}
-          {result.key_talking_points && result.key_talking_points.length > 0 && (
-            <div>
-              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1.5">Key talking points</p>
-              <ol className="space-y-1.5">
-                {result.key_talking_points.map((pt, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)] leading-[1.55]">
-                    <span className="w-4 h-4 rounded-full bg-violet-500/15 text-violet-400 text-[10px] font-semibold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
-                    {pt}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
-          {result.how_to_handle_pushback && (
-            <div>
-              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Handling pushback</p>
-              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">{result.how_to_handle_pushback}</p>
-            </div>
-          )}
-          {result.preparation_strategy && (
-            <div>
-              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Preparation strategy</p>
-              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">{result.preparation_strategy}</p>
-            </div>
-          )}
-          {result.questions_to_ask_interviewer && result.questions_to_ask_interviewer.length > 0 && (
-            <div>
-              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1.5">Questions to ask</p>
-              <ul className="space-y-1">
-                {result.questions_to_ask_interviewer.map((q, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)] leading-[1.55]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400/60 flex-shrink-0 mt-[6px]" />
-                    {q}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {result.outreach_angle && (
-            <div>
-              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Outreach angle</p>
-              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">{result.outreach_angle}</p>
-            </div>
-          )}
-          {result.power_dynamic && (
-            <div>
-              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Power dynamic</p>
-              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">{result.power_dynamic}</p>
-            </div>
-          )}
-          {result.subject_lines && result.subject_lines.length > 0 && (
-            <div>
-              <p className="text-[11px] text-[var(--text-muted)] font-medium mb-1.5">Subject line options</p>
-              <ul className="space-y-1">
-                {result.subject_lines.map((s, i) => (
-                  <li key={i} className="text-[13px] text-[var(--text-secondary)] px-3 py-1.5 rounded-lg bg-[var(--card-muted-bg)] border border-[var(--card-border)]">{s}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* ── Next best action ── */}
       {result.next_best_action && (
-        <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)] mb-1.5">
-            Next step
+        <div className="border-l-2 border-gray-400 dark:border-gray-500 pl-3 py-1">
+          <p className="text-[11px] text-[var(--text-muted)] mb-0.5">
+            Next best action
           </p>
-          <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
+          <p className="text-[13px] text-[var(--text-primary)] font-medium leading-[1.5]">
             {result.next_best_action}
           </p>
         </div>
       )}
 
-      {/* ── Coach note (Pro) ── */}
+      {/* ── Coach note ── */}
       {result.coach_note && (
-        <div className="rounded-xl border border-teal-500/20 bg-teal-500/[0.05] px-4 py-3">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <svg
-              viewBox="0 0 14 14"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              className="w-3 h-3 text-teal-400"
-            >
-              <circle cx="7" cy="7" r="5.5" />
-              <path d="M7 4v3.5" strokeLinecap="round" />
-              <circle
-                cx="7"
-                cy="9.5"
-                r=".5"
-                fill="currentColor"
-                stroke="none"
-              />
-            </svg>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-teal-400">
-              Coach insight
-            </p>
-          </div>
+        <div className="border-l-2 border-gray-400 dark:border-gray-500 pl-3 py-1">
+          <p className="text-[11px] text-[var(--text-muted)] mb-0.5">
+            Coach insight
+          </p>
           <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
             {result.coach_note}
           </p>
         </div>
       )}
 
-      {/* ── Outcome reporter — always shown on generate messages ── */}
-      {!result.is_degraded && null}
-      </>)}
+      {/* ── Outcome reporter ── */}
       {conversationId && (
         <OutcomeReporter
           conversationId={conversationId}
@@ -701,27 +772,33 @@ export function IntelligenceResultCard({
         />
       )}
 
-      {/* ── Follow-up suggestions ── */}
-      {suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-2 pt-1">
-          {suggestions.map((s, i) => {
-            const cat = suggestionCategories[i] ?? "exploration";
-            const isAction = cat === "action";
-            return (
-              <button
-                key={i}
-                onClick={() => onSuggestionClick?.(s)}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-[12.5px] border transition-all text-left",
-                  isAction
-                    ? "border-violet-500/40 bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 font-medium"
-                    : "bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-muted)] hover:border-violet-400/60 hover:text-[var(--text-primary)]",
-                )}
-              >
-                {s}
-              </button>
-            );
-          })}
+      {/* ── Follow-up suggestions from API (conversation.last_suggested_prompts) ── */}
+      {suggestions && suggestions.length > 0 && (
+        <div className="pt-2">
+          <p className="text-[11px] text-[var(--text-muted)] mb-2">
+            I can suggest more follow-up questions or actions based on our
+            conversation. Just click
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map((s, i) => {
+              const cat = suggestionCategories?.[i] ?? "exploration";
+              const isAction = cat === "action";
+              return (
+                <button
+                  key={i}
+                  onClick={() => onSuggestionClick?.(s)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-[12.5px] border transition-all text-left",
+                    isAction
+                      ? "border-gray-500 bg-gray-100 dark:bg-gray-800 text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-gray-700 font-medium"
+                      : "border-gray-200 dark:border-gray-700 text-[var(--text-muted)] hover:border-gray-400 hover:text-[var(--text-primary)]",
+                  )}
+                >
+                  {s}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

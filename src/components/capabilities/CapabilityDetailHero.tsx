@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { HeroSection } from "@/components/ui/HeroSection";
 import { fetchSamplesByMode } from "@/lib/utils/samplesCache";
-import { fetchCharLimit } from "@/lib/utils/CharLimits";
+import { getStoredWordLimit } from "@/lib/utils/CharLimits";
 import type { Capability } from "@/lib/types";
 
 interface CapabilityDetailHeroProps {
@@ -25,9 +25,7 @@ export function CapabilityDetailHero({
       .catch(() => {});
 
     // Fetch char limit from subscription/plans
-    fetchCharLimit()
-      .then(setCharLimit)
-      .catch(() => {});
+    setCharLimit(getStoredWordLimit());
   }, []);
 
   const handleAnalyse = (message: string, mode: string) => {

@@ -71,6 +71,8 @@ export interface ChatMessage {
   modelUsed?: string;
   naturalScore?: number;
   attachedFile?: { name: string; size: number; fileType: string };
+  isStreaming?: boolean;
+  intelligence?: any; // ADD THIS LINE - stores the raw intelligence object from API
 }
 
 export interface ChatSession {
@@ -86,6 +88,11 @@ export interface IntelligenceReply {
   text: string;
   insight: string;
   tone_profile: { warmth: number; respect: number; confidence: number };
+  generated_reply?: string;
+  action_steps?: string[];
+  what_to_avoid?: string[];
+  subject?: string;
+  body?: string;
 }
 
 export interface IntelligenceResult {
@@ -101,31 +108,79 @@ export interface IntelligenceResult {
   next_best_action?: string;
   coach_note?: string;
   situation_read?: string;
+  risk_assessment?: string;
+  insight?: string;
+  question_asked?: string;
+  strategic_reasoning?: string;
   scenario_planning?: {
     if_things_go_well?: string;
     if_things_get_complicated?: string;
     worst_case?: string;
+    if_they_push_back?: string;
+    if_they_say_yes?: string;
+    if_they_say_not_now?: string;
+    if_they_say_budget_is_tight?: string;
+    if_they_get_defensive?: string;
   };
-  // Degraded / preview plan fields
+  preparation?: {
+    what_to_know?: string[];
+    what_to_gather?: string[];
+    timing_guidance?: string;
+    evidence_to_gather?: string[];
+    what_not_to_say?: string[];
+  };
+  conversation_script?: {
+    opening?: string;
+    contribution_statement?: string;
+    the_ask?: string;
+    if_they_ask_for_evidence?: string;
+    closing?: string;
+  };
+  pushback_scripts?: Array<{
+    objection: string;
+    response: string;
+  }>;
+  alternative?: {
+    advice?: string;
+    action_steps?: string[];
+    why_this_works?: string;
+    generated_reply?: string;
+  };
   is_degraded?: boolean;
   upgrade_message?: string;
   upgrade_required?: boolean;
   locked_features?: string[];
   available_plans?: { name: string; price: string; features: string[] }[];
-  // meeting_preparation extra fields
   meeting_strategy?: string;
   opening_statement?: string;
   key_talking_points?: string[];
   how_to_handle_pushback?: string;
-  // interview_prep extra fields
   preparation_strategy?: string;
   questions_to_ask_interviewer?: string[];
-  // cold_outreach extra fields
   outreach_angle?: string;
   power_dynamic?: string;
   subject_lines?: string[];
 }
 
+export interface ConversationStats {
+  ci_score: number;
+  avg_risk_score: number;
+  avg_clarity_score: number;
+  avg_confidence: number;
+  credits_used: number;
+  message_count: { total: number; user: number; assistant: number };
+  mode_breakdown: Record<string, number>;
+  skill_scores: {
+    clarity: number;
+    tone_control: number;
+    negotiation: number;
+    boundaries: number;
+    relationships: number;
+  };
+  relationship_impact: { positive: number; neutral: number; negative: number };
+  capability_breakdown: Record<string, number>;
+  insights: string[];
+}
 export interface ResponseOption {
   type: string;
   reply: string;

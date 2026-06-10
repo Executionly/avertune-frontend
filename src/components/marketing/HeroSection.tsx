@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import { HeroSection as BaseHeroSection } from "@/components/ui/HeroSection";
 import { fetchSamplesByMode } from "@/lib/utils/samplesCache";
-import { fetchCharLimit } from "@/lib/utils/CharLimits";
+import { getStoredWordLimit } from "@/lib/utils/CharLimits";
 
 export function HeroSection() {
   const [samplesByMode, setSamplesByMode] = useState<Record<string, string[]>>(
     {},
   );
-  const [charLimit, setCharLimit] = useState<number>(500);
+  const [charLimit, setCharLimit] = useState<number>(500); // Changed from 800 to 500
 
   useEffect(() => {
     // Fetch samples — works with or without a token
@@ -17,10 +17,8 @@ export function HeroSection() {
       .then(setSamplesByMode)
       .catch(() => {});
 
-    // Fetch char limit from subscription/plans
-    fetchCharLimit()
-      .then(setCharLimit)
-      .catch(() => {});
+    // Get stored word limit (or default 500)
+    setCharLimit(getStoredWordLimit());
   }, []);
 
   const handleAnalyse = (message: string, mode: string) => {

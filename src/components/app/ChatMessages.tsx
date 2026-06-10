@@ -5,6 +5,7 @@ import { formatTime, cn } from "@/lib/utils";
 import { IntelligenceResultCard } from "./IntelligenceResultCard";
 import { ModeSampleDropdown } from "./ModeSampleDropdown";
 import type { ChatMessage, ModeId } from "@/lib/types";
+import { OutcomeResponseDisplay } from "./OutcomeResponseDisplay";
 
 interface ChatMessagesProps {
   messages: ChatMessage[];
@@ -16,7 +17,15 @@ interface ChatMessagesProps {
   onPasteToInput?: (s: string) => void;
   activeConversationId?: string;
   activeMode?: ModeId;
-  onOutcomeResponse?: (text: string) => void;
+  onOutcomeResponse?: (
+    text: string,
+    suggestions?: Array<{ text: string; category: string; position: number }>,
+  ) => void;
+  conversationSuggestions?: Array<{
+    text: string;
+    position: number;
+    category: string;
+  }>;
 }
 
 function AvertuneAvatar() {
@@ -82,7 +91,6 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-// Animated heading for empty state
 function TypedHeading() {
   const full = "What can I analyse for you?";
   const [displayed, setDisplayed] = useState("");
@@ -106,7 +114,6 @@ function TypedHeading() {
   );
 }
 
-// Streaming indicator — shown while waiting for complete event
 function StreamingIndicator({
   phase,
   capability,
@@ -149,7 +156,6 @@ function StreamingIndicator({
           className="inline-flex items-center gap-3 px-4 py-3 rounded-2xl border border-[var(--card-border)]"
           style={{ background: "rgba(120,120,140,0.08)" }}
         >
-          {/* Animated bars */}
           <div className="flex items-end gap-[3px] h-4">
             {[0, 1, 2, 3].map((i) => (
               <div
@@ -192,10 +198,9 @@ export function ChatMessages({
   activeConversationId,
   activeMode = "professional",
   onOutcomeResponse,
+  conversationSuggestions = [],
 }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  // Track which mode the last fetch was for to avoid stale updates
-  const fetchedModeRef = useRef<string>("");
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -227,150 +232,295 @@ export function ChatMessages({
     );
   }
 
+  // Find the last assistant message to attach conversation suggestions
+  const lastAssistantIndex = [...messages]
+    .reverse()
+    .findIndex((m) => m.role === "assistant");
+  const lastAssistantId =
+    lastAssistantIndex !== -1
+      ? messages[messages.length - 1 - lastAssistantIndex]?.id
+      : null;
+
   return (
     <div className="flex-1 overflow-y-auto py-6">
       <div className="max-w-[720px] w-full mx-auto px-4 flex flex-col gap-6">
-        {messages.map((msg) => (
-          <div key={msg.id}>
-            {msg.role === "user" ? (
-              <div className="flex justify-end">
-                <div className="max-w-[78%]">
-                  <div
-                    className="text-[14px] leading-[1.7] rounded-2xl px-4 py-3 text-[var(--text-primary)]"
-                    style={{ background: "rgba(120,120,140,0.18)" }}
-                  >
-                    {/* Attached file pill */}
-                    {msg.attachedFile && (
-                      <div className="flex items-center gap-2.5 mb-2 pb-2 border-b border-white/10">
-                        <div className="w-8 h-8 rounded-lg bg-violet-500/20 border border-violet-500/30 flex items-center justify-center flex-shrink-0">
-                          {msg.attachedFile.fileType?.startsWith("image/") ? (
-                            <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4">
-                              <rect x="1" y="2" width="14" height="12" rx="2" stroke="#67e8f9" strokeWidth="1.3" />
-                              <circle cx="5.5" cy="6.5" r="1.5" fill="#67e8f9" />
-                              <path d="M1 11l3.5-3.5 3 3 2.5-3 4 4.5" stroke="#67e8f9" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          ) : (
-                            <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4">
-                              <path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="#a78bfa" strokeWidth="1.3" strokeLinejoin="round" />
-                              <path d="M10 2v3h3" stroke="#a78bfa" strokeWidth="1.3" strokeLinecap="round" />
-                              <path d="M5 8h6M5 10.5h4" stroke="#a78bfa" strokeWidth="1.2" strokeLinecap="round" />
-                            </svg>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[12.5px] font-medium text-[var(--text-primary)] truncate leading-tight">
-                            {msg.attachedFile.name}
-                          </p>
-                          <p className="text-[11px] text-[var(--text-muted)] leading-tight mt-0.5">
-                            {msg.attachedFile.fileType === "application/pdf" ? "PDF" :
-                             msg.attachedFile.fileType?.startsWith("image/") ? "Image" :
-                             msg.attachedFile.fileType?.includes("word") ? "Word doc" : "Document"}
-                            {msg.attachedFile.size ? ` · ${msg.attachedFile.size < 1024 * 1024
-                              ? `${Math.round(msg.attachedFile.size / 1024)} KB`
-                              : `${(msg.attachedFile.size / (1024 * 1024)).toFixed(1)} MB`}` : ""}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {/* Context text if any */}
-                    {msg.content && msg.content}
-                    {/* Plain text message when no attachment */}
-                    {!msg.attachedFile && !msg.content && null}
-                  </div>
-                  <div className="flex justify-end mt-1">
-                    <CopyButton text={msg.content} />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex gap-3">
-                <AvertuneAvatar />
-                <div className="flex-1 min-w-0 pt-0.5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[13px] font-semibold text-[var(--text-primary)]">
-                      Avertune
-                    </span>
-                    <span className="text-[11px] text-[var(--text-muted)]">
-                      {formatTime(msg.timestamp)}
-                    </span>
-                  </div>
+        {messages.map((msg, idx) => {
+          const isLastAssistant =
+            msg.role === "assistant" && msg.id === lastAssistantId;
+          const suggestionsToPass =
+            isLastAssistant && conversationSuggestions.length > 0
+              ? conversationSuggestions.map((s) => s.text)
+              : msg.suggestions;
+          const categoriesToPass =
+            isLastAssistant && conversationSuggestions.length > 0
+              ? conversationSuggestions.map((s) => s.category)
+              : msg.suggestionCategories;
 
-                  {msg.intelligenceResult ? (
-                    <IntelligenceResultCard
-                      result={msg.intelligenceResult}
-                      suggestions={msg.suggestions}
-                      suggestionCategories={msg.suggestionCategories}
-                      onSuggestionClick={onSuggestionClick}
-                      conversationId={msg.conversationId ?? activeConversationId}
-                      messageId={msg.id}
-                      capabilityDisplay={msg.capabilityDisplay}
-                      modelUsed={msg.modelUsed}
-                      naturalScore={msg.naturalScore}
-                      onOutcomeResponse={onOutcomeResponse}
-                    />
-                  ) : (
-                    <>
-                      <div
-                        className="text-[14px] leading-[1.7] rounded-2xl px-4 py-3 text-[var(--text-primary)]"
-                        style={{ background: "rgba(120,120,140,0.13)" }}
-                      >
-                        {msg.content.split("\n").map((line, i) => (
-                          <span key={i}>
-                            {line.startsWith("•") ? (
-                              <span className="block pl-1 mt-1">{line}</span>
-                            ) : (
-                              <>
-                                {line}
-                                {i < msg.content.split("\n").length - 1 && (
-                                  <br />
-                                )}
-                              </>
-                            )}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="mt-1">
-                        <CopyButton text={msg.content} />
-                      </div>
-                      {/* Suggested prompts on clarify / greeting / free_reply / refinement */}
-                      {msg.suggestions && msg.suggestions.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {msg.suggestions.map((s, i) => {
-                            const cat = msg.suggestionCategories?.[i] ?? "exploration";
-                            const isAction = cat === "action";
-                            return (
-                              <button
-                                key={i}
-                                onClick={() => onSuggestionClick?.(s)}
-                                className={cn(
-                                  "px-3 py-1.5 rounded-full text-[12.5px] border transition-all text-left",
-                                  isAction
-                                    ? "border-violet-500/40 bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 font-medium"
-                                    : "bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-muted)] hover:border-violet-400/60 hover:text-[var(--text-primary)]",
-                                )}
+          return (
+            <div key={msg.id}>
+              {msg.role === "user" ? (
+                <div className="flex justify-end">
+                  <div className="max-w-[78%]">
+                    <div
+                      className="text-[14px] leading-[1.7] rounded-2xl px-4 py-3 text-[var(--text-primary)]"
+                      style={{ background: "rgba(120,120,140,0.18)" }}
+                    >
+                      {msg.attachedFile && (
+                        <div className="flex items-center gap-2.5 mb-2 pb-2 border-b border-white/10">
+                          <div className="w-8 h-8 rounded-lg bg-violet-500/20 border border-violet-500/30 flex items-center justify-center flex-shrink-0">
+                            {msg.attachedFile.fileType?.startsWith("image/") ? (
+                              <svg
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                className="w-4 h-4"
                               >
-                                {s}
-                              </button>
-                            );
-                          })}
+                                <rect
+                                  x="1"
+                                  y="2"
+                                  width="14"
+                                  height="12"
+                                  rx="2"
+                                  stroke="#67e8f9"
+                                  strokeWidth="1.3"
+                                />
+                                <circle
+                                  cx="5.5"
+                                  cy="6.5"
+                                  r="1.5"
+                                  fill="#67e8f9"
+                                />
+                                <path
+                                  d="M1 11l3.5-3.5 3 3 2.5-3 4 4.5"
+                                  stroke="#67e8f9"
+                                  strokeWidth="1.2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            ) : (
+                              <svg
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                className="w-4 h-4"
+                              >
+                                <path
+                                  d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"
+                                  stroke="#a78bfa"
+                                  strokeWidth="1.3"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M10 2v3h3"
+                                  stroke="#a78bfa"
+                                  strokeWidth="1.3"
+                                  strokeLinecap="round"
+                                />
+                                <path
+                                  d="M5 8h6M5 10.5h4"
+                                  stroke="#a78bfa"
+                                  strokeWidth="1.2"
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[12.5px] font-medium text-[var(--text-primary)] truncate leading-tight">
+                              {msg.attachedFile.name}
+                            </p>
+                            <p className="text-[11px] text-[var(--text-muted)] leading-tight mt-0.5">
+                              {msg.attachedFile.fileType === "application/pdf"
+                                ? "PDF"
+                                : msg.attachedFile.fileType?.startsWith(
+                                      "image/",
+                                    )
+                                  ? "Image"
+                                  : msg.attachedFile.fileType?.includes("word")
+                                    ? "Word doc"
+                                    : "Document"}
+                            </p>
+                          </div>
                         </div>
                       )}
-                    </>
-                  )}
+                      {msg.content && msg.content}
+                    </div>
+                    <div className="flex justify-end mt-1">
+                      <CopyButton text={msg.content} />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        ))}
+              ) : (
+                ((() => {
+                  console.log("=== DEBUG MESSAGE ===");
+                  console.log("Message role:", msg.role);
+                  console.log("Message ID:", msg.id);
+                  console.log("Message turnType:", (msg as any).turnType);
+                  console.log(
+                    "Message intelligence?.turn_type:",
+                    (msg as any).intelligence?.turn_type,
+                  );
+                  console.log(
+                    "Message intelligence?.ai_response:",
+                    (msg as any).intelligence?.ai_response,
+                  );
+                  console.log("Full intelligence:", (msg as any).intelligence);
+                  console.log("======================");
+                  return null;
+                })(),
+                (
+                  <div className="flex gap-3">
+                    <AvertuneAvatar />
+                    <div className="flex-1 min-w-0 pt-0.5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[13px] font-semibold text-[var(--text-primary)]">
+                          Avertune
+                        </span>
+                        <span className="text-[11px] text-[var(--text-muted)]">
+                          {formatTime(msg.timestamp)}
+                        </span>
+                      </div>
 
-        {/* Live streaming indicator — never raw JSON */}
+                      {msg.intelligenceResult ? (
+                        <IntelligenceResultCard
+                          result={msg.intelligenceResult}
+                          suggestions={suggestionsToPass}
+                          suggestionCategories={categoriesToPass}
+                          onSuggestionClick={onSuggestionClick}
+                          conversationId={
+                            msg.conversationId ?? activeConversationId
+                          }
+                          messageId={msg.id}
+                          capabilityDisplay={msg.capabilityDisplay}
+                          modelUsed={msg.modelUsed}
+                          naturalScore={msg.naturalScore}
+                          onOutcomeResponse={onOutcomeResponse}
+                        />
+                      ) : (msg as any).intelligence?.turn_type ===
+                          "outcome_followup" &&
+                        (msg as any).intelligence?.ai_response ? (
+                        <OutcomeResponseDisplay
+                          acknowledgment={
+                            (msg as any).intelligence.ai_response.acknowledgment
+                          }
+                          analysis={
+                            (msg as any).intelligence.ai_response.analysis
+                          }
+                          next_steps={
+                            (msg as any).intelligence.ai_response.next_steps
+                          }
+                          what_to_watch_for={
+                            (msg as any).intelligence.ai_response
+                              .what_to_watch_for
+                          }
+                          alternative_path={
+                            (msg as any).intelligence.ai_response
+                              .alternative_path
+                          }
+                          encouragement={
+                            (msg as any).intelligence.ai_response.encouragement
+                          }
+                          suggested_prompts={
+                            (msg as any).intelligence.ai_response
+                              .suggested_prompts
+                          }
+                          onSuggestionClick={onSuggestionClick}
+                          outcome_recorded={(msg as any).intelligence?.outcome}
+                        />
+                      ) : (
+                        <>
+                          <div
+                            className="text-[14px] leading-[1.7] rounded-2xl px-4 py-3 text-[var(--text-primary)]"
+                            style={{ background: "rgba(120,120,140,0.13)" }}
+                          >
+                            {msg.content.split("\n").map((line, i) => (
+                              <span key={i}>
+                                {line.startsWith("•") ? (
+                                  <span className="block pl-1 mt-1">
+                                    {line}
+                                  </span>
+                                ) : (
+                                  <>
+                                    {line}
+                                    {i < msg.content.split("\n").length - 1 && (
+                                      <br />
+                                    )}
+                                  </>
+                                )}
+                              </span>
+                            ))}
+                          </div>
+                          {!(msg as any).isStreaming && (
+                            <div className="mt-1">
+                              <CopyButton text={msg.content} />
+                            </div>
+                          )}
+                          {msg.suggestions && msg.suggestions.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              {msg.suggestions.map((s, i) => {
+                                const cat =
+                                  msg.suggestionCategories?.[i] ??
+                                  "exploration";
+                                const isAction = cat === "action";
+                                return (
+                                  <button
+                                    key={i}
+                                    onClick={() => onSuggestionClick?.(s)}
+                                    className={cn(
+                                      "px-3 py-1.5 rounded-full text-[12.5px] border transition-all text-left",
+                                      isAction
+                                        ? "border-violet-500/40 bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 font-medium"
+                                        : "bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-muted)] hover:border-violet-400/60 hover:text-[var(--text-primary)]",
+                                    )}
+                                  >
+                                    {s}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          );
+        })}
+
         {streamingPhase !== "idle" && (
           <StreamingIndicator
             phase={streamingPhase}
             capability={detectedCapability}
           />
         )}
-
+        {/* Suggested prompts at bottom of conversation */}
+        {conversationSuggestions &&
+          conversationSuggestions.length > 0 &&
+          streamingPhase === "idle" && (
+            <div className="pt-4 pb-2 dark:border-gray-700 mt-4">
+              <p className="text-[11px] text-[var(--text-muted)] mb-3">
+                If you want, you can ask follow-up questions or request actions
+                based on the analysis:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {conversationSuggestions.map((prompt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => onSuggestionClick?.(prompt.text)}
+                    className={cn(
+                      "px-3.5 py-2 rounded-full text-[13px] border transition-all text-left",
+                      prompt.category === "action"
+                        ? "border-gray-500 bg-gray-100 dark:bg-gray-800 text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-gray-700 font-medium"
+                        : "border-gray-200 dark:border-gray-700 bg-[var(--card-bg)] text-[var(--text-muted)] hover:border-gray-400 hover:text-[var(--text-primary)]",
+                    )}
+                  >
+                    {prompt.text}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         <div ref={bottomRef} />
       </div>
     </div>

@@ -9,10 +9,10 @@ interface ModeSampleDropdownProps {
   onSelect: (message: string) => void;
 }
 
-const CATEGORIES: { id: ModeId; label: string }[] = [
-  { id: "professional", label: "Professional messages" },
-  { id: "sales", label: "Sales & negotiation" },
-  { id: "relationship", label: "Relationship advice" },
+const CATEGORIES: { id: ModeId; label: string; shortLabel: string }[] = [
+  { id: "professional", label: "Professional messages", shortLabel: "Work" },
+  { id: "sales", label: "Sales & negotiation", shortLabel: "Sales" },
+  { id: "relationship", label: "Relationship advice", shortLabel: "Life" },
 ];
 
 export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
@@ -27,6 +27,15 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Partial<Record<ModeId, HTMLButtonElement>>>({});
   const fetched = useRef(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     if (fetched.current) return;
@@ -97,6 +106,8 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
       {CATEGORIES.map((cat) => {
         const isOpen = openTab === cat.id;
         const catSamples = samples[cat.id] ?? [];
+        // On mobile, use short labels if space is tight
+        const displayLabel = isMobile ? cat.shortLabel : cat.label;
 
         return (
           <div key={cat.id} className="relative">
@@ -106,13 +117,13 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
               }}
               onClick={() => handleToggle(cat.id)}
               className={cn(
-                "px-3.5 py-1.5 rounded-full text-[13px] border transition-all",
+                "px-3.5 py-1.5 rounded-full text-[13px] border transition-all whitespace-nowrap",
                 isOpen
                   ? "border-violet-500/50 text-violet-400 bg-violet-500/10"
                   : "bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-muted)] hover:border-violet-400/60 hover:text-[var(--text-primary)]",
               )}
             >
-              {cat.label}
+              {displayLabel}
             </button>
 
             {isOpen && (
@@ -125,8 +136,9 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
                   "shadow-xl",
                   "overflow-hidden",
 
-                  "w-[90vw] sm:w-[340px]",
-                  "max-w-[calc(100vw-16px)]",
+                  // Responsive width: full width on mobile, fixed on desktop
+                  "w-[calc(100vw-32px)] sm:w-[380px]",
+                  "max-w-[calc(100vw-32px)]",
 
                   "left-1/2 -translate-x-1/2",
 
@@ -142,14 +154,14 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
                     No samples available.
                   </p>
                 ) : (
-                  <div className="max-h-[50vh] overflow-y-auto overscroll-contain">
+                  <div className="max-h-[60vh] sm:max-h-[50vh] overflow-y-auto overscroll-contain">
                     {catSamples.map((msg, i) => (
                       <button
                         key={i}
                         onClick={() => handleSelect(msg)}
                         className="w-full text-left px-4 py-3 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--card-muted-bg)] hover:text-[var(--text-primary)] transition-colors leading-[1.55] border-b border-[var(--border-default)] last:border-b-0"
                       >
-                        {msg}
+                        <span className="line-clamp-3">{msg}</span>
                       </button>
                     ))}
                   </div>
