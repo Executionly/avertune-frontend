@@ -114,35 +114,67 @@ function SolutionForm({
   solutionId: string;
 }) {
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    full_name: "",
+    work_email: "",
     company: "",
-    teamSize: "",
-    message: "",
+    team_size: "",
+    looking_for: "",
   });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    // Submit to mailto or a backend endpoint
-    const subject = encodeURIComponent(
-      `${solutionTitle} - Customisation Request`,
-    );
-    const body = encodeURIComponent(
-      `Name: ${formData.name}\nEmail: ${formData.email}\nCompany: ${formData.company}\nTeam Size: ${formData.teamSize}\n\nMessage:\n${formData.message}`,
-    );
-    window.location.href = `mailto:info@avertune.com?subject=${subject}&body=${body}`;
-    setTimeout(() => {
-      setSubmitted(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        "https://avertuneserver.xyz/api/contact/request",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            full_name: formData.full_name,
+            work_email: formData.work_email,
+            company: formData.company,
+            team_size: formData.team_size,
+            looking_for:
+              formData.looking_for || `Custom ${solutionTitle} solution`,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubmitted(true);
+      } else {
+        setError(data.message || "Failed to submit. Please try again.");
+      }
+    } catch (err) {
+      setError("Network error. Please check your connection and try again.");
+    } finally {
       setSubmitting(false);
-    }, 500);
+    }
   };
 
   if (submitted) {
     return (
-      <div className="bg-violet-50 border border-violet-200 rounded-[20px] p-8 text-center">
+      <div className="bg-green-50 border border-green-200 rounded-[20px] p-8 text-center">
+        <div className="w-12 h-12 rounded-full bg-green-100 border border-green-200 flex items-center justify-center mx-auto mb-4">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            className="w-5 h-5 text-green-600"
+          >
+            <path d="M2 8l4 4 8-8" />
+          </svg>
+        </div>
         <p className="text-[18px] font-semibold text-navy-900 mb-2">
           Request sent!
         </p>
@@ -165,6 +197,12 @@ function SolutionForm({
         Tell us about your needs and we'll get back to you.
       </p>
 
+      {error && (
+        <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[13px]">
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-[13px] font-medium text-navy-700 mb-1.5">
@@ -173,8 +211,10 @@ function SolutionForm({
           <input
             type="text"
             required
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            value={formData.full_name}
+            onChange={(e) =>
+              setFormData({ ...formData, full_name: e.target.value })
+            }
             placeholder="Jane Smith"
             className="w-full px-4 py-3 rounded-xl border border-navy-200 text-[14px] text-navy-800 placeholder:text-navy-300 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
           />
@@ -186,9 +226,9 @@ function SolutionForm({
           <input
             type="email"
             required
-            value={formData.email}
+            value={formData.work_email}
             onChange={(e) =>
-              setFormData({ ...formData, email: e.target.value })
+              setFormData({ ...formData, work_email: e.target.value })
             }
             placeholder="jane@company.com"
             className="w-full px-4 py-3 rounded-xl border border-navy-200 text-[14px] text-navy-800 placeholder:text-navy-300 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
@@ -216,9 +256,9 @@ function SolutionForm({
             Team size
           </label>
           <select
-            value={formData.teamSize}
+            value={formData.team_size}
             onChange={(e) =>
-              setFormData({ ...formData, teamSize: e.target.value })
+              setFormData({ ...formData, team_size: e.target.value })
             }
             className="w-full px-4 py-3 rounded-xl border border-navy-200 text-[14px] text-navy-800 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all bg-white"
           >
@@ -239,9 +279,9 @@ function SolutionForm({
         <textarea
           required
           rows={5}
-          value={formData.message}
+          value={formData.looking_for}
           onChange={(e) =>
-            setFormData({ ...formData, message: e.target.value })
+            setFormData({ ...formData, looking_for: e.target.value })
           }
           placeholder={`Tell us about your ${solutionTitle} needs, current challenges, and what you'd like Avertune to help with...`}
           className="w-full px-4 py-3 rounded-xl border border-navy-200 text-[14px] text-navy-800 placeholder:text-navy-300 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all resize-none min-h-[140px]"

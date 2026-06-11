@@ -8,22 +8,42 @@ export default function HelpCenterPage() {
     email: "",
     subject: "",
     message: "",
+    category: "general",
   });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const subject = encodeURIComponent(`[Help Center] ${formData.subject}`);
-    const body = encodeURIComponent(
-      `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`,
-    );
-    window.location.href = `mailto:info@avertune.com?subject=${subject}&body=${body}`;
-    setTimeout(() => {
-      setSubmitted(true);
+    setError("");
+
+    try {
+      const response = await fetch("https://avertuneserver.xyz/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+          category: formData.category,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubmitted(true);
+      } else {
+        setError(data.message || "Failed to submit. Please try again.");
+      }
+    } catch (err) {
+      setError("Network error. Please check your connection and try again.");
+    } finally {
       setSubmitting(false);
-    }, 500);
+    }
   };
 
   return (
@@ -45,10 +65,8 @@ export default function HelpCenterPage() {
         </div>
       </section>
 
-      {/* Topic grid */}
       <section className="py-16 px-8">
         <div className="max-w-[1120px] mx-auto">
-          {/* Contact form */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-10">
             <div className="md:col-span-2">
               <h2 className="text-[22px] font-semibold text-navy-900 mb-3">
@@ -57,7 +75,7 @@ export default function HelpCenterPage() {
 
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg  border border-violet-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="w-9 h-9 rounded-lg border border-violet-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <svg
                       viewBox="0 0 16 16"
                       fill="none"
@@ -86,7 +104,7 @@ export default function HelpCenterPage() {
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-violet-50 border border-violet-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="w-9 h-9 rounded-lg border border-violet-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <svg
                       viewBox="0 0 16 16"
                       fill="none"
@@ -119,21 +137,21 @@ export default function HelpCenterPage() {
 
             <div className="md:col-span-3">
               {submitted ? (
-                <div className="bg-violet-50 border border-violet-200 rounded-[24px] p-10 text-center">
-                  <div className="w-12 h-12 rounded-full bg-violet-100 border border-violet-200 flex items-center justify-center mx-auto mb-4">
+                <div className="bg-green-50 border border-green-200 rounded-[24px] p-10 text-center">
+                  <div className="w-12 h-12 rounded-full bg-green-100 border border-green-200 flex items-center justify-center mx-auto mb-4">
                     <svg
                       viewBox="0 0 16 16"
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="2"
                       strokeLinecap="round"
-                      className="w-5 h-5 text-violet-600"
+                      className="w-5 h-5 text-green-600"
                     >
                       <path d="M2 8l4 4 8-8" />
                     </svg>
                   </div>
                   <p className="text-[18px] font-semibold text-navy-900 mb-2">
-                    Message sent!
+                    Ticket submitted!
                   </p>
                   <p className="text-[14px] text-navy-500">
                     We'll get back to you within 1–2 business days.
@@ -144,6 +162,11 @@ export default function HelpCenterPage() {
                   onSubmit={handleSubmit}
                   className="bg-white border border-navy-900/[0.08] rounded-[24px] p-8 space-y-5"
                 >
+                  {error && (
+                    <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[13px]">
+                      {error}
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[13px] font-medium text-navy-700 mb-1.5">
@@ -157,7 +180,7 @@ export default function HelpCenterPage() {
                           setFormData({ ...formData, name: e.target.value })
                         }
                         placeholder="Your name"
-                        className=" bg-white w-full px-4 py-3 rounded-xl border border-navy-200 text-[14px] text-navy-800 placeholder:text-navy-300 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
+                        className="bg-white w-full px-4 py-3 rounded-xl border border-navy-200 text-[14px] text-navy-800 placeholder:text-navy-300 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
                       />
                     </div>
                     <div>

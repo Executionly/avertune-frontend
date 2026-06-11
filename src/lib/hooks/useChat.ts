@@ -806,6 +806,11 @@ export function useChat(): UseChatReturn {
   // ── Core send logic ────────────────────────────────────────────────────────
   const sendMessageInternal = useCallback(
     async (content: string, skipChallenge = false) => {
+      console.log("sendMessageInternal called with:", {
+        content,
+        skipChallenge,
+        threadId: threadIdRef.current,
+      });
       if (!content.trim()) return;
 
       const token = localStorage.getItem("access_token") ?? "";
@@ -1034,8 +1039,10 @@ export function useChat(): UseChatReturn {
   }, [pendingChallenge, sendMessageInternal]);
 
   const sendMessage = useCallback(
-    (content: string, skipChallenge = false) =>
-      sendMessageInternal(content, skipChallenge),
+    (content: string, skipChallenge = false) => {
+      console.log("🔥 sendMessage called in useChat with:", content);
+      return sendMessageInternal(content, skipChallenge);
+    },
     [sendMessageInternal],
   );
 

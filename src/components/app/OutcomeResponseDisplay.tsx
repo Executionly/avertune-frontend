@@ -115,11 +115,20 @@ export function OutcomeResponseDisplay({
         </div>
       )}
 
-      {/* Suggested prompts */}
+      {/* Outcome recorded badge */}
+      {outcome_recorded && (
+        <div className="flex justify-end">
+          <span className="text-[10px] text-[var(--text-muted)] capitalize">
+            Recorded: {outcome_recorded.replace("_", " ")}
+          </span>
+        </div>
+      )}
+
+      {/* Suggested prompts from outcome response - kept inside outcome message */}
       {suggested_prompts && suggested_prompts.length > 0 && (
-        <div className="pt-2">
+        <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
           <p className="text-[11px] text-[var(--text-muted)] mb-2">
-            Suggested follow-ups
+            Suggested follow-ups for this outcome
           </p>
           <div className="flex flex-wrap gap-2">
             {suggested_prompts.map((prompt, i) => (
@@ -137,15 +146,6 @@ export function OutcomeResponseDisplay({
               </button>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Outcome recorded badge */}
-      {outcome_recorded && (
-        <div className="flex justify-end">
-          <span className="text-[10px] text-[var(--text-muted)] capitalize">
-            Recorded: {outcome_recorded.replace("_", " ")}
-          </span>
         </div>
       )}
     </div>
