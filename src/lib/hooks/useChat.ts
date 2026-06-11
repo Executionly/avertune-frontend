@@ -152,8 +152,22 @@ function normaliseHistoryMessage(
           : undefined,
       next_best_action: nextBestAction,
       situation_read: situationRead,
+      strategic_reasoning: intel.strategic_reasoning,
+      question_asked: intel.question_asked,
       coach_note: intel.coach_note ?? msg.coach_note,
       scenario_planning: intel.scenario_planning,
+      pushback_scripts: intel.pushback_scripts,
+      preparation: intel.preparation,
+      conversation_script: intel.conversation_script,
+      alternative:
+        intel.alternative && typeof intel.alternative === "object"
+          ? {
+              advice: intel.alternative.advice,
+              action_steps: intel.alternative.action_steps,
+              why_this_works: intel.alternative.why_this_works,
+              generated_reply: intel.alternative.generated_reply,
+            }
+          : undefined,
       is_degraded: isDegraded,
       upgrade_message: rawReplies?.upgrade_message ?? intel.upgrade_message,
       upgrade_required: rawReplies?.upgrade_required ?? intel.upgrade_required,
@@ -166,9 +180,10 @@ function normaliseHistoryMessage(
       content: msg.content ?? "",
       timestamp: new Date(msg.created_at ?? Date.now()),
       intelligenceResult,
+      naturalScore: intel.natural_score,
       turnType: "generate",
       conversationId,
-      intelligence: msg.intelligence, // ADD THIS LINE
+      intelligence: msg.intelligence,
     };
   }
 
@@ -277,8 +292,22 @@ function normaliseLiveResult(output: any, mode: ModeId): IntelligenceResult {
         : undefined,
     next_best_action: nextBestAction,
     situation_read: situationRead,
+    strategic_reasoning: payload.strategic_reasoning,
+    question_asked: payload.question_asked,
     coach_note: payload.coach_note,
     scenario_planning: payload.scenario_planning,
+    pushback_scripts: payload.pushback_scripts,
+    preparation: payload.preparation,
+    conversation_script: payload.conversation_script,
+    alternative:
+      payload.alternative && typeof payload.alternative === "object"
+        ? {
+            advice: payload.alternative.advice,
+            action_steps: payload.alternative.action_steps,
+            why_this_works: payload.alternative.why_this_works,
+            generated_reply: payload.alternative.generated_reply,
+          }
+        : undefined,
     is_degraded: isDegraded || payload.replies?.upgrade_required || false,
     upgrade_message:
       payload.replies?.upgrade_message ?? payload.upgrade_message,
