@@ -68,16 +68,9 @@ export function OutcomeReporter({
 
         setOutcomeResponse(data);
         setStep("response");
-
-        if (
-          data.suggested_prompt &&
-          data.suggested_prompt.length > 0 &&
-          onResponse
-        ) {
-          onResponse(data.message || "", data.suggested_prompt);
-        } else if (data.message && onResponse) {
-          onResponse(data.message);
-        }
+        // NOTE: We intentionally do NOT call onResponse here.
+        // The outcome response is displayed inline in the OutcomeReporter component.
+        // onResponse is only called when the user clicks a suggested follow-up pill.
       } catch (err) {
         console.error("Failed to report outcome:", err);
       }

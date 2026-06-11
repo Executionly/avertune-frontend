@@ -41,7 +41,7 @@ export function CapabilityDetailHero({
       description={capability.description}
       placeholder={`Paste any message — Avertune will use ${capability.label} to help you respond.`}
       onAnalyse={handleAnalyse}
-      showBackLink={true}
+      showBackLink={false}
       backLinkHref="/#capabilities"
       backLinkLabel="Back to Capabilities"
       showModeChips={true}

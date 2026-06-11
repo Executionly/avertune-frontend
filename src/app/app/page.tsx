@@ -131,7 +131,7 @@ export default function AppPage() {
             activeConversationId={threadId}
             activeMode={activeMode}
             onOutcomeResponse={(text) => {
-              //appendMessage(text);
+              if (text) sendMessage(text);
             }}
             conversationSuggestions={
               activeConversation?.last_suggested_prompts || []

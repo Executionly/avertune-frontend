@@ -38,7 +38,7 @@ export function ModeDetailHero({ mode }: ModeDetailHeroProps) {
       description={mode.description}
       placeholder={`Paste any ${mode.label.toLowerCase()} message you need to respond to...`}
       onAnalyse={handleAnalyse}
-      showBackLink={true}
+      showBackLink={false}
       backLinkHref="/#modes"
       backLinkLabel="Back to Modes"
       showModeChips={false}

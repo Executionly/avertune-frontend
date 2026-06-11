@@ -1,4 +1,3 @@
-// FILE: src/app/marketing/enterprise/page.tsx
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SolutionRequestForm } from "@/components/ui/SolutionRequestForm";
