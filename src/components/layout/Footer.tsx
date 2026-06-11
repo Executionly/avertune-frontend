@@ -55,15 +55,18 @@ export function Footer() {
             {[
               {
                 name: "facebook",
-                link: "https://www.facebook.com/share/14dHpBYFpdV/?mibextid=wwXIfr ",
+                link: "https://www.facebook.com/share/14dHpBYFpdV/",
+                imgSrc: "/facebook_logo.png",
               },
               {
                 name: "Instagram",
-                link: "https://www.instagram.com/tryavertune?igsh=bnpybzljZDZiOHF0 ",
+                link: "https://www.instagram.com/tryavertune",
+                imgSrc: "/instagram_logo.png",
               },
               {
                 name: "TikTok",
-                link: "https://www.tiktok.com/@avertune?_r=1&_t=ZT-96ldvO1wa22",
+                link: "https://www.tiktok.com/@avertune",
+                imgSrc: "tiktok_logo.webp",
               },
             ].map((app) => (
               <a
@@ -71,9 +74,9 @@ export function Footer() {
                 href={app.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-auto h-8 rounded-md bg-white/[0.07] flex items-center justify-center text-sm text-white/55 hover:bg-white/[0.14] hover:text-[#e8ecf8] transition-all p-4"
+                className="w-8 h-8 rounded-md bg-white/[0.07] flex items-center justify-center hover:bg-white/[0.14] transition-all"
               >
-                {app.name}
+                <img src={app.imgSrc} alt={app.name} className="w-4 h-4" />
               </a>
             ))}
           </div>

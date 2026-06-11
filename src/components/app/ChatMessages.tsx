@@ -232,7 +232,7 @@ export function ChatMessages({
     );
   }
 
-  // Find the last assistant message to attach conversation suggestions
+  // Find the last assistant message to attach conversation suggestions to
   const lastAssistantIndex = [...messages]
     .reverse()
     .findIndex((m) => m.role === "assistant");
@@ -244,17 +244,27 @@ export function ChatMessages({
   return (
     <div className="flex-1 overflow-y-auto py-6">
       <div className="max-w-[720px] w-full mx-auto px-4 flex flex-col gap-6">
-        {messages.map((msg, idx) => {
+        {messages.map((msg) => {
           const isLastAssistant =
             msg.role === "assistant" && msg.id === lastAssistantId;
-          const suggestionsToPass =
-            isLastAssistant && conversationSuggestions.length > 0
-              ? conversationSuggestions.map((s) => s.text)
-              : msg.suggestions;
-          const categoriesToPass =
-            isLastAssistant && conversationSuggestions.length > 0
-              ? conversationSuggestions.map((s) => s.category)
-              : msg.suggestionCategories;
+          const isOutcomeMessage =
+            (msg as any).intelligence?.turn_type === "outcome_followup";
+
+          // For the last assistant message, merge conversation suggestions with its own suggestions
+          let finalSuggestions = msg.suggestions || [];
+          let finalCategories = msg.suggestionCategories || [];
+
+          if (isLastAssistant && conversationSuggestions.length > 0) {
+            // Add conversation suggestions to the last assistant message
+            finalSuggestions = [
+              ...finalSuggestions,
+              ...conversationSuggestions.map((s) => s.text),
+            ];
+            finalCategories = [
+              ...finalCategories,
+              ...conversationSuggestions.map((s) => s.category),
+            ];
+          }
 
           return (
             <div key={msg.id}>
@@ -350,139 +360,114 @@ export function ChatMessages({
                   </div>
                 </div>
               ) : (
-                ((() => {
-                  console.log("=== DEBUG MESSAGE ===");
-                  console.log("Message role:", msg.role);
-                  console.log("Message ID:", msg.id);
-                  console.log("Message turnType:", (msg as any).turnType);
-                  console.log(
-                    "Message intelligence?.turn_type:",
-                    (msg as any).intelligence?.turn_type,
-                  );
-                  console.log(
-                    "Message intelligence?.ai_response:",
-                    (msg as any).intelligence?.ai_response,
-                  );
-                  console.log("Full intelligence:", (msg as any).intelligence);
-                  console.log("======================");
-                  return null;
-                })(),
-                (
-                  <div className="flex gap-3">
-                    <AvertuneAvatar />
-                    <div className="flex-1 min-w-0 pt-0.5">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[13px] font-semibold text-[var(--text-primary)]">
-                          Avertune
-                        </span>
-                        <span className="text-[11px] text-[var(--text-muted)]">
-                          {formatTime(msg.timestamp)}
-                        </span>
-                      </div>
-
-                      {msg.intelligenceResult ? (
-                        <IntelligenceResultCard
-                          result={msg.intelligenceResult}
-                          suggestions={suggestionsToPass}
-                          suggestionCategories={categoriesToPass}
-                          onSuggestionClick={onSuggestionClick}
-                          conversationId={
-                            msg.conversationId ?? activeConversationId
-                          }
-                          messageId={msg.id}
-                          capabilityDisplay={msg.capabilityDisplay}
-                          modelUsed={msg.modelUsed}
-                          naturalScore={msg.naturalScore}
-                          onOutcomeResponse={onOutcomeResponse}
-                        />
-                      ) : (msg as any).intelligence?.turn_type ===
-                          "outcome_followup" &&
-                        (msg as any).intelligence?.ai_response ? (
-                        <OutcomeResponseDisplay
-                          acknowledgment={
-                            (msg as any).intelligence.ai_response.acknowledgment
-                          }
-                          analysis={
-                            (msg as any).intelligence.ai_response.analysis
-                          }
-                          next_steps={
-                            (msg as any).intelligence.ai_response.next_steps
-                          }
-                          what_to_watch_for={
-                            (msg as any).intelligence.ai_response
-                              .what_to_watch_for
-                          }
-                          alternative_path={
-                            (msg as any).intelligence.ai_response
-                              .alternative_path
-                          }
-                          encouragement={
-                            (msg as any).intelligence.ai_response.encouragement
-                          }
-                          suggested_prompts={
-                            (msg as any).intelligence.ai_response
-                              .suggested_prompts
-                          }
-                          onSuggestionClick={onSuggestionClick}
-                          outcome_recorded={(msg as any).intelligence?.outcome}
-                        />
-                      ) : (
-                        <>
-                          <div
-                            className="text-[14px] leading-[1.7] rounded-2xl px-4 py-3 text-[var(--text-primary)]"
-                            style={{ background: "rgba(120,120,140,0.13)" }}
-                          >
-                            {msg.content.split("\n").map((line, i) => (
-                              <span key={i}>
-                                {line.startsWith("•") ? (
-                                  <span className="block pl-1 mt-1">
-                                    {line}
-                                  </span>
-                                ) : (
-                                  <>
-                                    {line}
-                                    {i < msg.content.split("\n").length - 1 && (
-                                      <br />
-                                    )}
-                                  </>
-                                )}
-                              </span>
-                            ))}
-                          </div>
-                          {!(msg as any).isStreaming && (
-                            <div className="mt-1">
-                              <CopyButton text={msg.content} />
-                            </div>
-                          )}
-                          {msg.suggestions && msg.suggestions.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-3">
-                              {msg.suggestions.map((s, i) => {
-                                const cat =
-                                  msg.suggestionCategories?.[i] ??
-                                  "exploration";
-                                const isAction = cat === "action";
-                                return (
-                                  <button
-                                    key={i}
-                                    onClick={() => onSuggestionClick?.(s)}
-                                    className={cn(
-                                      "px-3 py-1.5 rounded-full text-[12.5px] border transition-all text-left",
-                                      isAction
-                                        ? "border-violet-500/40 bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 font-medium"
-                                        : "bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-muted)] hover:border-violet-400/60 hover:text-[var(--text-primary)]",
-                                    )}
-                                  >
-                                    {s}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </>
-                      )}
+                <div className="flex gap-3">
+                  <AvertuneAvatar />
+                  <div className="flex-1 min-w-0 pt-0.5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[13px] font-semibold text-[var(--text-primary)]">
+                        Avertune
+                      </span>
+                      <span className="text-[11px] text-[var(--text-muted)]">
+                        {formatTime(msg.timestamp)}
+                      </span>
                     </div>
+
+                    {msg.intelligenceResult ? (
+                      <IntelligenceResultCard
+                        result={msg.intelligenceResult}
+                        suggestions={finalSuggestions}
+                        suggestionCategories={finalCategories}
+                        onSuggestionClick={onSuggestionClick}
+                        conversationId={
+                          msg.conversationId ?? activeConversationId
+                        }
+                        messageId={msg.id}
+                        capabilityDisplay={msg.capabilityDisplay}
+                        modelUsed={msg.modelUsed}
+                        naturalScore={msg.naturalScore}
+                        onOutcomeResponse={onOutcomeResponse}
+                      />
+                    ) : isOutcomeMessage &&
+                      (msg as any).intelligence?.ai_response ? (
+                      <OutcomeResponseDisplay
+                        acknowledgment={
+                          (msg as any).intelligence.ai_response.acknowledgment
+                        }
+                        analysis={
+                          (msg as any).intelligence.ai_response.analysis
+                        }
+                        next_steps={
+                          (msg as any).intelligence.ai_response.next_steps
+                        }
+                        what_to_watch_for={
+                          (msg as any).intelligence.ai_response
+                            .what_to_watch_for
+                        }
+                        alternative_path={
+                          (msg as any).intelligence.ai_response.alternative_path
+                        }
+                        encouragement={
+                          (msg as any).intelligence.ai_response.encouragement
+                        }
+                        suggested_prompts={
+                          (msg as any).intelligence.ai_response
+                            .suggested_prompts
+                        }
+                        onSuggestionClick={onSuggestionClick}
+                        outcome_recorded={(msg as any).intelligence?.outcome}
+                      />
+                    ) : (
+                      <>
+                        <div
+                          className="text-[14px] leading-[1.7] rounded-2xl px-4 py-3 text-[var(--text-primary)]"
+                          style={{ background: "rgba(120,120,140,0.13)" }}
+                        >
+                          {msg.content.split("\n").map((line, i) => (
+                            <span key={i}>
+                              {line.startsWith("•") ? (
+                                <span className="block pl-1 mt-1">{line}</span>
+                              ) : (
+                                <>
+                                  {line}
+                                  {i < msg.content.split("\n").length - 1 && (
+                                    <br />
+                                  )}
+                                </>
+                              )}
+                            </span>
+                          ))}
+                        </div>
+                        {!(msg as any).isStreaming && (
+                          <div className="mt-1">
+                            <CopyButton text={msg.content} />
+                          </div>
+                        )}
+                        {finalSuggestions.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            {finalSuggestions.map((s, i) => {
+                              const cat = finalCategories[i] ?? "exploration";
+                              const isAction = cat === "action";
+                              return (
+                                <button
+                                  key={i}
+                                  onClick={() => onSuggestionClick?.(s)}
+                                  className={cn(
+                                    "px-3 py-1.5 rounded-full text-[12.5px] border transition-all text-left",
+                                    isAction
+                                      ? "border-violet-500/40 bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 font-medium"
+                                      : "bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-muted)] hover:border-violet-400/60 hover:text-[var(--text-primary)]",
+                                  )}
+                                >
+                                  {s}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
-                ))
+                </div>
               )}
             </div>
           );
@@ -494,33 +479,7 @@ export function ChatMessages({
             capability={detectedCapability}
           />
         )}
-        {/* Suggested prompts at bottom of conversation */}
-        {conversationSuggestions &&
-          conversationSuggestions.length > 0 &&
-          streamingPhase === "idle" && (
-            <div className="pt-4 pb-2 dark:border-gray-700 mt-4">
-              <p className="text-[11px] text-[var(--text-muted)] mb-3">
-                If you want, you can ask follow-up questions or request actions
-                based on the analysis:
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {conversationSuggestions.map((prompt, i) => (
-                  <button
-                    key={i}
-                    onClick={() => onSuggestionClick?.(prompt.text)}
-                    className={cn(
-                      "px-3.5 py-2 rounded-full text-[13px] border transition-all text-left",
-                      prompt.category === "action"
-                        ? "border-gray-500 bg-gray-100 dark:bg-gray-800 text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-gray-700 font-medium"
-                        : "border-gray-200 dark:border-gray-700 bg-[var(--card-bg)] text-[var(--text-muted)] hover:border-gray-400 hover:text-[var(--text-primary)]",
-                    )}
-                  >
-                    {prompt.text}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+
         <div ref={bottomRef} />
       </div>
     </div>

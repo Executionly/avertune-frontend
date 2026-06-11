@@ -123,7 +123,10 @@ export default function AppPage() {
             streamingPhase={streamingPhase}
             detectedCapability={detectedCapability}
             loadingConversation={loadingConversation}
-            onSuggestionClick={sendMessage}
+            onSuggestionClick={(text) => {
+              console.log("📱 page.tsx - outcome suggestion clicked:", text);
+              sendMessage(text);
+            }}
             onPasteToInput={handlePasteToInput}
             activeConversationId={threadId}
             activeMode={activeMode}

@@ -763,15 +763,6 @@ export function IntelligenceResultCard({
         </div>
       )}
 
-      {/* ── Outcome reporter ── */}
-      {conversationId && (
-        <OutcomeReporter
-          conversationId={conversationId}
-          messageId={messageId ?? conversationId}
-          onResponse={onOutcomeResponse}
-        />
-      )}
-
       {/* ── Follow-up suggestions from API (conversation.last_suggested_prompts) ── */}
       {suggestions && suggestions.length > 0 && (
         <div className="pt-2">
@@ -800,6 +791,14 @@ export function IntelligenceResultCard({
             })}
           </div>
         </div>
+      )}
+      {/* ── Outcome reporter ── */}
+      {conversationId && (
+        <OutcomeReporter
+          conversationId={conversationId}
+          messageId={messageId ?? conversationId}
+          onResponse={onOutcomeResponse}
+        />
       )}
     </div>
   );
