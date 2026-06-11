@@ -335,9 +335,20 @@ export function ChatMessages({
                             )}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[12.5px] font-medium text-[var(--text-primary)] truncate leading-tight">
-                              {msg.attachedFile.name}
-                            </p>
+                            {(msg as any).fileUrl ? (
+                              <a
+                                href={(msg as any).fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[12.5px] font-medium text-violet-400 hover:text-violet-300 truncate leading-tight underline underline-offset-2 block"
+                              >
+                                {msg.attachedFile.name}
+                              </a>
+                            ) : (
+                              <p className="text-[12.5px] font-medium text-[var(--text-primary)] truncate leading-tight">
+                                {msg.attachedFile.name}
+                              </p>
+                            )}
                             <p className="text-[11px] text-[var(--text-muted)] leading-tight mt-0.5">
                               {msg.attachedFile.fileType === "application/pdf"
                                 ? "PDF"

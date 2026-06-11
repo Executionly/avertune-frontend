@@ -1,7 +1,7 @@
 // FILE: src/components/ui/HeroInput.tsx
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 const CHIPS = [
@@ -33,12 +33,8 @@ export function HeroInput({
 }: HeroInputProps) {
   const [inputValue, setInputValue] = useState("");
   const [activeChip, setActiveChip] = useState(defaultMode);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [attachmentName, setAttachmentName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const handleChipClick = (id: string) => {
     setActiveChip(id);
@@ -85,51 +81,6 @@ export function HeroInput({
     }
   };
 
-  // Voice recording
-  const startRecording = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream);
-      mr.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        setInputValue((prev) =>
-          prev
-            ? prev + "\n[Voice recording transcription pending]"
-            : "[Voice recording transcription pending]",
-        );
-      };
-      mr.start();
-      mediaRecorderRef.current = mr;
-      setIsRecording(true);
-      setRecordingSeconds(0);
-      recordingTimerRef.current = setInterval(
-        () => setRecordingSeconds((s) => s + 1),
-        1000,
-      );
-    } catch {}
-  }, []);
-
-  const stopRecording = useCallback(() => {
-    mediaRecorderRef.current?.stop();
-    mediaRecorderRef.current = null;
-    setIsRecording(false);
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = null;
-    }
-    setRecordingSeconds(0);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-      mediaRecorderRef.current?.stop();
-    };
-  }, []);
-
-  const formatRecTime = (s: number) =>
-    `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-
   return (
     <div className="w-full max-w-[820px] mx-auto">
       {/* Attachment badge */}
@@ -175,32 +126,16 @@ export function HeroInput({
       <div
         className={cn(
           "bg-white rounded-[28px] border-[1.5px] p-5 pb-4 shadow-md transition-all",
-          isRecording
-            ? "border-red-400"
-            : isOverLimit
-              ? "border-red-400"
-              : "border-navy-200",
+          isOverLimit ? "border-red-400" : "border-navy-200",
         )}
       >
-        {isRecording ? (
-          <div className="flex items-center gap-3 h-[120px]">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-[15px] text-navy-800">
-              Recording… {formatRecTime(recordingSeconds)}
-            </span>
-            <span className="text-[13px] text-navy-400">
-              Click stop when done
-            </span>
-          </div>
-        ) : (
-          <textarea
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder={placeholder}
-            rows={5}
-            className="w-full border-none outline-none resize-none text-[15px] text-navy-800 bg-transparent h-[340px]"
-          />
-        )}
+        <textarea
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          placeholder={placeholder}
+          rows={5}
+          className="w-full border-none outline-none resize-none text-[15px] text-navy-800 bg-transparent h-[340px] sm:h-[340px]"
+        />
 
         {isOverLimit && (
           <p className="text-[12px] text-red-500 mb-2 flex items-center gap-1">
@@ -234,13 +169,12 @@ export function HeroInput({
                   key={c.id}
                   onClick={() => handleChipClick(c.id)}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border-[1.5px]",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border-[1.5px] transition-all",
                     activeChip === c.id
                       ? "border-violet-500 text-violet-500 bg-violet-50"
                       : "border-navy-200 text-navy-500 hover:border-violet-300",
                   )}
                 >
-                  <span className={cn("w-1.5 h-1.5 rounded-full", c.dot)} />
                   {c.label}
                 </button>
               ))}
@@ -271,61 +205,25 @@ export function HeroInput({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".txt,.pdf,text/plain,application/pdf"
+              accept=".txt,.pdf,text/plain,application/pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               onChange={handleFileChange}
               className="hidden"
             />
 
-            {/* Voice */}
-            <button
-              onClick={isRecording ? stopRecording : startRecording}
-              title={isRecording ? "Stop recording" : "Record voice message"}
+            {/* Char counter */}
+            <span
               className={cn(
-                "w-9 h-9 rounded-full flex items-center justify-center border transition-all",
-                isRecording
-                  ? "text-red-500 bg-red-50 border-red-300"
-                  : "text-navy-400 hover:text-navy-700 hover:bg-navy-50 border-navy-200",
+                "text-[12px] tabular-nums transition-colors",
+                counterColor,
               )}
             >
-              {isRecording ? (
-                <svg
-                  viewBox="0 0 14 14"
-                  fill="currentColor"
-                  className="w-3 h-3"
-                >
-                  <rect x="1" y="1" width="12" height="12" rx="1.5" />
-                </svg>
-              ) : (
-                <svg
-                  viewBox="0 0 14 14"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.3"
-                  className="w-5 h-5"
-                >
-                  <rect x="4.5" y="1" width="5" height="8" rx="2.5" />
-                  <path d="M2 7a5 5 0 0010 0" strokeLinecap="round" />
-                  <line x1="7" y1="12" x2="7" y2="10" strokeLinecap="round" />
-                </svg>
-              )}
-            </button>
-
-            {/* Char counter */}
-            {!isRecording && (
-              <span
-                className={cn(
-                  "text-[12px] tabular-nums transition-colors",
-                  counterColor,
-                )}
-              >
-                {inputValue.length}/{charLimit}
-              </span>
-            )}
+              {inputValue.length}/{charLimit}
+            </span>
 
             {/* Submit */}
             <button
               onClick={handleSubmit}
-              disabled={isOverLimit}
+              disabled={isOverLimit || !inputValue.trim()}
               className="w-11 h-11 rounded-full bg-gradient-to-br from-violet-500 to-navy-700 text-white hover:scale-[1.06] transition-all shadow-violet disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               <svg

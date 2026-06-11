@@ -16,9 +16,9 @@ export function fetchSamplesByMode(): Promise<Record<string, string[]>> {
   if (_promise) return _promise;
 
   const token =
-    typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-
-  if (!token) return Promise.resolve({});
+    typeof window !== "undefined"
+      ? localStorage.getItem("access_token") ?? ""
+      : "";
 
   _promise = getSampleMessages(token)
     .then((res) => {
