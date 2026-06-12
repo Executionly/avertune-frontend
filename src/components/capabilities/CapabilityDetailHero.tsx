@@ -19,19 +19,27 @@ export function CapabilityDetailHero({
   const [charLimit, setCharLimit] = useState<number>(500);
 
   useEffect(() => {
-    // Fetch all samples (no token required) and group by mode
     fetchSamplesByMode()
       .then(setSamplesByMode)
       .catch(() => {});
 
-    // Fetch char limit from subscription/plans
     setCharLimit(getStoredWordLimit());
   }, []);
 
-  const handleAnalyse = (message: string, mode: string) => {
-    sessionStorage.setItem("pendingAnalysis", message);
-    sessionStorage.setItem("pendingMode", mode);
-    sessionStorage.setItem("pendingCapability", capability.id);
+  const handleAnalyse = (
+    message: string,
+    mode: string,
+    filePayload?: { base64: string; name: string; type: string },
+  ) => {
+    localStorage.setItem("pendingAnalysis", message);
+    localStorage.setItem("pendingMode", mode);
+    localStorage.setItem("pendingCapability", capability.id);
+    if (filePayload) {
+      localStorage.setItem(
+        "pendingFile",
+        JSON.stringify({ ...filePayload, text: message }),
+      );
+    }
     window.location.href = "/app";
   };
 

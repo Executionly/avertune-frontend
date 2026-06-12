@@ -32,7 +32,11 @@ interface HeroSectionProps {
   highlight?: string;
   description: string;
   placeholder?: string;
-  onAnalyse: (message: string, mode: string) => void;
+  onAnalyse: (
+    message: string,
+    mode: string,
+    filePayload?: { base64: string; name: string; type: string },
+  ) => void;
   showBackLink?: boolean;
   backLinkHref?: string;
   backLinkLabel?: string;
@@ -72,9 +76,13 @@ export function HeroSection({
     apiSamples.length > 0 ? apiSamples : (FALLBACK_SAMPLES[currentMode] ?? [])
   ).slice(0, 3);
 
-  const handleAnalyse = (message: string, mode: string) => {
+  const handleAnalyse = (
+    message: string,
+    mode: string,
+    filePayload?: { base64: string; name: string; type: string },
+  ) => {
     setCurrentMode(mode);
-    onAnalyse(message, mode);
+    onAnalyse(message, mode, filePayload);
   };
 
   // Sample click → paste into textarea, don't submit

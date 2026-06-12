@@ -17,18 +17,26 @@ export function ModeDetailHero({ mode }: ModeDetailHeroProps) {
   const [charLimit, setCharLimit] = useState<number>(800);
 
   useEffect(() => {
-    // Fetch all samples grouped by mode (no token required)
     fetchSamplesByMode()
       .then(setSamplesByMode)
       .catch(() => {});
 
-    // Fetch char limit from subscription/plans
     setCharLimit(getStoredWordLimit());
   }, []);
 
-  const handleAnalyse = (message: string, modeId: string) => {
-    sessionStorage.setItem("pendingAnalysis", message);
-    sessionStorage.setItem("pendingMode", modeId);
+  const handleAnalyse = (
+    message: string,
+    modeId: string,
+    filePayload?: { base64: string; name: string; type: string },
+  ) => {
+    localStorage.setItem("pendingAnalysis", message);
+    localStorage.setItem("pendingMode", modeId);
+    if (filePayload) {
+      localStorage.setItem(
+        "pendingFile",
+        JSON.stringify({ ...filePayload, text: message }),
+      );
+    }
     window.location.href = "/app";
   };
 
