@@ -1,11 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SectionHeading, Badge } from "@/components/ui";
 import { CtaSection } from "@/components/marketing/CtaSection";
 import { cn } from "@/lib/utils";
-import { createCheckout } from "@/lib/api/auth";
+import {
+  createCheckout,
+  getAddons,
+  buyAddon,
+  type AddonPack,
+} from "@/lib/api/auth";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 interface ApiPlan {
   tier: string;
@@ -44,7 +50,7 @@ interface PlansData {
   comparison?: ComparisonData;
 }
 
-const TIER_ORDER = ["trial", "starter", "daily", "pro"];
+const TIER_ORDER = ["free", "trial", "starter", "daily", "pro"];
 const POPULAR_TIER = "daily";
 
 function formatPrice(val: number): string {
@@ -52,14 +58,19 @@ function formatPrice(val: number): string {
 }
 
 function getTierCta(tier: string): string {
+  if (tier === "free") return "Start Free";
   if (tier === "trial") return "Start Free Trial";
   if (tier === "pro") return "Go Pro";
   return "Get Started";
 }
 
-function getTierVariant(tier: string, plan: ApiPlan): "free" | "popular" | "default" {
-  if (tier === "trial") return "free";
-  if (plan.most_popular || plan.is_popular || tier === POPULAR_TIER) return "popular";
+function getTierVariant(
+  tier: string,
+  plan: ApiPlan,
+): "free" | "popular" | "default" {
+  if (tier === "free" || tier === "trial") return "free";
+  if (plan.most_popular || plan.is_popular || tier === POPULAR_TIER)
+    return "popular";
   return "default";
 }
 
@@ -70,6 +81,10 @@ interface Props {
 export function PricingClient({ data }: Props) {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [loadingAddon, setLoadingAddon] = useState<string | null>(null);
+  const [addons, setAddons] = useState<AddonPack[]>([]);
+  const [loadingAddons, setLoadingAddons] = useState(true);
+  const { isAuthenticated } = useAuth();
 
   const plans: ApiPlan[] = data?.plans
     ? [...data.plans].sort(
@@ -78,6 +93,18 @@ export function PricingClient({ data }: Props) {
     : [];
 
   const comparison: ComparisonData | null = data?.comparison ?? null;
+
+  // Fetch addons
+  useEffect(() => {
+    getAddons()
+      .then((data) => {
+        setAddons(data.addons || []);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch addons:", err);
+      })
+      .finally(() => setLoadingAddons(false));
+  }, []);
 
   const handleCheckout = async (tier: string) => {
     const token = localStorage.getItem("access_token");
@@ -97,25 +124,58 @@ export function PricingClient({ data }: Props) {
     }
   };
 
+  const handleBuyAddon = async (addonId: string) => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      window.location.href = `/auth/signin?redirect=/pricing`;
+      return;
+    }
+    setLoadingAddon(addonId);
+    try {
+      const { url } = await buyAddon(token, addonId);
+      window.location.href = url;
+    } catch (error) {
+      console.error(error);
+      alert("Unable to purchase addon.");
+    } finally {
+      setLoadingAddon(null);
+    }
+  };
+
   const getPrice = (plan: ApiPlan) => {
-    // Support both new format (prices.monthly) and old format (price_monthly)
     const monthlyVal = plan.prices?.monthly ?? plan.price_monthly;
     const yearlyVal = plan.prices?.yearly ?? plan.price_yearly;
 
-    const val = billing === "yearly" ? yearlyVal : monthlyVal;
-
-    if (val === undefined || val === null) {
-      return { display: "Custom", period: "" };
+    if (plan.tier === "free" || plan.tier === "trial") {
+      return {
+        display: "$0",
+        period: "free",
+        monthlyEquivalent: 0,
+        yearlyTotal: 0,
+      };
     }
 
-    return {
-      display: formatPrice(Number(val)),
-      period: plan.tier === "trial" ? "free" : "month",
-    };
+    if (billing === "yearly") {
+      const yearlyTotal = Number(yearlyVal);
+      const monthlyEquivalent = yearlyTotal / 12;
+      return {
+        display: formatPrice(yearlyTotal),
+        period: "year",
+        monthlyEquivalent,
+        yearlyTotal,
+      };
+    } else {
+      const monthlyPrice = Number(monthlyVal);
+      return {
+        display: formatPrice(monthlyPrice),
+        period: "month",
+        monthlyEquivalent: monthlyPrice,
+        yearlyTotal: monthlyPrice * 12,
+      };
+    }
   };
 
   const getWordLimit = (plan: ApiPlan) => {
-    // Support both char_limits (from JSON) and input_word_limit (from old API)
     if (plan.char_limits) return plan.char_limits;
     if (plan.input_word_limit) return plan.input_word_limit;
     return null;
@@ -162,17 +222,18 @@ export function PricingClient({ data }: Props) {
               )}
             >
               Yearly
-              <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[11px] font-semibold rounded-full">
-                Save 20%
-              </span>
+              {/*<span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[11px] font-semibold rounded-full">
+               Save 20%
+              </span>*/}
             </button>
           </div>
 
-          {/* Plan cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* Plan cards - using flex for consistent row */}
+          <div className="flex flex-wrap justify-center gap-5 mb-16">
             {plans.map((plan) => {
               const variant = getTierVariant(plan.tier, plan);
-              const { display, period } = getPrice(plan);
+              const { display, period, monthlyEquivalent, yearlyTotal } =
+                getPrice(plan);
               const isPopular = variant === "popular";
               const isFree = variant === "free";
               const wordLimit = getWordLimit(plan);
@@ -182,7 +243,7 @@ export function PricingClient({ data }: Props) {
                 <div
                   key={plan.tier}
                   className={cn(
-                    "bg-white border rounded-[24px] p-7 flex flex-col relative transition-all",
+                    "flex-1 min-w-[220px] max-w-[280px] bg-white border rounded-[24px] p-6 flex flex-col relative transition-all",
                     isPopular
                       ? "border-violet-400 shadow-[0_8px_32px_rgba(97,48,221,0.15)]"
                       : "border-navy-100 hover:border-navy-200",
@@ -190,7 +251,10 @@ export function PricingClient({ data }: Props) {
                 >
                   {isPopular && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                      <Badge variant="violet" className="shadow-sm whitespace-nowrap">
+                      <Badge
+                        variant="violet"
+                        className="shadow-sm whitespace-nowrap"
+                      >
                         Most Popular
                       </Badge>
                     </div>
@@ -201,7 +265,9 @@ export function PricingClient({ data }: Props) {
                       {plan.display_name}
                     </h3>
                     {plan.tagline && (
-                      <p className="text-[12px] text-navy-400 mb-3">{plan.tagline}</p>
+                      <p className="text-[12px] text-navy-400 mb-3">
+                        {plan.tagline}
+                      </p>
                     )}
                     <div className="flex items-baseline gap-1">
                       <span
@@ -211,14 +277,26 @@ export function PricingClient({ data }: Props) {
                         {display}
                       </span>
                       {period && (
-                        <span className="text-[13px] text-navy-400">/ {period}</span>
+                        <span className="text-[13px] text-navy-400">
+                          / {period}
+                        </span>
                       )}
                     </div>
-                    {billing === "yearly" && plan.tier !== "trial" && (
-                      <p className="text-[12px] text-green-600 mt-1 font-medium">
-                        Billed yearly · Save 20%
-                      </p>
-                    )}
+                    {billing === "yearly" &&
+                      plan.tier !== "free" &&
+                      plan.tier !== "trial" && (
+                        <p className="text-[12px] text-green-600 mt-1 font-medium">
+                          {/*   Billed yearly · {formatPrice(monthlyEquivalent)}/month
+                          equivalent */}
+                        </p>
+                      )}
+                    {billing === "monthly" &&
+                      plan.tier !== "free" &&
+                      plan.tier !== "trial" && (
+                        <p className="text-[12px] text-navy-400 mt-1">
+                          or {formatPrice(yearlyTotal)}/year
+                        </p>
+                      )}
                     {plan.trial_days && (
                       <p className="text-[12px] text-violet-500 mt-1 font-medium">
                         {plan.trial_days}-day free trial
@@ -230,64 +308,116 @@ export function PricingClient({ data }: Props) {
                   <div className="space-y-2.5 flex-1 mb-6">
                     {credits !== null && (
                       <div className="flex items-start gap-2.5 text-[13px] text-navy-600">
-                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5">
+                        <svg
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5"
+                        >
                           <path d="M2 7l3.5 3.5L12 3" />
                         </svg>
                         <span>
-                          <strong className="text-navy-800">{credits.toLocaleString()}</strong> replies/month
+                          <strong className="text-navy-800">
+                            {credits.toLocaleString()}
+                          </strong>{" "}
+                          credits/month
                         </span>
                       </div>
                     )}
                     {wordLimit !== null && (
                       <div className="flex items-start gap-2.5 text-[13px] text-navy-600">
-                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5">
+                        <svg
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5"
+                        >
                           <path d="M2 7l3.5 3.5L12 3" />
                         </svg>
                         <span>
-                          Up to <strong className="text-navy-800">{wordLimit.toLocaleString()}</strong> character input
+                          Up to{" "}
+                          <strong className="text-navy-800">
+                            {wordLimit.toLocaleString()}
+                          </strong>{" "}
+                          chars/input
                         </span>
                       </div>
                     )}
-                    {plan.features
-                      ? plan.features.map((f) => (
-                          <div key={f} className="flex items-start gap-2.5 text-[13px] text-navy-600">
-                            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5">
+                    {plan.features ? (
+                      plan.features.slice(0, 3).map((f) => (
+                        <div
+                          key={f}
+                          className="flex items-start gap-2.5 text-[13px] text-navy-600"
+                        >
+                          <svg
+                            viewBox="0 0 14 14"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5"
+                          >
+                            <path d="M2 7l3.5 3.5L12 3" />
+                          </svg>
+                          <span>{f}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <>
+                        {plan.coach_note_enabled && (
+                          <div className="flex items-start gap-2.5 text-[13px] text-navy-600">
+                            <svg
+                              viewBox="0 0 14 14"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5"
+                            >
                               <path d="M2 7l3.5 3.5L12 3" />
                             </svg>
-                            <span>{f}</span>
+                            <span>Coach Notes & Blind Spots</span>
                           </div>
-                        ))
-                      : (
-                          <>
-                            {plan.coach_note_enabled && (
-                              <div className="flex items-start gap-2.5 text-[13px] text-navy-600">
-                                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5">
-                                  <path d="M2 7l3.5 3.5L12 3" />
-                                </svg>
-                                <span>Coach Notes & Blind Spots</span>
-                              </div>
-                            )}
-                            {plan.addon_eligible && (
-                              <div className="flex items-start gap-2.5 text-[13px] text-navy-600">
-                                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5">
-                                  <path d="M2 7l3.5 3.5L12 3" />
-                                </svg>
-                                <span>Credit add-ons available</span>
-                              </div>
-                            )}
-                            <div className="flex items-start gap-2.5 text-[13px] text-navy-600">
-                              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5">
-                                <path d="M2 7l3.5 3.5L12 3" />
-                              </svg>
-                              <span>All 3 communication modes</span>
-                            </div>
-                          </>
                         )}
+                        {plan.addon_eligible && (
+                          <div className="flex items-start gap-2.5 text-[13px] text-navy-600">
+                            <svg
+                              viewBox="0 0 14 14"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5"
+                            >
+                              <path d="M2 7l3.5 3.5L12 3" />
+                            </svg>
+                            <span>Credit add-ons available</span>
+                          </div>
+                        )}
+                        <div className="flex items-start gap-2.5 text-[13px] text-navy-600">
+                          <svg
+                            viewBox="0 0 14 14"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5"
+                          >
+                            <path d="M2 7l3.5 3.5L12 3" />
+                          </svg>
+                          <span>All communication modes</span>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {isFree ? (
                     <Link
-                      href="/auth/signup"
+                      href="/app"
                       className="w-full h-11 rounded-xl text-[14px] font-medium flex items-center justify-center transition-all border border-navy-200 text-navy-800 hover:border-violet-400 hover:text-violet-600"
                     >
                       {getTierCta(plan.tier)}
@@ -314,9 +444,74 @@ export function PricingClient({ data }: Props) {
             })}
           </div>
 
+          {/* Credit Add-ons Section */}
+          {!loadingAddons && addons.length > 0 && (
+            <div className="mb-20">
+              <div className="text-center mb-8">
+                <h3 className="text-[22px] font-display font-medium text-navy-900 mb-2">
+                  Need More Credits?
+                </h3>
+                <p className="text-[14px] text-navy-500 max-w-[480px] mx-auto">
+                  One-time credit packs — never expire, purchase anytime
+                </p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-4">
+                {addons.map((addon) => (
+                  <div
+                    key={addon.id}
+                    className="bg-white border border-navy-100 rounded-2xl p-6 min-w-[200px] flex-1 max-w-[240px] text-center hover:border-violet-200 hover:shadow-md transition-all"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-violet-100 flex items-center justify-center mx-auto mb-3">
+                      <svg
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        className="w-6 h-6 text-violet-600"
+                      >
+                        <circle cx="10" cy="10" r="8" />
+                        <path
+                          d="M10 6v4l3 2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                    <h4 className="text-[16px] font-semibold text-navy-800 mb-1">
+                      {addon.name}
+                    </h4>
+                    <p className="text-[12px] text-navy-400 mb-3">
+                      {addon.description}
+                    </p>
+                    <p className="text-[24px] font-bold text-navy-900">
+                      {formatPrice(addon.price)}
+                    </p>
+                    <p className="text-[11px] text-navy-400 mb-4">
+                      {addon.credits.toLocaleString()} credits
+                    </p>
+                    <button
+                      onClick={() => handleBuyAddon(addon.id)}
+                      disabled={loadingAddon === addon.id}
+                      className="w-full h-10 rounded-xl text-[13px] font-medium bg-violet-50 border border-violet-200 text-violet-600 hover:bg-violet-100 hover:border-violet-300 transition-all disabled:opacity-50"
+                    >
+                      {loadingAddon === addon.id ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-3.5 h-3.5 border-2 border-violet-600/30 border-t-violet-600 rounded-full animate-spin" />
+                          Processing...
+                        </div>
+                      ) : (
+                        "Buy Now →"
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Comparison table from API */}
           {comparison && (
-            <div className="mt-20">
+            <div className="mt-10">
               <h3 className="text-[22px] font-semibold text-navy-900 text-center mb-8">
                 Full feature comparison
               </h3>
@@ -408,8 +603,12 @@ export function PricingClient({ data }: Props) {
                 key={item.q}
                 className="p-5 rounded-2xl bg-white border border-navy-100"
               >
-                <p className="text-[14px] font-semibold text-navy-800 mb-1.5">{item.q}</p>
-                <p className="text-[13px] text-navy-500 leading-relaxed">{item.a}</p>
+                <p className="text-[14px] font-semibold text-navy-800 mb-1.5">
+                  {item.q}
+                </p>
+                <p className="text-[13px] text-navy-500 leading-relaxed">
+                  {item.a}
+                </p>
               </div>
             ))}
           </div>

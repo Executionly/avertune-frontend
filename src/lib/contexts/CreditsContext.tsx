@@ -21,7 +21,11 @@ interface CreditsContextType {
   history: CreditTransaction[];
   historyLoading: boolean;
   charLimit: number;
+  creditPercentage: number;
+  isLow: boolean;
+  isCritical: boolean;
   refresh: () => Promise<void>;
+  refreshCredits: () => Promise<void>; // Add this
   applyUsage: (used: number, remaining: number) => void;
   fetchHistory: () => Promise<void>;
 }
@@ -35,6 +39,19 @@ export function CreditsProvider({ children }: { children: ReactNode }) {
   const [historyLoading, setHistoryLoading] = useState(false);
 
   const refresh = useCallback(async () => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+    try {
+      const data = await getCredits(token);
+      //console.log("Credits data from API:", data); // Debug log
+      setCredits(data);
+    } catch (err) {
+      console.error("Failed to fetch credits:", err);
+    }
+  }, []);
+
+  // Alias for refresh to match the naming in page.tsx
+  const refreshCredits = useCallback(async () => {
     const token = localStorage.getItem("access_token");
     if (!token) return;
     try {
@@ -72,6 +89,16 @@ export function CreditsProvider({ children }: { children: ReactNode }) {
     if (token) refresh();
   }, [refresh]);
 
+  const creditPercentage = credits?.credits_limit
+    ? (credits.credits_used / credits.credits_limit) * 100
+    : 0;
+  const isLow = credits?.credits_remaining
+    ? credits.credits_remaining <= 20
+    : false;
+  const isCritical = credits?.credits_remaining
+    ? credits.credits_remaining <= 5
+    : false;
+
   return (
     <CreditsContext.Provider
       value={{
@@ -79,7 +106,11 @@ export function CreditsProvider({ children }: { children: ReactNode }) {
         history,
         historyLoading,
         charLimit: wordLimit,
+        creditPercentage,
+        isLow,
+        isCritical,
         refresh,
+        refreshCredits, // Add this
         applyUsage,
         fetchHistory,
       }}

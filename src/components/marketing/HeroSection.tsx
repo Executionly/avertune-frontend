@@ -29,7 +29,7 @@ export function HeroSection() {
 
   return (
     <BaseHeroSection
-      badge="Communication Intelligence Platform"
+      badge=""
       title="Don't just write better. Think better before you respond."
       highlight="Think better"
       description="Avertune reads the situation, detects risk and intent, recommends strategy, generates the perfect response, and simulates the likely outcome."

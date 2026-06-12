@@ -350,7 +350,15 @@ export async function reportOutcome(
 // ── Credits ────────────────────────────────────────────────────────────────────
 
 export async function getCredits(token: string): Promise<CreditsResponse> {
-  return authFetch(`${BASE}/intelligence/credits`, token);
+  const data = await authFetch(`${BASE}/intelligence/credits`, token);
+  // Map the API response to the expected format
+  return {
+    credits_used: data.credits_used_total ?? data.credits_used ?? 0,
+    credits_remaining: data.credits_balance ?? data.credits_remaining ?? 0,
+    credits_limit: data.plan_monthly_limit ?? data.credits_limit ?? 0,
+    plan_name: data.plan_name ?? "",
+    reset_date: data.reset_date,
+  };
 }
 
 export async function getCreditsHistory(
