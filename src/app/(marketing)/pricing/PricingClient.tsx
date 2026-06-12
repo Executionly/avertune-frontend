@@ -515,69 +515,75 @@ export function PricingClient({ data }: Props) {
               <h3 className="text-[22px] font-semibold text-navy-900 text-center mb-8">
                 Full feature comparison
               </h3>
-              <div className="overflow-x-auto rounded-[24px] border border-navy-900/[0.08] shadow-sm">
-                <div className="min-w-[800px]">
-                  {/* Header row */}
-                  <div
-                    className="grid"
-                    style={{
-                      gridTemplateColumns: `2fr repeat(${comparison.headers.length - 1}, 1fr)`,
-                    }}
-                  >
-                    {comparison.headers.map((h, i) => (
-                      <div
-                        key={h}
-                        className={cn(
-                          "p-4 px-5 text-[12px] font-semibold uppercase tracking-[0.07em]",
-                          i === 0
-                            ? "text-navy-400"
-                            : i === comparison.headers.length - 1
-                              ? "text-violet-500 border-l border-navy-900/[0.08]"
-                              : "text-navy-500 border-l border-navy-900/[0.08]",
-                          "bg-cream-50",
-                        )}
-                      >
-                        {h}
-                      </div>
-                    ))}
-                  </div>
-                  {/* Data rows */}
-                  {comparison.rows.map((row, ri) => (
+              <div className="overflow-x-auto -mx-2 px-2 rounded-[24px]">
+                <div className="min-w-[640px] border border-navy-900/[0.08] rounded-[24px] shadow-sm overflow-hidden">
+                  <div className="min-w-[640px]">
+                    {/* Header row */}
                     <div
-                      key={ri}
-                      className="grid border-t border-navy-900/[0.08]"
+                      className="grid"
                       style={{
-                        gridTemplateColumns: `2fr repeat(${row.length - 1}, 1fr)`,
+                        gridTemplateColumns: `2fr repeat(${comparison.headers.length - 1}, 1fr)`,
                       }}
                     >
-                      {row.map((cell, ci) => (
+                      {comparison.headers.map((h, i) => (
                         <div
-                          key={ci}
+                          key={h}
                           className={cn(
-                            "p-4 px-5 text-[13px]",
-                            ci === 0
-                              ? cn(
-                                  "font-semibold text-navy-700",
-                                  ri % 2 === 0 ? "bg-white" : "bg-cream-50/50",
-                                )
-                              : cn(
-                                  "border-l border-navy-900/[0.08]",
-                                  ri % 2 === 0 ? "bg-white" : "bg-cream-50/50",
-                                  cell === "✓"
-                                    ? "text-teal-600 font-semibold text-center"
-                                    : cell === "—"
-                                      ? "text-navy-300 text-center"
-                                      : ci === row.length - 1
-                                        ? "text-violet-600 font-medium"
-                                        : "text-navy-500",
-                                ),
+                            "p-4 px-5 text-[12px] font-semibold uppercase tracking-[0.07em]",
+                            i === 0
+                              ? "text-navy-400"
+                              : i === comparison.headers.length - 1
+                                ? "text-violet-500 border-l border-navy-900/[0.08]"
+                                : "text-navy-500 border-l border-navy-900/[0.08]",
+                            "bg-cream-50",
                           )}
                         >
-                          {cell}
+                          {h}
                         </div>
                       ))}
                     </div>
-                  ))}
+                    {/* Data rows */}
+                    {comparison.rows.map((row, ri) => (
+                      <div
+                        key={ri}
+                        className="grid border-t border-navy-900/[0.08]"
+                        style={{
+                          gridTemplateColumns: `2fr repeat(${row.length - 1}, 1fr)`,
+                        }}
+                      >
+                        {row.map((cell, ci) => (
+                          <div
+                            key={ci}
+                            className={cn(
+                              "p-4 px-5 text-[13px]",
+                              ci === 0
+                                ? cn(
+                                    "font-semibold text-navy-700",
+                                    ri % 2 === 0
+                                      ? "bg-white"
+                                      : "bg-cream-50/50",
+                                  )
+                                : cn(
+                                    "border-l border-navy-900/[0.08]",
+                                    ri % 2 === 0
+                                      ? "bg-white"
+                                      : "bg-cream-50/50",
+                                    cell === "✓"
+                                      ? "text-teal-600 font-semibold text-center"
+                                      : cell === "—"
+                                        ? "text-navy-300 text-center"
+                                        : ci === row.length - 1
+                                          ? "text-violet-600 font-medium"
+                                          : "text-navy-500",
+                                  ),
+                            )}
+                          >
+                            {cell}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

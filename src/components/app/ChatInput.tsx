@@ -275,6 +275,8 @@ export function ChatInput({
     };
   }, []);
 
+  const [modePickerOpen, setModePickerOpen] = useState(false);
+
   const counterColor =
     charStatus === "error"
       ? "text-red-400"
@@ -416,26 +418,73 @@ export function ChatInput({
           )}
 
           <div className="flex items-center justify-between mt-2 gap-2">
-            <div className="flex items-center gap-1 flex-wrap min-w-0">
+            <div className="flex items-center gap-1 min-w-0">
               {!modeLocked && (
                 <>
-                  <span className="text-[12px] text-[var(--text-muted)] mr-0.5 hidden sm:inline">
-                    Mode:
-                  </span>
-                  {MODES.map((m) => (
+                  {/* Desktop: show all mode pills inline */}
+                  <div className="hidden sm:flex items-center gap-1">
+                    <span className="text-[12px] text-[var(--text-muted)] mr-0.5">
+                      Mode:
+                    </span>
+                    {MODES.map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => onModeChange(m.id)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-full text-[12px] font-medium border transition-all whitespace-nowrap",
+                          activeMode === m.id
+                            ? "border-violet-500 text-violet-500 bg-violet-500/10"
+                            : "border-[var(--input-border)] text-[var(--text-muted)] hover:border-violet-400/50 hover:text-[var(--text-primary)]",
+                        )}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Mobile: compact icon button */}
+                  <div className="relative sm:hidden">
                     <button
-                      key={m.id}
-                      onClick={() => onModeChange(m.id)}
+                      onClick={() => setModePickerOpen((o) => !o)}
                       className={cn(
-                        "px-2.5 py-1 rounded-full text-[12px] font-medium border transition-all",
-                        activeMode === m.id
+                        "flex items-center gap-1 px-2 py-1 rounded-full text-[12px] font-medium border transition-all",
+                        modePickerOpen
                           ? "border-violet-500 text-violet-500 bg-violet-500/10"
                           : "border-[var(--input-border)] text-[var(--text-muted)] hover:border-violet-400/50 hover:text-[var(--text-primary)]",
                       )}
                     >
-                      {m.label}
+                      <span>Choose a mode</span>
                     </button>
-                  ))}
+
+                    {/* Mobile mode panel — rendered inline below input */}
+                    {modePickerOpen && (
+                      <div className="absolute bottom-full left-0 mb-2 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl shadow-lg overflow-hidden z-30">
+                        {MODES.map((m) => (
+                          <button
+                            key={m.id}
+                            onClick={() => {
+                              onModeChange(m.id);
+                              setModePickerOpen(false);
+                            }}
+                            className={cn(
+                              "flex items-center gap-2 w-full px-4 py-2.5 text-[13px] font-medium transition-colors text-left whitespace-nowrap",
+                              activeMode === m.id
+                                ? "text-violet-500 bg-violet-500/10"
+                                : "text-[var(--text-secondary)] hover:bg-[var(--card-muted-bg)] hover:text-[var(--text-primary)]",
+                            )}
+                          >
+                            {activeMode === m.id && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-violet-500 flex-shrink-0" />
+                            )}
+                            {activeMode !== m.id && (
+                              <span className="w-1.5 h-1.5 rounded-full border border-[var(--input-border)] flex-shrink-0" />
+                            )}
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { useReferral } from "@/lib/hooks/useReferral";
 
 function AvertuneLogoMark() {
   return <div></div>;
@@ -95,6 +96,14 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const { register, signInWithGoogle } = useAuth();
   const router = useRouter();
+  const urlReferralCode = useReferral();
+
+  useEffect(() => {
+    if (urlReferralCode) {
+      setReferralCode(urlReferralCode);
+      setShowReferral(true);
+    }
+  }, [urlReferralCode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,103 +1,96 @@
-// FILE: src/components/app/CreditReminder.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCredits } from "@/lib/contexts/CreditsContext";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useNotification } from "@/lib/contexts/NotificationContext";
 
-/**
- * Headless component — fires credit/expiry notifications into the central
- * NotificationContext. Renders nothing itself.
- * Mount it once inside the /app shell.
- */
+type CreditState = "safe" | "warning" | "critical";
+
+function getCreditState(remaining: number, total: number): CreditState {
+  const percent = total > 0 ? (remaining / total) * 100 : 0;
+
+  if (remaining <= 0) return "critical";
+
+  if (remaining <= 10 || percent <= 10) return "critical";
+
+  if (remaining <= 50 || percent <= 25) return "warning";
+
+  return "safe";
+}
+
 export function CreditReminder() {
   const { credits } = useCredits();
   const { user } = useAuth();
   const { notify, dismissSilent } = useNotification();
-  const [dismissedUntil, setDismissedUntil] = useState<number | null>(null);
-  const activeIdRef = useRef<string | null>(null);
 
-  // Load dismissed state from localStorage once on mount
+  const activeIdRef = useRef<string | null>(null);
+  const prevStateRef = useRef<CreditState | null>(null);
+
+  const [dismissedUntil, setDismissedUntil] = useState<number | null>(null);
+
+  const isDismissed = dismissedUntil !== null && Date.now() < dismissedUntil;
+
   useEffect(() => {
     const stored = localStorage.getItem("credit_reminder_dismissed");
-    if (stored) setDismissedUntil(parseInt(stored, 10));
+    if (stored) setDismissedUntil(Number(stored));
   }, []);
 
   useEffect(() => {
-    if (!credits) return;
+    if (!credits || !user) return;
+    if (isDismissed) return;
 
-    // Silently remove any previous credit notification (no onDismiss side-effect)
+    const remaining = credits.credits_remaining ?? 0;
+    const total = credits.credits_limit ?? 0;
+
+    const state = getCreditState(remaining, total);
+
+    // 🚫 only trigger when user crosses threshold
+    if (prevStateRef.current === state) return;
+    prevStateRef.current = state;
+
     if (activeIdRef.current) {
       dismissSilent(activeIdRef.current);
       activeIdRef.current = null;
     }
 
-    // Check if the user explicitly dismissed within the last 24 hours
-    if (dismissedUntil && Date.now() < dismissedUntil) return;
+    const handleDismiss = () => {
+      const snoozeMs =
+        state === "critical"
+          ? 60 * 1000 // test mode
+          : 4 * 60 * 1000;
 
-    const remainingCredits = credits.credits_remaining ?? 0;
-    const totalCredits = credits.credits_limit ?? 0;
-    const remainingPercent =
-      totalCredits > 0 ? (remainingCredits / totalCredits) * 100 : 100;
-
-    // Plenty of credits — nothing to show
-    if (remainingCredits > 50 && remainingPercent > 30) return;
-
-    const isTrial = user?.plan_tier === "trial";
-    const trialDaysLeft = user?.trial_days_left ?? 0;
-
-    // onDismiss is only called when the user clicks the X button,
-    // NOT when we call dismissSilent() programmatically above.
-    const handleUserDismiss = () => {
-      const until = Date.now() + 24 * 60 * 60 * 1000;
+      const until = Date.now() + snoozeMs;
       localStorage.setItem("credit_reminder_dismissed", String(until));
       setDismissedUntil(until);
     };
 
-    // Priority 1: Critical credits
-    if (remainingCredits <= 5 || remainingPercent <= 5) {
+    if (state === "warning") {
       activeIdRef.current = notify({
-        severity: "error",
-        title: "Critical: credits almost gone",
-        message: `Only ${remainingCredits} credit${remainingCredits !== 1 ? "s" : ""} remaining. Top up now to keep using Avertune.`,
+        severity: "warning",
+        title: "You're running low on credits",
+        message: "You’re approaching your usage limit. Top up soon.",
         actionLabel: "Buy Credits →",
         actionHref: "/pricing#addons",
         duration: 0,
-        onDismiss: handleUserDismiss,
+        onDismiss: handleDismiss,
       });
       return;
     }
 
-    // Priority 2: Trial expiring soon
-    if (isTrial && trialDaysLeft > 0 && trialDaysLeft <= 3) {
+    if (state === "critical") {
       activeIdRef.current = notify({
-        severity: "warning",
-        title: "Trial ending soon",
-        message: `Your free trial ends in ${trialDaysLeft} day${trialDaysLeft !== 1 ? "s" : ""}. Upgrade to continue using Avertune.`,
-        actionLabel: "View Plans →",
-        actionHref: "/pricing",
-        duration: 0,
-        onDismiss: handleUserDismiss,
-      });
-      return;
-    }
-
-    // Priority 3: Low credits
-    if (remainingCredits <= 20 || remainingPercent <= 20) {
-      activeIdRef.current = notify({
-        severity: "warning",
-        title: "Low credits",
-        message: `${remainingCredits} credit${remainingCredits !== 1 ? "s" : ""} remaining. Consider topping up soon.`,
-        actionLabel: "Get More →",
+        severity: "error",
+        title: "Credits almost depleted",
+        message: "Top up now to avoid service interruption.",
+        actionLabel: "Upgrade Now →",
         actionHref: "/pricing#addons",
         duration: 0,
-        onDismiss: handleUserDismiss,
+        onDismiss: handleDismiss,
       });
       return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [credits, user, dismissedUntil]);
+  }, [credits, user, dismissedUntil, isDismissed, notify, dismissSilent]);
 
   return null;
 }

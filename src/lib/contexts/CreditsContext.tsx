@@ -33,7 +33,7 @@ interface CreditsContextType {
 const CreditsContext = createContext<CreditsContextType | undefined>(undefined);
 
 export function CreditsProvider({ children }: { children: ReactNode }) {
-  const { wordLimit } = useAuth();
+  const { wordLimit, isAuthenticated } = useAuth();
   const [credits, setCredits] = useState<CreditsResponse | null>(null);
   const [history, setHistory] = useState<CreditTransaction[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -85,9 +85,9 @@ export function CreditsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (token) refresh();
-  }, [refresh]);
+    if (isAuthenticated) refresh();
+    else setCredits(null);
+  }, [isAuthenticated, refresh]);
 
   const creditPercentage = credits?.credits_limit
     ? (credits.credits_used / credits.credits_limit) * 100
