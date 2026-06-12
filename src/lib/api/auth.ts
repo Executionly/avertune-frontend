@@ -248,14 +248,33 @@ export async function cancelSubscription(
   if (!res.ok) throw new Error("Failed to cancel subscription");
 }
 
-export async function buyAddon(token: string, pack_id: string): Promise<void> {
+export interface AddonPack {
+  id: string;
+  name: string;
+  description: string;
+  credits: number;
+  price: number;
+  price_id?: string;
+}
+
+export async function getAddons(): Promise<{ addons: AddonPack[] }> {
+  const res = await fetch(`${SUB_URL}/addons`);
+  if (!res.ok) throw new Error("Failed to fetch addons");
+  return res.json();
+}
+
+export async function buyAddon(
+  token: string,
+  addonId: string,
+): Promise<{ url: string }> {
   const res = await fetch(`${SUB_URL}/addon/buy`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ pack_id }),
+    body: JSON.stringify({ addon_id: addonId }),
   });
-  if (!res.ok) throw new Error("Failed to purchase add-on");
+  if (!res.ok) throw new Error("Failed to purchase addon");
+  return res.json();
 }

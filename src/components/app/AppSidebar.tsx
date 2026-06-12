@@ -48,6 +48,27 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+
+  {
+    label: "Affiliate",
+    href: "/app/affiliate",
+    icon: (
+      <svg
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        className="w-4 h-4 flex-shrink-0"
+      >
+        <path
+          d="M5 3L3 5v6l2 2h6l2-2V5l-2-2H5z"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path d="M8 6v4M6 8h4" strokeLinecap="round" />
+      </svg>
+    ),
+  },
 ];
 
 function groupByDate(conversations: Conversation[]) {

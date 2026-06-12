@@ -3,11 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import {
-  createCheckout,
-  getPortalUrl,
-  cancelSubscription,
-} from "@/lib/api/auth";
+import { createCheckout, cancelSubscription } from "@/lib/api/auth";
 import type { User } from "@/lib/api/auth";
 
 interface AccountModalProps {
@@ -15,6 +11,7 @@ interface AccountModalProps {
   onClose: () => void;
   user: User;
   onLogout: () => void;
+  onUserUpdate?: (updatedUser: User) => void;
 }
 
 type TabId = "profile" | "settings" | "usage" | "billing";
@@ -107,18 +104,166 @@ function Toggle({
   );
 }
 
+// Cancel Subscription inline component
+function CancelSubscriptionInline({
+  isOpen,
+  onClose,
+  onConfirm,
+  planName,
+  isLoading,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (reason: string) => void;
+  planName: string;
+  isLoading: boolean;
+}) {
+  const [reason, setReason] = useState("");
+
+  const handleConfirm = () => {
+    onConfirm(reason);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="mt-3 p-4 rounded-xl  border border-black">
+      <div className="flex items-start gap-3 mb-3">
+        <div className="w-8 h-8 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            className="w-4 h-4 text-red-400"
+          >
+            <path
+              d="M2 4h12M5 4V2.5a.5.5 0 01.5-.5h5a.5.5 0 01.5.5V4M6 7v4M10 7v4M3 4l1 9.5a.5.5 0 00.5.5h7a.5.5 0 00.5-.5L13 4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+        <div className="flex-1">
+          <p className="text-[14px] font-semibold text-red-400">
+            Cancel {planName} Plan?
+          </p>
+          <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
+            You'll keep access until the end of your billing period. After that,
+            your plan will be downgraded to Free.
+          </p>
+        </div>
+      </div>
+      <div className="mb-3">
+        <label className="block text-[12px] font-medium text-[var(--text-muted)] mb-1.5">
+          Reason for cancelling (optional)
+        </label>
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          rows={2}
+          placeholder="Help us improve..."
+          className="w-full px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--input-bg)] text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none focus:outline-none focus:border-violet-500 transition-all"
+        />
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={onClose}
+          className="flex-1 h-9 rounded-lg text-[12px] font-medium border border-[var(--border-default)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-muted-bg)] transition-all"
+        >
+          Keep Plan
+        </button>
+        <button
+          onClick={handleConfirm}
+          disabled={isLoading}
+          className="flex-1 h-9 rounded-lg text-[12px] font-medium bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-50"
+        >
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-3.5 h-3.5 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+              Cancelling...
+            </div>
+          ) : (
+            "Cancel Subscription"
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Success message component
+function SuccessMessage({
+  message,
+  onClose,
+}: {
+  message: string;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="mt-3 p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-[13px] flex items-center gap-2">
+      <svg
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className="w-4 h-4 flex-shrink-0"
+      >
+        <path d="M2 8l4 4 8-8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      {message}
+    </div>
+  );
+}
+
 export function AccountModal({
   isOpen,
   onClose,
   user,
   onLogout,
+  onUserUpdate,
 }: AccountModalProps) {
   const [activeTab, setActiveTab] = useState<TabId>("profile");
-  const [emailNotifs, setEmailNotifs] = useState(true);
   const [billingLoading, setBillingLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [showCancelForm, setShowCancelForm] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
+
+  // Calculate billing expiration info
+  const getBillingExpiryText = () => {
+    if (user.plan_tier === "free" || user.plan_tier === "trial") {
+      if (user.trial_days_left > 0) {
+        return `Trial ends in ${user.trial_days_left} day${user.trial_days_left !== 1 ? "s" : ""}`;
+      }
+      return "Free plan - no billing";
+    }
+
+    // For paid plans, show next billing date based on billing_anchor_day
+    if (user.billing_anchor_day) {
+      const today = new Date();
+      const nextBillDate = new Date(today);
+      if (today.getDate() > user.billing_anchor_day) {
+        nextBillDate.setMonth(today.getMonth() + 1);
+      }
+      nextBillDate.setDate(user.billing_anchor_day);
+
+      const daysUntil = Math.ceil(
+        (nextBillDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      return `Cancels on ${nextBillDate.toLocaleDateString()} · Access until then`;
+    }
+
+    return `Billed ${user.billing_period || "monthly"}`;
+  };
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -140,20 +285,6 @@ export function AccountModal({
     };
   }, [isOpen, onClose]);
 
-  const handleManageBilling = async () => {
-    setBillingLoading(true);
-    try {
-      const token = localStorage.getItem("access_token");
-      if (!token) return;
-      const { url } = await getPortalUrl(token);
-      window.open(url, "_blank");
-    } catch {
-      window.open("/pricing", "_blank");
-    } finally {
-      setBillingLoading(false);
-    }
-  };
-
   const handleUpgrade = async (plan: string) => {
     setBillingLoading(true);
     try {
@@ -171,23 +302,41 @@ export function AccountModal({
     }
   };
 
-  const handleCancel = async () => {
-    if (
-      !confirm(
-        "Cancel your subscription? You'll keep access until the end of your billing period.",
-      )
-    )
-      return;
+  const handleCancel = async (reason: string) => {
     setCancelLoading(true);
     try {
       const token = localStorage.getItem("access_token");
-      if (token)
-        await cancelSubscription(token, "User cancelled via account modal");
-      alert(
-        "Subscription cancelled. Access continues until end of billing period.",
-      );
-    } catch {
-      alert("Failed to cancel. Please try again.");
+      if (token) {
+        await cancelSubscription(
+          token,
+          reason || "User cancelled via account modal",
+        );
+
+        // Update local user state to reflect cancellation
+        const updatedUser = {
+          ...user,
+          plan_tier: "cancelled",
+          plan_name: "Cancelled (ends billing period)",
+        };
+        onUserUpdate?.(updatedUser);
+
+        setSuccessMessage(
+          "Subscription cancelled successfully. You'll have access until the end of your billing period.",
+        );
+        setShowCancelForm(false);
+
+        // Auto-hide success message after 5 seconds
+        setTimeout(() => {
+          setSuccessMessage(null);
+        }, 5000);
+      }
+    } catch (err) {
+      setSuccessMessage(null);
+      // Show error message instead of alert
+      setSuccessMessage("Failed to cancel. Please try again.");
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
     } finally {
       setCancelLoading(false);
     }
@@ -199,23 +348,29 @@ export function AccountModal({
   const planTier = user.plan_tier || "trial";
   const isTrial = planTier === "trial";
   const isFree = planTier === "free";
-  const isPaid = !isFree && !isTrial;
+  const isCancelled = planTier === "cancelled";
 
   const planBadgeStyle = isTrial
     ? "bg-amber-500/15 text-amber-500"
     : isFree
       ? "bg-gray-500/15 text-gray-500"
-      : "bg-violet-500/15 text-violet-500";
+      : isCancelled
+        ? "bg-red-500/15 text-red-500"
+        : "bg-violet-500/15 text-violet-500";
 
   const planLabel = isTrial
     ? "Trial"
     : isFree
       ? "Free"
-      : planTier.charAt(0).toUpperCase() + planTier.slice(1);
+      : isCancelled
+        ? "Cancelled"
+        : planTier.charAt(0).toUpperCase() + planTier.slice(1);
   const creditsUsedPct =
     user.credits_limit > 0
       ? Math.round((user.credits_used / user.credits_limit) * 100)
       : 0;
+
+  const isPaidUser = !isFree && !isTrial && !isCancelled;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -252,7 +407,7 @@ export function AccountModal({
           {/* Sidebar nav */}
           <nav
             className="flex-shrink-0 sm:w-52 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-white/[0.06]
-            flex sm:flex-col overflow-x-auto sm:overflow-visible p-2 sm:p-3 gap-0.5"
+              flex sm:flex-col overflow-x-auto sm:overflow-visible p-2 sm:p-3 gap-0.5"
           >
             {/* User card */}
             <div className="hidden sm:flex items-center gap-2.5 px-2 py-2 mb-1">
@@ -334,12 +489,20 @@ export function AccountModal({
                 </div>
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between py-2.5 border-b border-gray-100 dark:border-white/[0.06]">
-                    <span className="text-[12px] font-medium text-gray-500 dark:text-gray-400">Email</span>
-                    <span className="text-[13px] text-gray-700 dark:text-gray-300">{user.email}</span>
+                    <span className="text-[12px] font-medium text-gray-500 dark:text-gray-400">
+                      Email
+                    </span>
+                    <span className="text-[13px] text-gray-700 dark:text-gray-300">
+                      {user.email}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between py-2.5 border-b border-gray-100 dark:border-white/[0.06]">
-                    <span className="text-[12px] font-medium text-gray-500 dark:text-gray-400">Provider</span>
-                    <span className="text-[13px] text-gray-700 dark:text-gray-300 capitalize">{user.auth_provider}</span>
+                    <span className="text-[12px] font-medium text-gray-500 dark:text-gray-400">
+                      Provider
+                    </span>
+                    <span className="text-[13px] text-gray-700 dark:text-gray-300 capitalize">
+                      {user.auth_provider}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -365,14 +528,13 @@ export function AccountModal({
               </div>
             )}
 
-            {/* ── SETTINGS ── */}
+            {/* ── SETTINGS (only dark mode toggle) ── */}
             {activeTab === "settings" && (
               <div className="space-y-1 max-w-sm">
                 <h3 className="text-[13px] font-semibold text-gray-900 dark:text-white mb-3">
                   Settings
                 </h3>
 
-                {/* Theme */}
                 <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-white/[0.06]">
                   <div>
                     <p className="text-[13px] font-medium text-gray-800 dark:text-gray-100">
@@ -386,47 +548,6 @@ export function AccountModal({
                     checked={theme === "dark"}
                     onChange={(v) => setTheme(v ? "dark" : "light")}
                   />
-                </div>
-
-                {/* Notifications */}
-                <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-white/[0.06]">
-                  <div>
-                    <p className="text-[13px] font-medium text-gray-800 dark:text-gray-100">
-                      Email notifications
-                    </p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">
-                      Weekly insights and updates
-                    </p>
-                  </div>
-                  <Toggle checked={emailNotifs} onChange={setEmailNotifs} />
-                </div>
-
-                {/* Data sharing 
-                <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-white/[0.06]">
-                  <div>
-                    <p className="text-[13px] font-medium text-gray-800 dark:text-gray-100">Improve Avertune</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">Share anonymised usage data</p>
-                  </div>
-                  <Toggle checked={shareData} onChange={setShareData} />
-                </div>*/}
-
-                {/* 2FA status */}
-                <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-white/[0.06]">
-                  <div>
-                    <p className="text-[13px] font-medium text-gray-800 dark:text-gray-100">
-                      Two-factor authentication
-                    </p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">
-                      {user.two_fa_enabled
-                        ? "Enabled and confirmed"
-                        : "Not enabled"}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-[11px] font-semibold px-2 py-1 rounded-full ${user.two_fa_enabled ? "bg-green-500/10 text-green-600 dark:text-green-400" : "bg-gray-100 dark:bg-white/[0.06] text-gray-500"}`}
-                  >
-                    {user.two_fa_enabled ? "On" : "Off"}
-                  </span>
                 </div>
 
                 <div className="pt-4">
@@ -491,7 +612,6 @@ export function AccountModal({
                   ))}
                 </div>
 
-                {/* Credits bar */}
                 <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.06]">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-[12px] font-medium text-gray-500 dark:text-gray-400">
@@ -524,20 +644,21 @@ export function AccountModal({
                 </h3>
 
                 <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.06]">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-[14px] font-semibold text-gray-900 dark:text-white">
-                        {planLabel} Plan
-                      </p>
-                      <p className="text-[12px] text-gray-400 mt-0.5">
-                        {isTrial
-                          ? `Trial · ${user.trial_days_left} day${user.trial_days_left !== 1 ? "s" : ""} remaining`
-                          : isFree
-                            ? "Free forever"
-                            : `Billed ${user.billing_period}`}
-                      </p>
-                    </div>
+                  <div className="mb-3">
+                    <p className="text-[14px] font-semibold text-gray-900 dark:text-white">
+                      {planLabel} Plan
+                    </p>
+                    <p className="text-[12px] text-gray-400 mt-0.5">
+                      {getBillingExpiryText()}
+                    </p>
                   </div>
+
+                  {successMessage && (
+                    <SuccessMessage
+                      message={successMessage}
+                      onClose={() => setSuccessMessage(null)}
+                    />
+                  )}
 
                   {isFree || isTrial ? (
                     <button
@@ -550,23 +671,32 @@ export function AccountModal({
                       )}
                       Upgrade to Pro
                     </button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleManageBilling}
-                        disabled={billingLoading}
-                        className="flex-1 h-9 rounded-lg text-[13px] font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center"
-                      >
-                        Manage billing
-                      </button>
-                      <button
-                        onClick={handleCancel}
-                        disabled={cancelLoading}
-                        className="h-9 px-3 rounded-lg text-[13px] font-medium text-red-500 border border-red-200 dark:border-red-500/20 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors disabled:opacity-60"
-                      >
-                        Cancel
-                      </button>
+                  ) : isCancelled ? (
+                    <div className="text-center py-2">
+                      <p className="text-[13px] text-amber-400">
+                        Subscription cancelled
+                      </p>
+                      <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                        Access until end of billing period
+                      </p>
                     </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setShowCancelForm(!showCancelForm)}
+                        className="w-full h-9 rounded-lg text-[13px] font-medium text-red-500 border border-red-200 dark:border-red-500/20 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                      >
+                        Cancel Subscription
+                      </button>
+
+                      <CancelSubscriptionInline
+                        isOpen={showCancelForm}
+                        onClose={() => setShowCancelForm(false)}
+                        onConfirm={handleCancel}
+                        planName={planLabel}
+                        isLoading={cancelLoading}
+                      />
+                    </>
                   )}
                 </div>
 

@@ -24,15 +24,7 @@ function normaliseHistoryMessage(
   conversationId?: string,
 ): ChatMessage {
   // ADD THIS DEBUG LOG
-  console.log("=== normaliseHistoryMessage ===");
-  console.log("Message ID:", msg.id);
-  console.log("Message has intelligence?", !!msg.intelligence);
-  console.log(
-    "Message intelligence keys:",
-    msg.intelligence ? Object.keys(msg.intelligence) : "none",
-  );
-  console.log("Message turn_type:", msg.intelligence?.turn_type);
-  console.log("=================================");
+
   const intel = msg.intelligence ?? msg.intelligence_result ?? null;
   // scoring may live at top level on the message or inside intelligence
   const topScoring = msg.scoring ?? null;
@@ -835,11 +827,6 @@ export function useChat(): UseChatReturn {
   // ── Core send logic ────────────────────────────────────────────────────────
   const sendMessageInternal = useCallback(
     async (content: string, skipChallenge = false) => {
-      console.log("sendMessageInternal called with:", {
-        content,
-        skipChallenge,
-        threadId: threadIdRef.current,
-      });
       if (!content.trim()) return;
 
       const token = localStorage.getItem("access_token") ?? "";
@@ -1069,7 +1056,6 @@ export function useChat(): UseChatReturn {
 
   const sendMessage = useCallback(
     (content: string, skipChallenge = false) => {
-      console.log("🔥 sendMessage called in useChat with:", content);
       return sendMessageInternal(content, skipChallenge);
     },
     [sendMessageInternal],

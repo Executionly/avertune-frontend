@@ -10,6 +10,8 @@ import { ChatError } from "@/components/app/ChatError";
 import { SessionIntelligencePanel } from "@/components/app/SessionIntelligencePanel";
 import { useChat } from "@/lib/hooks/useChat";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { CreditReminder } from "@/components/app/CreditReminder";
+import { useCredits } from "@/lib/contexts/CreditsContext";
 
 export default function AppPage() {
   const [panelOpen, setPanelOpen] = useState(false);
@@ -55,10 +57,24 @@ export default function AppPage() {
     restoreLastConversation,
     refreshSidebar,
   } = useChat();
+  const { refreshCredits } = useCredits(); // Add this
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/auth/signin");
   }, [isLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Refresh credits when tab becomes visible
+        refreshCredits();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [refreshCredits]);
 
   useEffect(() => {
     if (pendingProcessed.current) return;
@@ -117,6 +133,7 @@ export default function AppPage() {
         />
 
         <div className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
+          <CreditReminder />
           <ChatMessages
             messages={messages}
             isTyping={isTyping}
@@ -124,7 +141,7 @@ export default function AppPage() {
             detectedCapability={detectedCapability}
             loadingConversation={loadingConversation}
             onSuggestionClick={(text) => {
-              console.log("📱 page.tsx - outcome suggestion clicked:", text);
+              //console.log("📱 page.tsx - outcome suggestion clicked:", text);
               sendMessage(text);
             }}
             onPasteToInput={handlePasteToInput}
