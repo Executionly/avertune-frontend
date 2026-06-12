@@ -9,15 +9,14 @@ interface ModeSampleDropdownProps {
   onSelect: (message: string) => void;
 }
 
-const CATEGORIES: { id: ModeId; label: string; shortLabel: string }[] = [
-  { id: "professional", label: "Professional messages", shortLabel: "Work" },
-  { id: "sales", label: "Sales & negotiation", shortLabel: "Sales" },
-  { id: "relationship", label: "Relationship advice", shortLabel: "Life" },
+const CATEGORIES: { id: ModeId; label: string }[] = [
+  { id: "professional", label: "Professional" },
+  { id: "sales", label: "Sales" },
+  { id: "relationship", label: "Relationship" },
 ];
 
 export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
   const [openTab, setOpenTab] = useState<ModeId | null>(null);
-  const [dropUp, setDropUp] = useState(true);
   const [samples, setSamples] = useState<Record<ModeId, string[]>>({
     professional: [],
     sales: [],
@@ -25,17 +24,7 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
   });
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const buttonRefs = useRef<Partial<Record<ModeId, HTMLButtonElement>>>({});
   const fetched = useRef(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Detect mobile screen size
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 640);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
 
   useEffect(() => {
     if (fetched.current) return;
@@ -66,6 +55,7 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Close when clicking outside
   useEffect(() => {
     if (!openTab) return;
     const handler = (e: MouseEvent) => {
@@ -81,19 +71,7 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
   }, [openTab]);
 
   const handleToggle = (id: ModeId) => {
-    if (openTab === id) {
-      setOpenTab(null);
-      return;
-    }
-    // Detect whether to open up or down based on available space
-    const btn = buttonRefs.current[id];
-    if (btn) {
-      const rect = btn.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      setDropUp(spaceBelow < 280 || spaceAbove > spaceBelow);
-    }
-    setOpenTab(id);
+    setOpenTab((prev) => (prev === id ? null : id));
   };
 
   const handleSelect = (msg: string) => {
@@ -102,19 +80,14 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
   };
 
   return (
-    <div ref={containerRef} className="flex flex-wrap gap-2 justify-center">
-      {CATEGORIES.map((cat) => {
-        const isOpen = openTab === cat.id;
-        const catSamples = samples[cat.id] ?? [];
-        // On mobile, use short labels if space is tight
-        const displayLabel = isMobile ? cat.shortLabel : cat.label;
-
-        return (
-          <div key={cat.id} className="relative">
+    <div ref={containerRef} className="w-full">
+      {/* Category tabs — same labels on all screen sizes */}
+      <div className="flex gap-2 justify-center flex-wrap">
+        {CATEGORIES.map((cat) => {
+          const isOpen = openTab === cat.id;
+          return (
             <button
-              ref={(el) => {
-                if (el) buttonRefs.current[cat.id] = el;
-              }}
+              key={cat.id}
               onClick={() => handleToggle(cat.id)}
               className={cn(
                 "px-3.5 py-1.5 rounded-full text-[13px] border transition-all whitespace-nowrap",
@@ -123,54 +96,47 @@ export function ModeSampleDropdown({ onSelect }: ModeSampleDropdownProps) {
                   : "bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-muted)] hover:border-violet-400/60 hover:text-[var(--text-primary)]",
               )}
             >
-              {displayLabel}
+              {cat.label}
             </button>
+          );
+        })}
+      </div>
 
-            {isOpen && (
-              <div
-                className={cn(
-                  "absolute z-50",
-                  "bg-[var(--card-bg)]",
-                  "border border-[var(--card-border)]",
-                  "rounded-2xl",
-                  "shadow-xl",
-                  "overflow-hidden",
-
-                  // Responsive width: full width on mobile, fixed on desktop
-                  "w-[calc(100vw-32px)] sm:w-[380px]",
-                  "max-w-[calc(100vw-32px)]",
-
-                  "left-1/2 -translate-x-1/2",
-
-                  dropUp ? "bottom-full mb-2" : "top-full mt-2",
-                )}
-              >
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="w-5 h-5 rounded-full border-2 border-violet-500/30 border-t-violet-500 animate-spin" />
-                  </div>
-                ) : catSamples.length === 0 ? (
-                  <p className="text-[12px] text-[var(--text-muted)] text-center py-6 px-4">
-                    No samples available.
-                  </p>
-                ) : (
-                  <div className="max-h-[60vh] sm:max-h-[50vh] overflow-y-auto overscroll-contain">
-                    {catSamples.map((msg, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleSelect(msg)}
-                        className="w-full text-left px-4 py-3 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--card-muted-bg)] hover:text-[var(--text-primary)] transition-colors leading-[1.55] border-b border-[var(--border-default)] last:border-b-0"
-                      >
-                        <span className="line-clamp-3">{msg}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {/* Inline panel — shown below the buttons, part of normal flow */}
+      {openTab && (
+        <div
+          className={cn(
+            "mt-2 w-full max-w-[480px] mx-auto",
+            "bg-[var(--card-bg)]",
+            "border border-[var(--card-border)]",
+            "rounded-2xl",
+            "shadow-lg",
+            "overflow-hidden",
+          )}
+        >
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-5 h-5 rounded-full border-2 border-violet-500/30 border-t-violet-500 animate-spin" />
+            </div>
+          ) : (samples[openTab] ?? []).length === 0 ? (
+            <p className="text-[12px] text-[var(--text-muted)] text-center py-6 px-4">
+              No samples available.
+            </p>
+          ) : (
+            <div className="max-h-[240px] overflow-y-auto overscroll-contain">
+              {(samples[openTab] ?? []).map((msg, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleSelect(msg)}
+                  className="w-full text-left px-4 py-3 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--card-muted-bg)] hover:text-[var(--text-primary)] transition-colors leading-[1.55] border-b border-[var(--border-default)] last:border-b-0"
+                >
+                  <span className="line-clamp-3">{msg}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

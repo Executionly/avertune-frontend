@@ -59,6 +59,8 @@ export function HeroInput({
     }
   }, [pasteValue, onPasteConsumed]);
 
+  const [modePickerOpen, setModePickerOpen] = useState(false);
+
   const isOverLimit = inputValue.length > charLimit;
   const isNearLimit = inputValue.length >= charLimit * 0.85;
 
@@ -214,22 +216,70 @@ export function HeroInput({
         )}
 
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-navy-900/[0.08] gap-2">
-          <div className="flex items-center gap-2 flex-wrap min-w-0">
-            {showModeChips &&
-              CHIPS.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => handleChipClick(c.id)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border-[1.5px] transition-all",
-                    activeChip === c.id
-                      ? "border-violet-500 text-violet-500 bg-violet-50"
-                      : "border-navy-200 text-navy-500 hover:border-violet-300",
+          <div className="flex items-center gap-2 min-w-0">
+            {showModeChips && (
+              <>
+                {/* Desktop: all chips inline */}
+                <div className="hidden sm:flex items-center gap-2">
+                  {CHIPS.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => handleChipClick(c.id)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border-[1.5px] transition-all whitespace-nowrap",
+                        activeChip === c.id
+                          ? "border-violet-500 text-violet-500 bg-violet-50"
+                          : "border-navy-200 text-navy-500 hover:border-violet-300",
+                      )}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Mobile: icon + "Mode" button */}
+                <div className="relative sm:hidden">
+                  <button
+                    onClick={() => setModePickerOpen((o) => !o)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border-[1.5px] transition-all",
+                      modePickerOpen
+                        ? "border-violet-500 text-violet-500 bg-violet-50"
+                        : "border-navy-200 text-navy-500 hover:border-violet-300",
+                    )}
+                  >
+                    <span>Choose a mode</span>
+                  </button>
+
+                  {modePickerOpen && (
+                    <div className="absolute bottom-full left-0 mb-2 bg-white border border-navy-200 rounded-xl shadow-lg overflow-hidden z-30 min-w-[160px]">
+                      {CHIPS.map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => {
+                            handleChipClick(c.id);
+                            setModePickerOpen(false);
+                          }}
+                          className={cn(
+                            "flex items-center gap-2 w-full px-4 py-2.5 text-[13px] font-medium transition-colors text-left whitespace-nowrap",
+                            activeChip === c.id
+                              ? "text-violet-500 bg-violet-50"
+                              : "text-navy-500 hover:bg-navy-50 hover:text-navy-700",
+                          )}
+                        >
+                          {activeChip === c.id ? (
+                            <span className="w-1.5 h-1.5 rounded-full bg-violet-500 flex-shrink-0" />
+                          ) : (
+                            <span className="w-1.5 h-1.5 rounded-full border border-navy-300 flex-shrink-0" />
+                          )}
+                          {c.label}
+                        </button>
+                      ))}
+                    </div>
                   )}
-                >
-                  {c.label}
-                </button>
-              ))}
+                </div>
+              </>
+            )}
             {!showModeChips && <div />}
           </div>
 

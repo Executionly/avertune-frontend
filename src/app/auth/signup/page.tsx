@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { useReferral } from "@/lib/hooks/useReferral";
 
 function AvertuneLogoMark() {
   return <div></div>;
@@ -84,7 +86,7 @@ function InputField({
   );
 }
 
-export default function SignUpPage() {
+function SignUpContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -95,6 +97,14 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const { register, signInWithGoogle } = useAuth();
   const router = useRouter();
+  const urlReferralCode = useReferral();
+
+  useEffect(() => {
+    if (urlReferralCode) {
+      setReferralCode(urlReferralCode);
+      setShowReferral(true);
+    }
+  }, [urlReferralCode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -307,5 +317,19 @@ export default function SignUpPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-[3px] border-violet-500/30 border-t-violet-500 animate-spin" />
+        </div>
+      }
+    >
+      <SignUpContent />
+    </Suspense>
   );
 }

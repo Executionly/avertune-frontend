@@ -26,13 +26,11 @@ export function Navbar() {
           prefetch={false}
           className="flex items-center gap-2.5 font-bold text-[18px] text-navy-900 tracking-tight flex-shrink-0"
         >
-          <div className="w-[200px] h-[200px]">
-            <img
-              src="/logo.png"
-              alt="Avertune Logo"
-              className="w-full h-full object-contain"
-            />
-          </div>
+          <img
+            src="/logo.png"
+            alt="Avertune Logo"
+            className="h-6 w-auto object-contain"
+          />
         </Link>
 
         {/* Desktop nav */}
@@ -69,7 +67,7 @@ export function Navbar() {
               </>
             ))}
           <button
-            className="lg:hidden p-1.5 text-navy-500"
+            className="lg:hidden p-1.5 text-navy-500 flex items-center justify-center"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Menu"
           >
