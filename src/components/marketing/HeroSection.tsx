@@ -9,21 +9,29 @@ export function HeroSection() {
   const [samplesByMode, setSamplesByMode] = useState<Record<string, string[]>>(
     {},
   );
-  const [charLimit, setCharLimit] = useState<number>(500); // Changed from 800 to 500
+  const [charLimit, setCharLimit] = useState<number>(500);
 
   useEffect(() => {
-    // Fetch samples — works with or without a token
     fetchSamplesByMode()
       .then(setSamplesByMode)
       .catch(() => {});
 
-    // Get stored word limit (or default 500)
     setCharLimit(getStoredWordLimit());
   }, []);
 
-  const handleAnalyse = (message: string, mode: string) => {
-    sessionStorage.setItem("pendingAnalysis", message);
-    sessionStorage.setItem("pendingMode", mode);
+  const handleAnalyse = (
+    message: string,
+    mode: string,
+    filePayload?: { base64: string; name: string; type: string },
+  ) => {
+    localStorage.setItem("pendingAnalysis", message);
+    localStorage.setItem("pendingMode", mode);
+    if (filePayload) {
+      localStorage.setItem(
+        "pendingFile",
+        JSON.stringify({ ...filePayload, text: message }),
+      );
+    }
     window.location.href = "/app";
   };
 

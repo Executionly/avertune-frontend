@@ -6,12 +6,13 @@ import { AppSidebar } from "@/components/app/AppSidebar";
 import { AppTopbar } from "@/components/app/AppTopbar";
 import { ChatMessages } from "@/components/app/ChatMessages";
 import { ChatInput } from "@/components/app/ChatInput";
-import { ChatError } from "@/components/app/ChatError";
 import { SessionIntelligencePanel } from "@/components/app/SessionIntelligencePanel";
 import { useChat } from "@/lib/hooks/useChat";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { CreditReminder } from "@/components/app/CreditReminder";
 import { useCredits } from "@/lib/contexts/CreditsContext";
+import { NotificationBanner } from "@/components/ui/NotificationBanner";
+import { useNotification } from "@/lib/contexts/NotificationContext";
 
 export default function AppPage() {
   const [panelOpen, setPanelOpen] = useState(false);
@@ -57,7 +58,12 @@ export default function AppPage() {
     restoreLastConversation,
     refreshSidebar,
   } = useChat();
-  const { refreshCredits } = useCredits(); // Add this
+  const { refreshCredits } = useCredits();
+  const { notify, dismiss } = useNotification();
+
+  // Track notification IDs so we can dismiss them when the underlying state clears
+  const chatErrorNotifId = useRef<string | null>(null);
+  const insufficientCreditsNotifId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/auth/signin");
@@ -65,39 +71,128 @@ export default function AppPage() {
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        // Refresh credits when tab becomes visible
-        refreshCredits();
-      }
+      if (!document.hidden) refreshCredits();
     };
-
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [refreshCredits]);
 
+  // ── Restore pending analysis / file from marketing pages ───────────────────
+  // Wait until auth has fully resolved AND user is authenticated before reading
+  // pending data. Using localStorage (not sessionStorage) so data survives the
+  // unauthenticated redirect: marketing page → /app → /auth/signin → /app.
   useEffect(() => {
+    if (isLoading || !isAuthenticated) return;
     if (pendingProcessed.current) return;
 
-    const pendingAnalysis = sessionStorage.getItem("pendingAnalysis");
-    const pendingMode = sessionStorage.getItem("pendingMode") as any;
+    const pendingAnalysis = localStorage.getItem("pendingAnalysis");
+    const pendingMode = localStorage.getItem("pendingMode") as any;
+    const pendingFileData = localStorage.getItem("pendingFile");
 
-    if (pendingAnalysis) {
-      pendingProcessed.current = true;
-      // Always start fresh conversation for pending analysis from landing pages
+    pendingProcessed.current = true;
+
+    if (pendingAnalysis || pendingFileData) {
       startNewConversation();
       if (pendingMode) setActiveMode(pendingMode);
-      sessionStorage.removeItem("pendingAnalysis");
-      sessionStorage.removeItem("pendingMode");
-      sessionStorage.removeItem("pendingCapability");
-      // Small delay to let startNewConversation flush state
-      setTimeout(() => sendMessage(pendingAnalysis), 150);
+
+      localStorage.removeItem("pendingAnalysis");
+      localStorage.removeItem("pendingMode");
+      localStorage.removeItem("pendingCapability");
+      localStorage.removeItem("pendingFile");
+
+      setTimeout(async () => {
+        if (pendingFileData) {
+          try {
+            const { base64, name, type, text } = JSON.parse(pendingFileData);
+            const byteString = atob(base64);
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+              ia[i] = byteString.charCodeAt(i);
+            }
+            const file = new File([ab], name, { type });
+            await sendFile(file, text || "");
+          } catch {
+            // If file restore fails, fall back to text analysis if present
+            if (pendingAnalysis) await sendMessage(pendingAnalysis);
+          }
+        } else if (pendingAnalysis) {
+          await sendMessage(pendingAnalysis);
+        }
+      }, 150);
     } else {
-      pendingProcessed.current = true;
       restoreLastConversation();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isLoading, isAuthenticated]);
+
+  // ── Chat error → central notification ──────────────────────────────────────
+  useEffect(() => {
+    if (chatError) {
+      // Dismiss previous if still active
+      if (chatErrorNotifId.current) {
+        dismiss(chatErrorNotifId.current);
+      }
+
+      const isUpgrade = chatErrorCode === "CAPABILITY_LOCKED";
+      const isWordLimit = chatErrorCode === "WORD_LIMIT_EXCEEDED";
+      const isRetryable =
+        chatErrorCode &&
+        [
+          "CREDIT_DEDUCTION_FAILED",
+          "GENERATION_FAILED",
+          "PROCESSING_ERROR",
+        ].includes(chatErrorCode);
+
+      const title = isUpgrade
+        ? "Plan upgrade required"
+        : isWordLimit
+          ? "Message too long"
+          : "Something went wrong";
+
+      chatErrorNotifId.current = notify({
+        severity: isUpgrade ? "credit" : "error",
+        title,
+        message: chatError,
+        actionLabel: isRetryable ? "Try again" : undefined,
+        actionHref: undefined,
+        duration: 8000,
+        onDismiss: dismissChatError,
+      });
+    } else {
+      // chatError was cleared externally — dismiss the notification
+      if (chatErrorNotifId.current) {
+        dismiss(chatErrorNotifId.current);
+        chatErrorNotifId.current = null;
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatError, chatErrorCode]);
+
+  // ── Insufficient credits → central notification ─────────────────────────────
+  useEffect(() => {
+    if (insufficientCredits) {
+      if (insufficientCreditsNotifId.current) {
+        dismiss(insufficientCreditsNotifId.current);
+      }
+      insufficientCreditsNotifId.current = notify({
+        severity: "credit",
+        title: "Insufficient credits",
+        message: "Top up or upgrade your plan to continue.",
+        actionLabel: "View Plans →",
+        actionHref: "/pricing",
+        duration: 0, // sticky until dismissed
+        onDismiss: dismissCreditsAlert,
+      });
+    } else {
+      if (insufficientCreditsNotifId.current) {
+        dismiss(insufficientCreditsNotifId.current);
+        insufficientCreditsNotifId.current = null;
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [insufficientCredits]);
 
   const handleLogout = async () => {
     await logout();
@@ -133,7 +228,9 @@ export default function AppPage() {
         />
 
         <div className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
+          {/* Headless credit/expiry watcher — fires into NotificationContext */}
           <CreditReminder />
+
           <ChatMessages
             messages={messages}
             isTyping={isTyping}
@@ -141,7 +238,6 @@ export default function AppPage() {
             detectedCapability={detectedCapability}
             loadingConversation={loadingConversation}
             onSuggestionClick={(text) => {
-              //console.log("📱 page.tsx - outcome suggestion clicked:", text);
               sendMessage(text);
             }}
             onPasteToInput={handlePasteToInput}
@@ -154,7 +250,8 @@ export default function AppPage() {
               activeConversation?.last_suggested_prompts || []
             }
           />
-          {/* Challenge warning */}
+
+          {/* Challenge warning — kept separate as it has interactive proceed/dismiss logic */}
           {pendingChallenge && (
             <div className="absolute inset-x-0 bottom-[84px] flex justify-center z-40 px-4">
               <div className="w-full max-w-[720px] bg-[var(--card-bg)] border border-amber-500/40 rounded-2xl p-4 shadow-lg">
@@ -196,7 +293,6 @@ export default function AppPage() {
                         </span>
                       </p>
                     )}
-                    {/* Use API-returned suggested_prompts if present, else fallback buttons */}
                     {pendingChallenge.suggestions &&
                     pendingChallenge.suggestions.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
@@ -243,87 +339,20 @@ export default function AppPage() {
               </div>
             </div>
           )}
-          {/* Global chat error — floats above input, same max-width */}
-          {chatError && (
-            <div className="absolute inset-x-0 bottom-[84px] z-50 px-4 flex justify-center pointer-events-none">
-              <div className="w-full max-w-[720px] pointer-events-auto">
-                <ChatError
-                  message={chatError}
-                  errorCode={chatErrorCode}
-                  onDismiss={dismissChatError}
-                  onRetry={
-                    chatErrorCode &&
-                    [
-                      "CREDIT_DEDUCTION_FAILED",
-                      "GENERATION_FAILED",
-                      "PROCESSING_ERROR",
-                    ].includes(chatErrorCode)
-                      ? dismissChatError
-                      : undefined
-                  }
-                />
-              </div>
-            </div>
-          )}
+
+          {/* Single centralised notification display — all errors, credit alerts, info */}
+          <NotificationBanner offsetBottom={84} maxWidth={720} />
 
           <ChatInput
             onSend={sendMessage}
             onSendFile={sendFile}
-            onSendVoice={sendVoice} // This now expects (audio, onTranscript) signature
+            onSendVoice={sendVoice}
             activeMode={activeMode}
             onModeChange={setActiveMode}
             modeLocked={modeLocked}
             pasteValue={pasteValue}
             onPasteConsumed={() => setPasteValue("")}
           />
-          {/* Insufficient credits toast */}
-          {insufficientCredits && (
-            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50">
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--card-bg)] border border-violet-500/30 shadow-lg max-w-[360px]">
-                <div className="w-7 h-7 rounded-full bg-violet-500/10 border border-violet-500/20 flex items-center justify-center flex-shrink-0">
-                  <svg
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    className="w-3.5 h-3.5 text-violet-500"
-                  >
-                    <circle cx="8" cy="8" r="6.5" />
-                    <path d="M8 5v3.5" strokeLinecap="round" />
-                    <circle
-                      cx="8"
-                      cy="11"
-                      r=".6"
-                      fill="currentColor"
-                      stroke="none"
-                    />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-[13px] text-[var(--text-primary)]">
-                    Insufficient credits
-                  </p>
-                  <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
-                    Top up or upgrade your plan to continue.
-                  </p>
-                </div>
-                <button
-                  onClick={dismissCreditsAlert}
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors flex-shrink-0"
-                >
-                  <svg
-                    viewBox="0 0 14 14"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    className="w-3.5 h-3.5"
-                  >
-                    <path d="M3 3l8 8M11 3l-8 8" strokeLinecap="round" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

@@ -12,7 +12,11 @@ const CHIPS = [
 
 interface HeroInputProps {
   placeholder?: string;
-  onAnalyse: (message: string, mode: string) => void;
+  onAnalyse: (
+    message: string,
+    mode: string,
+    filePayload?: { base64: string; name: string; type: string },
+  ) => void;
   defaultMode?: string;
   showModeChips?: boolean;
   pasteValue?: string;
@@ -34,6 +38,13 @@ export function HeroInput({
   const [inputValue, setInputValue] = useState("");
   const [activeChip, setActiveChip] = useState(defaultMode);
   const [attachmentName, setAttachmentName] = useState<string | null>(null);
+  // For PDF/binary files we keep the base64 payload separate so the textarea
+  // shows a human-readable label while the real data is still available.
+  const pendingFileRef = useRef<{
+    base64: string;
+    name: string;
+    type: string;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleChipClick = (id: string) => {
@@ -58,27 +69,71 @@ export function HeroInput({
       : "text-navy-400";
 
   const handleSubmit = () => {
-    if (!inputValue.trim() || isOverLimit) return;
+    if (isOverLimit) return;
+    // If a file is attached, we may have either extracted text or a binary payload
+    if (pendingFileRef.current) {
+      onAnalyse(inputValue, activeChip, pendingFileRef.current);
+      return;
+    }
+    if (!inputValue.trim()) return;
     onAnalyse(inputValue, activeChip);
   };
 
-  // File upload
+  // File upload — reads text files fully; converts PDF/binary to base64
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
     setAttachmentName(file.name);
+    pendingFileRef.current = null;
+
+    const isPdf = file.type === "application/pdf";
+    const isTextLike =
+      file.type.startsWith("text/") ||
+      file.name.endsWith(".txt") ||
+      file.name.endsWith(".md");
+
     try {
-      let text = "";
-      if (file.type === "application/pdf") {
-        text = `[PDF attached: ${file.name}]\n\nPlease analyse the content of this PDF document.`;
+      if (isTextLike) {
+        const text = await file.text();
+        setInputValue(text.slice(0, charLimit));
+      } else if (isPdf) {
+        // Convert to base64 so it survives the sessionStorage round-trip
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = "";
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = btoa(binary);
+        pendingFileRef.current = { base64, name: file.name, type: file.type };
+        // Show a descriptive placeholder in the textarea so the user knows what's attached
+        setInputValue(`Avertune, please conduct a thorough and comprehensive analysis of the contents of this document, taking into consideration its key messages, underlying concerns, intent, tone, and potential implications. Identify any important points that require attention, highlight areas that may warrant clarification, and provide actionable insights into the sender's position. Based on your assessment, help me formulate a well-structured, professional, and persuasive response that effectively addresses the issues raised while aligning with my objectives and maintaining an appropriate tone.
+`);
       } else {
-        text = await file.text();
+        // Other binary (docx etc.) — treat as base64
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = "";
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = btoa(binary);
+        pendingFileRef.current = { base64, name: file.name, type: file.type };
+        setInputValue(
+          `[File attached: ${file.name}]\n\nPlease analyse the content of this document.`,
+        );
       }
-      setInputValue(text.slice(0, charLimit));
     } catch {
       setAttachmentName(null);
+      pendingFileRef.current = null;
     }
+  };
+
+  const handleClearAttachment = () => {
+    setAttachmentName(null);
+    setInputValue("");
+    pendingFileRef.current = null;
   };
 
   return (
@@ -102,10 +157,7 @@ export function HeroInput({
             </svg>
             <span className="max-w-[180px] truncate">{attachmentName}</span>
             <button
-              onClick={() => {
-                setAttachmentName(null);
-                setInputValue("");
-              }}
+              onClick={handleClearAttachment}
               className="ml-0.5 text-violet-400 hover:text-violet-600"
             >
               <svg
@@ -210,7 +262,7 @@ export function HeroInput({
               className="hidden"
             />
 
-            {/* Char counter */}
+            {/* Char counter — hide when file attached without text content */}
             <span
               className={cn(
                 "text-[12px] tabular-nums transition-colors",
@@ -223,7 +275,9 @@ export function HeroInput({
             {/* Submit */}
             <button
               onClick={handleSubmit}
-              disabled={isOverLimit || !inputValue.trim()}
+              disabled={
+                isOverLimit || (!inputValue.trim() && !pendingFileRef.current)
+              }
               className="w-11 h-11 rounded-full bg-gradient-to-br from-violet-500 to-navy-700 text-white hover:scale-[1.06] transition-all shadow-violet disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               <svg
