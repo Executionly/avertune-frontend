@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -85,7 +86,7 @@ function InputField({
   );
 }
 
-export default function SignUpPage() {
+function SignUpContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -316,5 +317,19 @@ export default function SignUpPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-[3px] border-violet-500/30 border-t-violet-500 animate-spin" />
+        </div>
+      }
+    >
+      <SignUpContent />
+    </Suspense>
   );
 }
