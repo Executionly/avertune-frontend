@@ -82,8 +82,8 @@ function WithdrawalModal({
       setError("Amount exceeds available balance");
       return;
     }
-    if (numAmount < 10) {
-      setError("Minimum withdrawal amount is $10");
+    if (numAmount < 25) {
+      setError("Minimum withdrawal amount is $25");
       return;
     }
 
@@ -319,13 +319,13 @@ function WithdrawalModal({
               <input
                 type="number"
                 step="0.01"
-                min="10"
+                min="25"
                 max={balance}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
                 className="w-full px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--input-bg)] text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-violet-500 transition-all"
-                placeholder="10.00"
+                placeholder="25.00"
               />
             </div>
 
@@ -692,7 +692,7 @@ export default function AffiliateDashboardPage() {
           <button
             onClick={() => setWithdrawModalOpen(true)}
             disabled={
-              profile.pending_earnings > 10 || profile.status !== "active"
+              profile.pending_earnings > 25 || profile.status !== "active"
             }
             className="px-4 py-2 rounded-xl bg-violet-600 text-white text-[13px] font-medium hover:bg-violet-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
@@ -861,7 +861,7 @@ export default function AffiliateDashboardPage() {
                   Get Paid
                 </p>
                 <p className="text-[12px] text-[var(--text-muted)]">
-                  Request withdrawal when your balance reaches $10
+                  Request withdrawal when your balance reaches $25
                 </p>
               </div>
             </div>

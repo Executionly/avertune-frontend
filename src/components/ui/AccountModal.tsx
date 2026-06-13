@@ -285,6 +285,23 @@ export function AccountModal({
     };
   }, [isOpen, onClose]);
 
+  const handleAddCredits = async () => {
+    setBillingLoading(true);
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        window.location.href = "/auth/signin";
+        return;
+      }
+      // Redirect to pricing page with addons section for credit purchase
+      window.location.href = "/pricing#addons";
+    } catch {
+      window.location.href = "/pricing#addons";
+    } finally {
+      setBillingLoading(false);
+    }
+  };
+
   const handleUpgrade = async (plan: string) => {
     setBillingLoading(true);
     try {
@@ -349,6 +366,7 @@ export function AccountModal({
   const isTrial = planTier === "trial";
   const isFree = planTier === "free";
   const isCancelled = planTier === "cancelled";
+  const isPro = planTier === "pro" || planTier === "pro_annual";
 
   const planBadgeStyle = isTrial
     ? "bg-amber-500/15 text-amber-500"
@@ -629,7 +647,9 @@ export function AccountModal({
                   </div>
                   {user.credits_remaining === 0 && (
                     <p className="text-[11px] text-red-500 mt-1.5">
-                      Credits exhausted — upgrade to continue
+                      {isPro
+                        ? "Credits exhausted — add more credits to continue"
+                        : "Credits exhausted — upgrade to continue"}
                     </p>
                   )}
                 </div>
@@ -682,20 +702,35 @@ export function AccountModal({
                     </div>
                   ) : (
                     <>
-                      <button
-                        onClick={() => setShowCancelForm(!showCancelForm)}
-                        className="w-full h-9 rounded-lg text-[13px] font-medium text-red-500 border border-red-200 dark:border-red-500/20 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                      >
-                        Cancel Subscription
-                      </button>
+                      {isPro ? (
+                        <button
+                          onClick={handleAddCredits}
+                          disabled={billingLoading}
+                          className="w-full h-9 rounded-lg text-[13px] font-medium bg-violet-600 text-white hover:bg-violet-500 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                        >
+                          {billingLoading && (
+                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          )}
+                          Add More Credits →
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => setShowCancelForm(!showCancelForm)}
+                            className="w-full h-9 rounded-lg text-[13px] font-medium text-red-500 border border-red-200 dark:border-red-500/20 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                          >
+                            Cancel Subscription
+                          </button>
 
-                      <CancelSubscriptionInline
-                        isOpen={showCancelForm}
-                        onClose={() => setShowCancelForm(false)}
-                        onConfirm={handleCancel}
-                        planName={planLabel}
-                        isLoading={cancelLoading}
-                      />
+                          <CancelSubscriptionInline
+                            isOpen={showCancelForm}
+                            onClose={() => setShowCancelForm(false)}
+                            onConfirm={handleCancel}
+                            planName={planLabel}
+                            isLoading={cancelLoading}
+                          />
+                        </>
+                      )}
                     </>
                   )}
                 </div>

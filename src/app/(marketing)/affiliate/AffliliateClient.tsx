@@ -317,15 +317,12 @@ export default function AffiliateClient() {
   const [submitted, setSubmitted] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
-  // useAuth is now properly imported above
   const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
-    // Fetch plans from API
     getPlans()
       .then((data) => {
         const planList = data?.plans || [];
-        // Filter to only paid plans (exclude trial/free)
         const paidPlans = planList.filter(
           (p: Plan) =>
             p.tier !== "trial" &&
@@ -336,7 +333,6 @@ export default function AffiliateClient() {
       })
       .catch((err) => {
         console.error("Failed to fetch plans:", err);
-        // Fallback to hardcoded examples if API fails
         setPlans([
           { tier: "starter", display_name: "Starter", price_monthly: 9 },
           { tier: "daily", display_name: "Daily", price_monthly: 19 },
@@ -459,7 +455,7 @@ export default function AffiliateClient() {
             </div>
           </div>
 
-          {/* Dynamic Commission Examples based on real plans */}
+          {/* Dynamic Commission Examples */}
           <div className="bg-white rounded-[24px] border border-navy-900/[0.08] p-8 mb-16">
             <h3 className="text-[18px] font-semibold text-navy-900 mb-4 text-center">
               Commission Examples (Monthly Plans)
@@ -601,20 +597,22 @@ export default function AffiliateClient() {
             </div>
           </div>
 
-          {/* Application Form */}
-          <div className="bg-white rounded-[28px] border border-navy-900/[0.08] p-8 md:p-12">
-            <div className="text-center mb-8">
-              <h2 className="text-[24px] font-display font-medium text-navy-900 mb-3">
-                Ready to Become a Partner?
-              </h2>
-              <p className="text-[14px] text-navy-500">
-                Complete the application below and our team will review your
-                submission. Approved partners will receive onboarding
-                instructions and access to their tracking dashboard.
-              </p>
+          {/* Application Form - HIDDEN FROM PUBLIC, preserved for later use */}
+          {false && (
+            <div className="bg-white rounded-[28px] border border-navy-900/[0.08] p-8 md:p-12">
+              <div className="text-center mb-8">
+                <h2 className="text-[24px] font-display font-medium text-navy-900 mb-3">
+                  Ready to Become a Partner?
+                </h2>
+                <p className="text-[14px] text-navy-500">
+                  Complete the application below and our team will review your
+                  submission. Approved partners will receive onboarding
+                  instructions and access to their tracking dashboard.
+                </p>
+              </div>
+              <ApplicationForm onSuccess={() => setSubmitted(true)} />
             </div>
-            <ApplicationForm onSuccess={() => setSubmitted(true)} />
-          </div>
+          )}
         </div>
       </section>
     </main>
