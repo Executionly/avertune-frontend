@@ -48,7 +48,9 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+];
 
+const AFFILIATE_LINKS = [
   {
     label: "Affiliate",
     href: "/app/affiliate",
@@ -441,7 +443,27 @@ export function AppSidebar({
       )}
       {isCollapsed && <div className="flex-1" />}
 
+      {/* affiliate links */}
+      <div className="px-2 pb-1 mt-1 flex-shrink-0 border-t border-[var(--border-default)]">
+        {AFFILIATE_LINKS.map((item) => (
+          <Link
+            key={item.label}
+            href={item.href}
+            onClick={() => setIsMobileOpen(false)}
+            className={cn(
+              "flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[var(--text-muted)] text-[13px]",
+              "hover:bg-[var(--card-muted-bg)] hover:text-[var(--text-primary)] transition-all mb-0.5",
+              isCollapsed && "justify-center px-2",
+            )}
+            title={isCollapsed ? item.label : undefined}
+          >
+            {item.icon}
+            {!isCollapsed && item.label}
+          </Link>
+        ))}
+      </div>
       {/* ── FOOTER / USER ── */}
+
       <div
         onClick={() => setIsAccountModalOpen(true)}
         className={cn(

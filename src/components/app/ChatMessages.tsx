@@ -26,6 +26,8 @@ interface ChatMessagesProps {
     position: number;
     category: string;
   }>;
+  onRetryMessage?: (content: string) => void; // ADDED
+  failedMessageId?: string | null; // ADDED
 }
 
 function AvertuneAvatar() {
@@ -199,6 +201,8 @@ export function ChatMessages({
   activeMode = "professional",
   onOutcomeResponse,
   conversationSuggestions = [],
+  onRetryMessage, // ADDED
+  failedMessageId, // ADDED
 }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -249,6 +253,8 @@ export function ChatMessages({
             msg.role === "assistant" && msg.id === lastAssistantId;
           const isOutcomeMessage =
             (msg as any).intelligence?.turn_type === "outcome_followup";
+          const isFailedMessage =
+            msg.role === "user" && msg.id === failedMessageId; // ADDED
 
           // For the last assistant message, merge conversation suggestions with its own suggestions
           let finalSuggestions = msg.suggestions || [];
@@ -365,7 +371,33 @@ export function ChatMessages({
                       )}
                       {msg.content && msg.content}
                     </div>
-                    <div className="flex justify-end mt-1">
+                    <div className="flex justify-end gap-2 mt-1">
+                      {failedMessageId === msg.id && onRetryMessage && (
+                        <button
+                          onClick={() => onRetryMessage(msg.content)}
+                          className="flex items-center gap-1 text-[11px] text-amber-400 hover:text-amber-300 transition-colors"
+                          title="Retry sending this message"
+                        >
+                          <svg
+                            viewBox="0 0 14 14"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            className="w-3 h-3"
+                          >
+                            <path
+                              d="M1 4.5A6 6 0 0112 6.5M13 9.5A6 6 0 012 7.5"
+                              strokeLinecap="round"
+                            />
+                            <path
+                              d="M4 7L1 4.5 4 2M10 7l3 2.5-3 2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          <span>Retry</span>
+                        </button>
+                      )}
                       <CopyButton text={msg.content} />
                     </div>
                   </div>

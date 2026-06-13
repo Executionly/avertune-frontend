@@ -47,6 +47,8 @@ export default function AppPage() {
     dismissChallenge,
     setActiveMode,
     sendMessage,
+    retryLastMessage,
+    lastFailedMessageId,
     sendFile,
     sendVoice,
     pendingVoice,
@@ -65,6 +67,11 @@ export default function AppPage() {
   const chatErrorNotifId = useRef<string | null>(null);
   const insufficientCreditsNotifId = useRef<string | null>(null);
 
+  // Handler for retrying a specific failed message
+  const handleRetryMessage = (content: string) => {
+    sendMessage(content);
+  };
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/auth/signin");
   }, [isLoading, isAuthenticated, router]);
@@ -79,9 +86,6 @@ export default function AppPage() {
   }, [refreshCredits]);
 
   // ── Restore pending analysis / file from marketing pages ───────────────────
-  // Wait until auth has fully resolved AND user is authenticated before reading
-  // pending data. Using localStorage (not sessionStorage) so data survives the
-  // unauthenticated redirect: marketing page → /app → /auth/signin → /app.
   useEffect(() => {
     if (isLoading || !isAuthenticated) return;
     if (pendingProcessed.current) return;
@@ -114,7 +118,6 @@ export default function AppPage() {
             const file = new File([ab], name, { type });
             await sendFile(file, text || "");
           } catch {
-            // If file restore fails, fall back to text analysis if present
             if (pendingAnalysis) await sendMessage(pendingAnalysis);
           }
         } else if (pendingAnalysis) {
@@ -127,10 +130,9 @@ export default function AppPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, isAuthenticated]);
 
-  // ── Chat error → central notification ──────────────────────────────────────
+  // ── Chat error → central notification (with retry button) ──────────────────────
   useEffect(() => {
     if (chatError) {
-      // Dismiss previous if still active
       if (chatErrorNotifId.current) {
         dismiss(chatErrorNotifId.current);
       }
@@ -155,20 +157,24 @@ export default function AppPage() {
         severity: isUpgrade ? "credit" : "error",
         title,
         message: chatError,
-        actionLabel: isRetryable ? "Try again" : undefined,
+        actionLabel: isRetryable ? "Retry" : undefined,
         actionHref: undefined,
         duration: 8000,
-        onDismiss: dismissChatError,
+        onDismiss: () => {
+          dismissChatError();
+          if (isRetryable && retryLastMessage) {
+            retryLastMessage();
+          }
+        },
       });
     } else {
-      // chatError was cleared externally — dismiss the notification
       if (chatErrorNotifId.current) {
         dismiss(chatErrorNotifId.current);
         chatErrorNotifId.current = null;
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatError, chatErrorCode]);
+  }, [chatError, chatErrorCode, retryLastMessage]);
 
   // ── Insufficient credits → central notification ─────────────────────────────
   useEffect(() => {
@@ -182,7 +188,7 @@ export default function AppPage() {
         message: "Top up or upgrade your plan to continue.",
         actionLabel: "View Plans →",
         actionHref: "/pricing",
-        duration: 0, // sticky until dismissed
+        duration: 0,
         onDismiss: dismissCreditsAlert,
       });
     } else {
@@ -228,7 +234,6 @@ export default function AppPage() {
         />
 
         <div className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
-          {/* Headless credit/expiry watcher — fires into NotificationContext */}
           <CreditReminder />
 
           <ChatMessages
@@ -249,9 +254,11 @@ export default function AppPage() {
             conversationSuggestions={
               activeConversation?.last_suggested_prompts || []
             }
+            failedMessageId={lastFailedMessageId}
+            onRetryMessage={handleRetryMessage}
           />
 
-          {/* Challenge warning — kept separate as it has interactive proceed/dismiss logic */}
+          {/* Challenge warning */}
           {pendingChallenge && (
             <div className="absolute inset-x-0 bottom-[84px] flex justify-center z-40 px-4">
               <div className="w-full max-w-[720px] bg-[var(--card-bg)] border border-amber-500/40 rounded-2xl p-4 shadow-lg">
@@ -340,7 +347,6 @@ export default function AppPage() {
             </div>
           )}
 
-          {/* Single centralised notification display — all errors, credit alerts, info */}
           <NotificationBanner offsetBottom={84} maxWidth={720} />
 
           <ChatInput
