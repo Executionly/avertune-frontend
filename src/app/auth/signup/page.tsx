@@ -2,8 +2,8 @@
 
 import { Suspense } from "react";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useReferral } from "@/lib/hooks/useReferral";
 
@@ -96,8 +96,8 @@ function SignUpContent() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const { register, signInWithGoogle } = useAuth();
-  const router = useRouter();
   const urlReferralCode = useReferral();
+  const router = useRouter();
 
   useEffect(() => {
     if (urlReferralCode) {
@@ -117,7 +117,6 @@ function SignUpContent() {
     try {
       await register(email, password, fullName, referralCode || undefined);
       setSuccess(true);
-      setTimeout(() => router.push("/auth/signin"), 3500);
     } catch (err: any) {
       setError(err.message || "Sign up failed");
     } finally {
@@ -163,6 +162,17 @@ function SignUpContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-[400px]">
+        {/* Back button */}
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mb-6"
+        >
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+            <path d="M10 3L5 8l5 5" />
+          </svg>
+          Back
+        </button>
+
         <div className="flex flex-col items-center mb-8">
           <AvertuneLogoMark />
           <h1 className="mt-4 text-[22px] font-semibold text-[var(--text-primary)] tracking-tight">

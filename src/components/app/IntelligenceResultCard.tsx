@@ -547,6 +547,61 @@ export function IntelligenceResultCard({
         </>
       )}
 
+      {/* ── Opening Statement ── */}
+      {result.opening_statement && (
+        <>
+          <PanelHeading
+            stepNumber={nextStep()}
+            title="Opening statement"
+            description="How to open the conversation with confidence and clarity."
+          />
+          <div className="border-l-2 border-gray-400 dark:border-gray-500 pl-3 py-1">
+            <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
+              {result.opening_statement}
+            </p>
+          </div>
+        </>
+      )}
+
+      {/* ── Key Talking Points ── */}
+      {result.key_talking_points && result.key_talking_points.length > 0 && (
+        <>
+          <PanelHeading
+            stepNumber={nextStep()}
+            title="Key talking points"
+            description="The core points to hit during your conversation."
+          />
+          <div className="border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 space-y-2">
+            {result.key_talking_points.map((point, i) => (
+              <div key={i} className="flex items-start gap-2.5">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-[10px] font-semibold text-[var(--text-muted)] mt-0.5">
+                  {i + 1}
+                </span>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-[1.55]">
+                  {point}
+                </p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── How to Handle Pushback ── */}
+      {result.how_to_handle_pushback && (
+        <>
+          <PanelHeading
+            stepNumber={nextStep()}
+            title="How to handle pushback"
+            description="What to say if they resist, object, or push back."
+          />
+          <div className="border-l-2 border-amber-400 dark:border-amber-500 pl-3 py-1">
+            <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
+              {result.how_to_handle_pushback}
+            </p>
+          </div>
+        </>
+      )}
+
       {/* ── Conversation Script ── */}
       {result.conversation_script && (
         <>
@@ -742,7 +797,7 @@ export function IntelligenceResultCard({
                 className="border-l-2 border-gray-300 dark:border-gray-600 pl-3 py-1"
               >
                 <p className="text-[12px] font-medium text-[var(--text-primary)] mb-1">
-                  {script.objection}
+                  {script.trigger ?? script.objection}
                 </p>
                 <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
                   {script.response}
@@ -753,11 +808,314 @@ export function IntelligenceResultCard({
         </>
       )}
 
+      {/* ── v2.0 Dynamic Sections ── */}
+      {(() => {
+        type DynamicSection = {
+          label: string;
+          description: string;
+          fields: { key: string; label: string; color?: "green" | "amber" | "red" }[];
+          listFields?: string[];
+        };
+
+        const DYNAMIC_SECTIONS: Partial<Record<keyof typeof result, DynamicSection>> = {
+          objection_analysis: {
+            label: "Objection analysis",
+            description: "What's really behind the objection and how to counter it.",
+            fields: [
+              { key: "stated_objection", label: "Stated objection" },
+              { key: "real_objection", label: "Real objection" },
+              { key: "objection_type", label: "Type" },
+              { key: "severity", label: "Severity" },
+              { key: "recommended_counter", label: "Recommended counter" },
+            ],
+          },
+          deal_risk: {
+            label: "Deal risk",
+            description: "Factors that could put this deal at risk and how to mitigate them.",
+            fields: [
+              { key: "risk_level", label: "Risk level" },
+              { key: "risk_mitigation", label: "Mitigation" },
+            ],
+            listFields: ["risk_factors"],
+          },
+          negotiation_guidance: {
+            label: "Negotiation guidance",
+            description: "Strategic moves to strengthen your position.",
+            fields: [
+              { key: "current_position", label: "Current position" },
+              { key: "recommended_move", label: "Recommended move" },
+              { key: "what_to_avoid", label: "What to avoid" },
+            ],
+          },
+          follow_up_strategy: {
+            label: "Follow-up strategy",
+            description: "When, where and how to follow up for the best outcome.",
+            fields: [
+              { key: "timing", label: "Timing" },
+              { key: "channel", label: "Channel" },
+              { key: "hook", label: "Hook" },
+            ],
+          },
+          revenue_opportunity: {
+            label: "Revenue opportunity",
+            description: "Signals and potential for expanding this deal.",
+            fields: [
+              { key: "deal_stage", label: "Deal stage" },
+              { key: "expansion_potential", label: "Expansion potential" },
+              { key: "urgency_signal", label: "Urgency signal" },
+            ],
+          },
+          leverage_assessment: {
+            label: "Leverage assessment",
+            description: "Where the power sits in this negotiation and how to shift it.",
+            fields: [
+              { key: "user_leverage", label: "Your leverage" },
+              { key: "their_leverage", label: "Their leverage" },
+              { key: "balance", label: "Balance" },
+              { key: "how_to_strengthen", label: "How to strengthen" },
+            ],
+          },
+          concession_analysis: {
+            label: "Concession analysis",
+            description: "What to trade, what to protect and in what order.",
+            fields: [
+              { key: "what_to_give", label: "What to give" },
+              { key: "what_to_protect", label: "What to protect" },
+              { key: "trade_sequence", label: "Trade sequence" },
+            ],
+          },
+          batna: {
+            label: "BATNA",
+            description: "Your best alternative and theirs — and where to walk away.",
+            fields: [
+              { key: "user_batna", label: "Your BATNA" },
+              { key: "their_batna", label: "Their BATNA" },
+              { key: "walk_away_point", label: "Walk-away point" },
+            ],
+          },
+          negotiation_strategy: {
+            label: "Negotiation strategy",
+            description: "How to open, where to target and how to anchor.",
+            fields: [
+              { key: "opening_position", label: "Opening position" },
+              { key: "target_position", label: "Target position" },
+              { key: "anchoring_language", label: "Anchoring language" },
+            ],
+          },
+          team_impact: {
+            label: "Team impact",
+            description: "How this message lands with your team and what signal it sends.",
+            fields: [
+              { key: "immediate_impact", label: "Immediate impact" },
+              { key: "broader_impact", label: "Broader impact" },
+              { key: "tone_signal", label: "Tone signal" },
+            ],
+          },
+          retention_risk: {
+            label: "Retention risk",
+            description: "Risk indicators and the action needed to keep this person.",
+            fields: [
+              { key: "risk_level", label: "Risk level" },
+              { key: "retention_action", label: "Retention action" },
+            ],
+            listFields: ["risk_indicators"],
+          },
+          morale_impact: {
+            label: "Morale impact",
+            description: "How this affects morale and the path to recovery.",
+            fields: [
+              { key: "impact", label: "Impact" },
+              { key: "affected_parties", label: "Affected parties" },
+              { key: "recovery_path", label: "Recovery path" },
+            ],
+          },
+          stakeholder_analysis: {
+            label: "Stakeholder analysis",
+            description: "Who has skin in the game and what political dynamics to navigate.",
+            fields: [
+              { key: "primary_stakeholder", label: "Primary stakeholder" },
+              { key: "secondary_stakeholders", label: "Secondary stakeholders" },
+              { key: "political_considerations", label: "Political considerations" },
+            ],
+          },
+          emotional_insight: {
+            label: "Emotional insight",
+            description: "The emotional undercurrent on both sides and what needs to be heard.",
+            fields: [
+              { key: "user_emotional_state", label: "Your state" },
+              { key: "other_party_state", label: "Their state" },
+              { key: "emotional_gap", label: "Emotional gap" },
+              { key: "what_they_need_to_hear", label: "What they need to hear" },
+            ],
+          },
+          relationship_health: {
+            label: "Relationship health",
+            description: "Current state of the relationship and how to repair it.",
+            fields: [
+              { key: "current_state", label: "Current state" },
+              { key: "primary_stressor", label: "Primary stressor" },
+              { key: "repair_path", label: "Repair path" },
+            ],
+          },
+          conflict_drivers: {
+            label: "Conflict drivers",
+            description: "What's really fuelling this conflict and how to de-escalate.",
+            fields: [
+              { key: "surface_issue", label: "Surface issue" },
+              { key: "root_cause", label: "Root cause" },
+              { key: "de_escalation_path", label: "De-escalation path" },
+            ],
+            listFields: ["escalation_triggers"],
+          },
+          trust_impact: {
+            label: "Trust impact",
+            description: "How this message affects trust and what to do to build it.",
+            fields: [
+              { key: "current_trust_level", label: "Current trust level" },
+              { key: "impact_of_message", label: "Impact of message" },
+              { key: "trust_building_move", label: "Trust-building move" },
+            ],
+          },
+          candidate_experience: {
+            label: "Candidate experience",
+            description: "How the candidate perceives this interaction and how to improve it.",
+            fields: [
+              { key: "current_impression", label: "Current impression" },
+              { key: "experience_risk", label: "Experience risk" },
+              { key: "improvement", label: "Improvement" },
+            ],
+          },
+          escalation_risk: {
+            label: "Escalation risk",
+            description: "Triggers that could escalate this and how to prevent it.",
+            fields: [
+              { key: "risk_level", label: "Risk level" },
+              { key: "de_escalation_move", label: "De-escalation move" },
+            ],
+            listFields: ["escalation_triggers"],
+          },
+          compliance_considerations: {
+            label: "Compliance considerations",
+            description: "Language and framing risks to be aware of.",
+            fields: [
+              { key: "language_to_avoid", label: "Language to avoid" },
+              { key: "recommended_framing", label: "Recommended framing" },
+            ],
+            listFields: ["areas_to_watch"],
+          },
+          customer_sentiment: {
+            label: "Customer sentiment",
+            description: "Where the customer's head is at and how to shift it.",
+            fields: [
+              { key: "current_sentiment", label: "Current sentiment" },
+              { key: "sentiment_driver", label: "Sentiment driver" },
+              { key: "shift_opportunity", label: "Shift opportunity" },
+            ],
+          },
+          churn_risk: {
+            label: "Churn risk",
+            description: "Warning signals and the move to keep this customer.",
+            fields: [
+              { key: "risk_level", label: "Risk level" },
+              { key: "retention_move", label: "Retention move" },
+            ],
+            listFields: ["churn_signals"],
+          },
+          recovery_strategy: {
+            label: "Recovery strategy",
+            description: "How to recover trust and what to avoid saying.",
+            fields: [
+              { key: "recovery_priority", label: "Recovery priority" },
+              { key: "message_angle", label: "Message angle" },
+              { key: "what_not_to_say", label: "What not to say" },
+            ],
+          },
+        };
+
+        const rendered = (Object.entries(DYNAMIC_SECTIONS) as [keyof typeof result, DynamicSection][])
+          .filter(([key]) => result[key] != null)
+          .map(([key, section]) => {
+            const data = result[key] as Record<string, unknown>;
+            const sectionKey = key as string;
+            return (
+              <div key={sectionKey}>
+                <PanelHeading
+                  stepNumber={nextStep()}
+                  title={section.label}
+                  description={section.description}
+                />
+                <div className="border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 space-y-2.5">
+                  {section.fields.map(({ key: fk, label }) =>
+                    data[fk] ? (
+                      <div key={fk} className="flex flex-col gap-0.5">
+                        <span className="text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                          {label}
+                        </span>
+                        <span className="text-[13px] text-[var(--text-secondary)] leading-[1.55]">
+                          {String(data[fk])}
+                        </span>
+                      </div>
+                    ) : null
+                  )}
+                  {section.listFields?.map((lk) => {
+                    const arr = data[lk] as string[] | undefined;
+                    if (!arr?.length) return null;
+                    return (
+                      <div key={lk} className="flex flex-col gap-1">
+                        <span className="text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                          {lk.replace(/_/g, " ")}
+                        </span>
+                        <ul className="space-y-0.5 pl-1">
+                          {arr.map((item, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 flex-shrink-0 mt-1.5" />
+                              <span className="text-[13px] text-[var(--text-secondary)] leading-[1.55]">
+                                {item}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          });
+
+        return rendered.length > 0 ? <>{rendered}</> : null;
+      })()}
+
       {/* ── Scores ── */}
-      {result.scores &&
-        (result.scores.confidence > 0 ||
-          result.scores.clarity > 0 ||
-          (result.scores.riskScore ?? 0) > 0) && (
+      {(() => {
+        // Core known fields already mapped in result.scores
+        const KNOWN_SCORING_KEYS = new Set([
+          "confidence_score",
+          "intent_clarity_score",
+          "tone_detected",
+          "escalation_probability",
+          "risk_score",
+          "relationship_impact",
+        ]);
+
+        // Adaptive v2.0 scoring keys = whatever the backend sent minus the known ones
+        const adaptiveEntries = result.scoring
+          ? Object.entries(result.scoring).filter(
+              ([k]) => !KNOWN_SCORING_KEYS.has(k),
+            )
+          : [];
+
+        const hasCore =
+          result.scores &&
+          (result.scores.confidence > 0 ||
+            result.scores.clarity > 0 ||
+            (result.scores.riskScore ?? 0) > 0);
+
+        const hasAdaptive = adaptiveEntries.length > 0;
+
+        if (!hasCore && !hasAdaptive) return null;
+
+        return (
           <>
             <PanelHeading
               stepNumber={nextStep()}
@@ -765,49 +1123,124 @@ export function IntelligenceResultCard({
               description="Evaluation of the strength and safety of this response."
             />
             <div className="border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 space-y-2">
-              {result.scores.confidence && result.scores.confidence > 0 && (
-                <ScoreBar label="Confidence" value={result.scores.confidence} />
-              )}
-              {result.scores.clarity && result.scores.clarity > 0 && (
-                <ScoreBar label="Clarity" value={result.scores.clarity} />
-              )}
-              {result.scores.riskScore && result.scores.riskScore > 0 && (
-                <ScoreBar
-                  label="Risk"
-                  value={result.scores.riskScore}
-                  invertColor
-                />
-              )}
-              {result.scores.escalationProbability != null &&
-                result.scores.escalationProbability > 0 && (
-                  <ScoreBar
-                    label="Escalation %"
-                    value={result.scores.escalationProbability}
-                    invertColor
-                  />
-                )}
-              {result.scores.relationshipImpact && (
-                <div className="flex items-center gap-2.5 pt-1 mt-1 border-t border-gray-200 dark:border-gray-700">
-                  <span className="text-[11px] text-[var(--text-muted)] w-20 flex-shrink-0">
-                    Relationship
-                  </span>
-                  <span
-                    className={cn(
-                      "text-[11px] font-semibold capitalize px-2 py-0.5 rounded-full",
-                      result.scores.relationshipImpact === "positive"
-                        ? "text-green-600 bg-green-50 dark:bg-green-950/30"
-                        : result.scores.relationshipImpact === "negative"
-                          ? "text-red-600 bg-red-50 dark:bg-red-950/30"
-                          : "text-[var(--text-muted)] bg-gray-100 dark:bg-gray-800",
+              {/* ── Core scores (always present when scores exist) ── */}
+              {hasCore && (
+                <>
+                  {result.scores!.confidence > 0 && (
+                    <ScoreBar label="Confidence" value={result.scores!.confidence} />
+                  )}
+                  {result.scores!.clarity > 0 && (
+                    <ScoreBar label="Clarity" value={result.scores!.clarity} />
+                  )}
+                  {(result.scores!.riskScore ?? 0) > 0 && (
+                    <ScoreBar
+                      label="Risk"
+                      value={result.scores!.riskScore ?? 0}
+                      invertColor
+                    />
+                  )}
+                  {result.scores!.escalationProbability != null &&
+                    result.scores!.escalationProbability > 0 && (
+                      <ScoreBar
+                        label="Escalation %"
+                        value={result.scores!.escalationProbability}
+                        invertColor
+                      />
                     )}
-                  >
-                    {result.scores.relationshipImpact}
-                  </span>
+                  {result.scores!.toneMatch && (
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[11px] text-[var(--text-muted)] w-20 flex-shrink-0">
+                        Tone
+                      </span>
+                      <span className="text-[11px] font-medium capitalize text-[var(--text-secondary)]">
+                        {result.scores!.toneMatch}
+                      </span>
+                    </div>
+                  )}
+                  {result.scores!.relationshipImpact && (
+                    <div className="flex items-center gap-2.5 pt-1 mt-1 border-t border-gray-200 dark:border-gray-700">
+                      <span className="text-[11px] text-[var(--text-muted)] w-20 flex-shrink-0">
+                        Relationship
+                      </span>
+                      <span
+                        className={cn(
+                          "text-[11px] font-semibold capitalize px-2 py-0.5 rounded-full",
+                          result.scores!.relationshipImpact === "positive"
+                            ? "text-green-600 bg-green-50 dark:bg-green-950/30"
+                            : result.scores!.relationshipImpact === "negative"
+                              ? "text-red-600 bg-red-50 dark:bg-red-950/30"
+                              : "text-[var(--text-muted)] bg-gray-100 dark:bg-gray-800",
+                        )}
+                      >
+                        {result.scores!.relationshipImpact}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ── Adaptive v2.0 scoring metrics ── */}
+              {hasAdaptive && (
+                <div
+                  className={cn(
+                    "space-y-2",
+                    hasCore &&
+                      "pt-1 mt-1 border-t border-gray-200 dark:border-gray-700",
+                  )}
+                >
+                  {adaptiveEntries.map(([key, value]) => {
+                    const label = key
+                      .replace(/_/g, " ")
+                      .replace(/\b\w/g, (c) => c.toUpperCase());
+                    if (typeof value === "number") {
+                      const isRisk =
+                        key.includes("risk") || key.includes("churn");
+                      return (
+                        <ScoreBar
+                          key={key}
+                          label={label}
+                          value={value}
+                          invertColor={isRisk}
+                        />
+                      );
+                    }
+                    if (typeof value === "string") {
+                      const isNeg =
+                        value === "negative" ||
+                        value === "high" ||
+                        value === "low";
+                      const isPos =
+                        value === "positive" ||
+                        value === "strong" ||
+                        value === "good";
+                      return (
+                        <div key={key} className="flex items-center gap-2.5">
+                          <span className="text-[11px] text-[var(--text-muted)] w-28 flex-shrink-0">
+                            {label}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[11px] font-semibold capitalize px-2 py-0.5 rounded-full",
+                              isPos
+                                ? "text-green-600 bg-green-50 dark:bg-green-950/30"
+                                : isNeg
+                                  ? "text-red-600 bg-red-50 dark:bg-red-950/30"
+                                  : "text-[var(--text-muted)] bg-gray-100 dark:bg-gray-800",
+                            )}
+                          >
+                            {value}
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
                 </div>
               )}
             </div>
           </>
-        )}
+        );
+      })()}
 
       {/* ── Next best action ── */}
       {result.next_best_action && (

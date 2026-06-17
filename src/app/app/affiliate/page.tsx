@@ -662,6 +662,25 @@ export default function AffiliateDashboardPage() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-[var(--bg-page)] p-6 md:p-8">
+      {/* Back button */}
+      <button
+        onClick={() => router.back()}
+        className="flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mb-6"
+      >
+        <svg
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="w-3.5 h-3.5"
+        >
+          <path d="M10 3L5 8l5 5" />
+        </svg>
+        Back
+      </button>
+
       {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -847,8 +866,8 @@ export default function AffiliateDashboardPage() {
                   Earn Commissions
                 </p>
                 <p className="text-[12px] text-[var(--text-muted)]">
-                  Earn {profile.commission_rate}% recurring commission on every
-                  referred customer's payment
+                  Earn 10% recurring commission on every referred customer's
+                  payment
                 </p>
               </div>
             </div>
@@ -877,16 +896,31 @@ export default function AffiliateDashboardPage() {
               <div className="w-6 h-6 rounded-full border-2 border-violet-500/30 border-t-violet-500 animate-spin" />
             </div>
           ) : referrals.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-[14px] text-[var(--text-muted)]">
-                No referrals yet
-              </p>
-              <p className="text-[12px] text-[var(--text-muted)] mt-2">
-                Share your affiliate link:{" "}
-                <code className="text-violet-400 text-[11px] break-all">
-                  {profile.referral_url}
-                </code>
-              </p>
+            <div className="text-center py-12 px-6">
+              {profile.total_referrals > 0 ? (
+                <>
+                  <p className="text-[14px] font-medium text-[var(--text-primary)] mb-1">
+                    {profile.total_referrals} signup
+                    {profile.total_referrals !== 1 ? "s" : ""} recorded
+                  </p>
+                  <p className="text-[13px] text-[var(--text-muted)]">
+                    Your referred users haven't converted to a paid plan yet.
+                    Commissions appear here once they subscribe.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[14px] text-[var(--text-muted)]">
+                    No referrals yet
+                  </p>
+                  <p className="text-[12px] text-[var(--text-muted)] mt-2">
+                    Share your affiliate link:{" "}
+                    <code className="text-violet-400 text-[11px] break-all">
+                      {profile.referral_url}
+                    </code>
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <>
