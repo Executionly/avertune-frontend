@@ -137,7 +137,8 @@ export interface IntelligenceResult {
     closing?: string;
   };
   pushback_scripts?: Array<{
-    objection: string;
+    trigger?: string;
+    objection?: string;
     response: string;
   }>;
   alternative?: {
@@ -160,6 +161,143 @@ export interface IntelligenceResult {
   outreach_angle?: string;
   power_dynamic?: string;
   subject_lines?: string[];
+
+  // ── v2.0 Dynamic Sections ─────────────────────────────────────────────────
+
+  // Sales
+  objection_analysis?: {
+    stated_objection: string;
+    real_objection: string;
+    objection_type: string;
+    severity: string;
+    recommended_counter: string;
+  };
+  deal_risk?: {
+    risk_level: string;
+    risk_factors: string[];
+    risk_mitigation: string;
+  };
+  negotiation_guidance?: {
+    current_position: string;
+    recommended_move: string;
+    what_to_avoid: string;
+  };
+  follow_up_strategy?: {
+    timing: string;
+    channel: string;
+    hook: string;
+  };
+  revenue_opportunity?: {
+    deal_stage: string;
+    expansion_potential: string;
+    urgency_signal: string;
+  };
+
+  // Negotiation
+  leverage_assessment?: {
+    user_leverage: string;
+    their_leverage: string;
+    balance: string;
+    how_to_strengthen: string;
+  };
+  concession_analysis?: {
+    what_to_give: string;
+    what_to_protect: string;
+    trade_sequence: string;
+  };
+  batna?: {
+    user_batna: string;
+    their_batna: string;
+    walk_away_point: string;
+  };
+  negotiation_strategy?: {
+    opening_position: string;
+    target_position: string;
+    anchoring_language: string;
+  };
+
+  // Leadership
+  team_impact?: {
+    immediate_impact: string;
+    broader_impact: string;
+    tone_signal: string;
+  };
+  retention_risk?: {
+    risk_level: string;
+    risk_indicators: string[];
+    retention_action: string;
+  };
+  morale_impact?: {
+    impact: string;
+    affected_parties: string;
+    recovery_path: string;
+  };
+  stakeholder_analysis?: {
+    primary_stakeholder: string;
+    secondary_stakeholders: string;
+    political_considerations: string;
+  };
+
+  // Relationship
+  emotional_insight?: {
+    user_emotional_state: string;
+    other_party_state: string;
+    emotional_gap: string;
+    what_they_need_to_hear: string;
+  };
+  relationship_health?: {
+    current_state: string;
+    primary_stressor: string;
+    repair_path: string;
+  };
+  conflict_drivers?: {
+    surface_issue: string;
+    root_cause: string;
+    escalation_triggers: string[];
+    de_escalation_path: string;
+  };
+  trust_impact?: {
+    current_trust_level: string;
+    impact_of_message: string;
+    trust_building_move: string;
+  };
+
+  // Recruiting / HR
+  candidate_experience?: {
+    current_impression: string;
+    experience_risk: string;
+    improvement: string;
+  };
+  escalation_risk?: {
+    risk_level: string;
+    escalation_triggers: string[];
+    de_escalation_move: string;
+  };
+  compliance_considerations?: {
+    areas_to_watch: string[];
+    language_to_avoid: string;
+    recommended_framing: string;
+  };
+
+  // Customer Support
+  customer_sentiment?: {
+    current_sentiment: string;
+    sentiment_driver: string;
+    shift_opportunity: string;
+  };
+  churn_risk?: {
+    risk_level: string;
+    churn_signals: string[];
+    retention_move: string;
+  };
+  recovery_strategy?: {
+    recovery_priority: string;
+    message_angle: string;
+    what_not_to_say: string;
+  };
+
+  // v2.0 scoring shape (adaptive — stored as raw object for dynamic rendering)
+  scoring?: Record<string, string | number>;
 }
 
 export interface ConversationStats {

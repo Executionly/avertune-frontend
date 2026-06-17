@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { createCheckout, cancelSubscription } from "@/lib/api/auth";
+import { createCheckout, cancelSubscription, getSubscription } from "@/lib/api/auth";
 import type { User } from "@/lib/api/auth";
 
 interface AccountModalProps {
@@ -235,31 +235,46 @@ export function AccountModal({
   const [cancelLoading, setCancelLoading] = useState(false);
   const [showCancelForm, setShowCancelForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [subData, setSubData] = useState<{
+    status?: string;
+    current_period_end?: string;
+    cancel_at_period_end?: boolean;
+    plan_name?: string;
+  } | null>(null);
+  const [subLoading, setSubLoading] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
 
-  // Calculate billing expiration info
+  // Fetch real subscription data when billing tab opens
+  useEffect(() => {
+    if (activeTab !== "billing") return;
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+    setSubLoading(true);
+    getSubscription(token)
+      .then((data) => setSubData(data))
+      .catch(() => setSubData(null))
+      .finally(() => setSubLoading(false));
+  }, [activeTab]);
+
   const getBillingExpiryText = () => {
-    if (user.plan_tier === "free" || user.plan_tier === "trial") {
+    if (subLoading) return "Loading...";
+
+    if (subData?.cancel_at_period_end && subData.current_period_end) {
+      const end = new Date(subData.current_period_end);
+      return `Cancels on ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · Access until then`;
+    }
+
+    if (subData?.current_period_end) {
+      const end = new Date(subData.current_period_end);
+      return `Next billing on ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+    }
+
+    if (planTier === "free" || planTier === "trial") {
       if (user.trial_days_left > 0) {
         return `Trial ends in ${user.trial_days_left} day${user.trial_days_left !== 1 ? "s" : ""}`;
       }
-      return "Free plan - no billing";
-    }
-
-    // For paid plans, show next billing date based on billing_anchor_day
-    if (user.billing_anchor_day) {
-      const today = new Date();
-      const nextBillDate = new Date(today);
-      if (today.getDate() > user.billing_anchor_day) {
-        nextBillDate.setMonth(today.getMonth() + 1);
-      }
-      nextBillDate.setDate(user.billing_anchor_day);
-
-      const daysUntil = Math.ceil(
-        (nextBillDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-      );
-      return `Cancels on ${nextBillDate.toLocaleDateString()} · Access until then`;
+      return "Free plan — no billing";
     }
 
     return `Billed ${user.billing_period || "monthly"}`;
@@ -329,6 +344,12 @@ export function AccountModal({
           reason || "User cancelled via account modal",
         );
 
+        // Re-fetch real subscription state
+        try {
+          const fresh = await getSubscription(token);
+          setSubData(fresh);
+        } catch {}
+
         // Update local user state to reflect cancellation
         const updatedUser = {
           ...user,
@@ -365,7 +386,7 @@ export function AccountModal({
   const planTier = user.plan_tier || "trial";
   const isTrial = planTier === "trial";
   const isFree = planTier === "free";
-  const isCancelled = planTier === "cancelled";
+  const isCancelled = planTier === "cancelled" || subData?.cancel_at_period_end === true;
   const isPro = planTier === "pro" || planTier === "pro_annual";
 
   const planBadgeStyle = isTrial
@@ -692,16 +713,28 @@ export function AccountModal({
                       Upgrade to Pro
                     </button>
                   ) : isCancelled ? (
-                    <div className="text-center py-2">
-                      <p className="text-[13px] text-amber-400">
-                        Subscription cancelled
-                      </p>
-                      <p className="text-[11px] text-[var(--text-muted)] mt-1">
-                        Access until end of billing period
-                      </p>
+                    <div className="space-y-2.5">
+                      <div className="text-center py-2">
+                        <p className="text-[13px] text-amber-400">
+                          Subscription cancelled
+                        </p>
+                        <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                          Access until end of billing period
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleUpgrade("pro")}
+                        disabled={billingLoading}
+                        className="w-full h-9 rounded-lg text-[13px] font-medium bg-violet-600 text-white hover:bg-violet-500 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                      >
+                        {billingLoading && (
+                          <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        )}
+                        Resubscribe
+                      </button>
                     </div>
                   ) : (
-                    <>
+                    <div className="space-y-2">
                       {isPro ? (
                         <button
                           onClick={handleAddCredits}
@@ -714,24 +747,32 @@ export function AccountModal({
                           Add More Credits →
                         </button>
                       ) : (
-                        <>
-                          <button
-                            onClick={() => setShowCancelForm(!showCancelForm)}
-                            className="w-full h-9 rounded-lg text-[13px] font-medium text-red-500 border border-red-200 dark:border-red-500/20 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                          >
-                            Cancel Subscription
-                          </button>
-
-                          <CancelSubscriptionInline
-                            isOpen={showCancelForm}
-                            onClose={() => setShowCancelForm(false)}
-                            onConfirm={handleCancel}
-                            planName={planLabel}
-                            isLoading={cancelLoading}
-                          />
-                        </>
+                        <button
+                          onClick={() => handleUpgrade("pro")}
+                          disabled={billingLoading}
+                          className="w-full h-9 rounded-lg text-[13px] font-medium bg-violet-600 text-white hover:bg-violet-500 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                        >
+                          {billingLoading && (
+                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          )}
+                          Upgrade to Pro
+                        </button>
                       )}
-                    </>
+                      <button
+                        onClick={() => setShowCancelForm(!showCancelForm)}
+                        className="w-full h-9 rounded-lg text-[13px] font-medium text-red-500 border border-red-200 dark:border-red-500/20 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                      >
+                        Cancel Subscription
+                      </button>
+
+                      <CancelSubscriptionInline
+                        isOpen={showCancelForm}
+                        onClose={() => setShowCancelForm(false)}
+                        onConfirm={handleCancel}
+                        planName={planLabel}
+                        isLoading={cancelLoading}
+                      />
+                    </div>
                   )}
                 </div>
 

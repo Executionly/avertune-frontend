@@ -358,7 +358,7 @@ export function ChatInput({
 
         <div
           className={cn(
-            "bg-[var(--input-bg)] border rounded-2xl px-4 pt-3.5 pb-3 transition-all",
+            "bg-[var(--input-bg)] border rounded-2xl px-4 pt-3 pb-3 transition-all",
             isRecording
               ? "border-red-500/50 shadow-[0_0_0_3px_rgba(239,68,68,0.1)]"
               : charStatus === "error"
@@ -366,6 +366,20 @@ export function ChatInput({
                 : "border-[var(--input-border)] focus-within:border-violet-500/60 focus-within:shadow-[0_0_0_3px_rgba(124,79,232,0.1)]",
           )}
         >
+          {/* ── Char limit — top right ── */}
+          {!isRecording && !pendingFile && (
+            <div className="flex justify-end mb-1.5">
+              <span
+                className={cn(
+                  "text-[11px] tabular-nums transition-colors",
+                  counterColor,
+                )}
+              >
+                {value.length}/{charLimit}
+              </span>
+            </div>
+          )}
+
           {isRecording ? (
             <div className="flex items-center gap-3 min-h-[44px] mb-2">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -496,91 +510,74 @@ export function ChatInput({
                     : "ml-1 pl-1 border-l border-[var(--border-default)]",
                 )}
               >
-                {/* File upload */}
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  title="Attach file or PDF"
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-muted-bg)] transition-all"
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {/* File upload */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                title="Attach file or PDF"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-muted-bg)] transition-all"
+              >
+                <svg
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  className="w-[18px] h-[18px]"
                 >
+                  <path
+                    d="M7.5 1.5H3A1 1 0 002 2.5v9a1 1 0 001 1h8a1 1 0 001-1V5.5L7.5 1.5z"
+                    strokeLinejoin="round"
+                  />
+                  <path d="M7.5 1.5V5.5H11.5" strokeLinecap="round" />
+                </svg>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt,.pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,text/plain,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+
+              {/* Voice record */}
+              <button
+                onClick={isRecording ? stopRecording : startRecording}
+                title={isRecording ? "Stop recording" : "Record voice message"}
+                disabled={isTranscribing}
+                className={cn(
+                  "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                  isRecording
+                    ? "text-red-400 bg-red-400/10 hover:bg-red-400/20"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-muted-bg)]",
+                  isTranscribing && "opacity-50 cursor-not-allowed",
+                )}
+              >
+                {isRecording ? (
+                  <svg
+                    viewBox="0 0 14 14"
+                    fill="currentColor"
+                    className="w-[16px] h-[16px]"
+                  >
+                    <rect x="1" y="1" width="12" height="12" rx="1.5" />
+                  </svg>
+                ) : (
                   <svg
                     viewBox="0 0 14 14"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="1.7"
-                    className="w-3.5 h-3.5"
+                    strokeWidth="1.6"
+                    className="w-[18px] h-[18px]"
                   >
-                    <path
-                      d="M7.5 1.5H3A1 1 0 002 2.5v9a1 1 0 001 1h8a1 1 0 001-1V5.5L7.5 1.5z"
-                      strokeLinejoin="round"
-                    />
-                    <path d="M7.5 1.5V5.5H11.5" strokeLinecap="round" />
+                    <rect x="4.5" y="1" width="5" height="8" rx="2.5" />
+                    <path d="M2 7a5 5 0 0010 0" strokeLinecap="round" />
+                    <line x1="7" y1="12" x2="7" y2="10" strokeLinecap="round" />
                   </svg>
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".txt,.pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,text/plain,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
+                )}
+              </button>
 
-                {/* Voice record */}
-                <button
-                  onClick={isRecording ? stopRecording : startRecording}
-                  title={
-                    isRecording ? "Stop recording" : "Record voice message"
-                  }
-                  disabled={isTranscribing}
-                  className={cn(
-                    "w-7 h-7 rounded-lg flex items-center justify-center transition-all",
-                    isRecording
-                      ? "text-red-400 bg-red-400/10 hover:bg-red-400/20"
-                      : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-muted-bg)]",
-                    isTranscribing && "opacity-50 cursor-not-allowed",
-                  )}
-                >
-                  {isRecording ? (
-                    <svg
-                      viewBox="0 0 14 14"
-                      fill="currentColor"
-                      className="w-3 h-3"
-                    >
-                      <rect x="1" y="1" width="12" height="12" rx="1.5" />
-                    </svg>
-                  ) : (
-                    <svg
-                      viewBox="0 0 14 14"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.7"
-                      className="w-3.5 h-3.5"
-                    >
-                      <rect x="4.5" y="1" width="5" height="8" rx="2.5" />
-                      <path d="M2 7a5 5 0 0010 0" strokeLinecap="round" />
-                      <line
-                        x1="7"
-                        y1="12"
-                        x2="7"
-                        y2="10"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {!isRecording && !pendingFile && (
-                <span
-                  className={cn(
-                    "text-[11px] tabular-nums transition-colors",
-                    counterColor,
-                  )}
-                >
-                  {value.length}/{charLimit}
-                </span>
-              )}
               <button
                 onClick={handleSend}
                 disabled={!canSend || isTranscribing}
