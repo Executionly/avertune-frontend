@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useReferral } from "@/lib/hooks/useReferral";
+import { track } from "@/lib/analytics/track";
 
 function AvertuneLogoMark() {
   return <div></div>;
@@ -114,6 +115,7 @@ function SignUpContent() {
     }
     setError("");
     setLoading(true);
+    track("signup_started", { has_referral: !!referralCode });
     try {
       await register(email, password, fullName, referralCode || undefined);
       setSuccess(true);
@@ -151,9 +153,6 @@ function SignUpContent() {
             <strong className="text-[var(--text-primary)]">{email}</strong>.
             Click it to activate your account.
           </p>
-          <p className="text-[12px] text-[var(--text-muted)] mt-4">
-            Redirecting to sign in…
-          </p>
         </div>
       </div>
     );
@@ -167,7 +166,15 @@ function SignUpContent() {
           onClick={() => router.back()}
           className="flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mb-6"
         >
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-3.5 h-3.5"
+          >
             <path d="M10 3L5 8l5 5" />
           </svg>
           Back

@@ -13,6 +13,7 @@ import { CreditReminder } from "@/components/app/CreditReminder";
 import { useCredits } from "@/lib/contexts/CreditsContext";
 import { NotificationBanner } from "@/components/ui/NotificationBanner";
 import { useNotification } from "@/lib/contexts/NotificationContext";
+import { track } from "@/lib/analytics/track";
 
 export default function AppPage() {
   const [panelOpen, setPanelOpen] = useState(false);
@@ -243,6 +244,7 @@ export default function AppPage() {
             detectedCapability={detectedCapability}
             loadingConversation={loadingConversation}
             onSuggestionClick={(text) => {
+              track("chat_suggested_prompt_clicked", { mode: activeMode });
               sendMessage(text);
             }}
             onPasteToInput={handlePasteToInput}
@@ -354,7 +356,10 @@ export default function AppPage() {
             onSendFile={sendFile}
             onSendVoice={sendVoice}
             activeMode={activeMode}
-            onModeChange={setActiveMode}
+            onModeChange={(mode) => {
+              track("chat_mode_changed", { from: activeMode, to: mode });
+              setActiveMode(mode);
+            }}
             modeLocked={modeLocked}
             pasteValue={pasteValue}
             onPasteConsumed={() => setPasteValue("")}

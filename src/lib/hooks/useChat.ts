@@ -14,6 +14,7 @@ import {
   type ConversationStats,
 } from "@/lib/api/intelligence";
 import { useCredits } from "@/lib/contexts/CreditsContext";
+import { track } from "@/lib/analytics/track";
 
 const LAST_CONV_KEY = "avertune_last_conversation_id";
 
@@ -493,6 +494,7 @@ export function useChat(): UseChatReturn {
     setLastFailedMessageId(null);
     setChatError(null);
     setChatErrorCode(null);
+    track("chat_message_retried", { mode: activeModeRef.current });
     await sendMessageInternal(content, skipChallenge);
   }, [lastFailedMessage, lastFailedSkipChallenge]);
 
@@ -893,6 +895,12 @@ export function useChat(): UseChatReturn {
       setStreamingPhase("thinking");
       setDetectedCapability("");
 
+      track("chat_message_sent", {
+        mode: currentMode,
+        is_new_thread: !currentThreadId,
+        message_length: content.length,
+      });
+
       let pendingPrompts: any[] | undefined;
 
       try {
@@ -1082,6 +1090,10 @@ export function useChat(): UseChatReturn {
         setLastFailedMessage(content);
         setLastFailedMessageId(userMsgId);
         setLastFailedSkipChallenge(skipChallenge);
+        track("chat_message_error", {
+          mode: currentMode,
+          error: err?.message ?? "unknown",
+        });
       }
     },
     [applyUsage, handleComplete, chunkBuffer, streamingMessageId],
@@ -1124,6 +1136,13 @@ export function useChat(): UseChatReturn {
       setIsTyping(true);
       setStreamingPhase("thinking");
       setDetectedCapability("");
+
+      track(attachedFile ? "chat_file_uploaded" : "chat_voice_sent", {
+        mode: currentMode,
+        ...(attachedFile
+          ? { file_type: attachedFile.fileType, file_size: attachedFile.size }
+          : {}),
+      });
 
       let pendingPrompts: any[] | undefined;
 
