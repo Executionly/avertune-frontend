@@ -9,6 +9,7 @@ import {
   useCallback,
 } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { track } from "@/lib/analytics/track";
 import {
   signIn,
   signUp,
@@ -97,23 +98,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const data = await signIn(email, password);
-      if ("requires_2fa" in data && data.requires_2fa) {
-        return { requires2fa: true, temp_token: data.temp_token };
-      }
-      const auth = data as import("@/lib/api/auth").AuthResponse;
-      localStorage.setItem("access_token", auth.access_token);
-      localStorage.setItem("refresh_token", auth.refresh_token);
-      setToken(auth.access_token);
-      queryClient.setQueryData(["user", auth.access_token], auth.user);
+      try {
+        const data = await signIn(email, password);
+        if ("requires_2fa" in data && data.requires_2fa) {
+          return { requires2fa: true, temp_token: data.temp_token };
+        }
+        const auth = data as import("@/lib/api/auth").AuthResponse;
+        localStorage.setItem("access_token", auth.access_token);
+        localStorage.setItem("refresh_token", auth.refresh_token);
+        setToken(auth.access_token);
+        queryClient.setQueryData(["user", auth.access_token], auth.user);
 
-      // Store word_limit immediately from login response
-      if (auth.user.word_limit) {
-        setWordLimit(auth.user.word_limit);
-        storeWordLimit(auth.user.word_limit);
-      }
+        // Store word_limit immediately from login response
+        if (auth.user.word_limit) {
+          setWordLimit(auth.user.word_limit);
+          storeWordLimit(auth.user.word_limit);
+        }
 
-      return {};
+        track("signin_completed", {});
+        return {};
+      } catch (err) {
+        track("signin_failed", {});
+        throw err;
+      }
     },
     [queryClient],
   );
@@ -131,6 +138,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setWordLimit(data.user.word_limit);
         storeWordLimit(data.user.word_limit);
       }
+
+      track("signin_completed", { via_2fa: true });
     },
     [queryClient],
   );
@@ -143,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       referralCode?: string,
     ) => {
       await signUp(email, password, fullName, referralCode);
+      track("signup_completed", { has_referral: !!referralCode });
     },
     [],
   );

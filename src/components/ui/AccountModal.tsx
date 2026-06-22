@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { createCheckout, cancelSubscription, getSubscription } from "@/lib/api/auth";
 import type { User } from "@/lib/api/auth";
+import { track } from "@/lib/analytics/track";
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -301,6 +302,7 @@ export function AccountModal({
   }, [isOpen, onClose]);
 
   const handleAddCredits = async () => {
+    track("add_credits_clicked", { plan_tier: user.plan_tier });
     setBillingLoading(true);
     try {
       const token = localStorage.getItem("access_token");
@@ -318,6 +320,7 @@ export function AccountModal({
   };
 
   const handleUpgrade = async (plan: string) => {
+    track("upgrade_clicked", { plan, from_tier: user.plan_tier });
     setBillingLoading(true);
     try {
       const token = localStorage.getItem("access_token");
@@ -326,6 +329,7 @@ export function AccountModal({
         return;
       }
       const { url } = await createCheckout(token, plan, "monthly");
+      track("checkout_started", { plan });
       window.location.href = url;
     } catch {
       window.location.href = "/pricing";
@@ -362,6 +366,7 @@ export function AccountModal({
           "Subscription cancelled successfully. You'll have access until the end of your billing period.",
         );
         setShowCancelForm(false);
+        track("subscription_cancelled", { plan_tier: user.plan_tier, reason });
 
         // Auto-hide success message after 5 seconds
         setTimeout(() => {
@@ -723,7 +728,10 @@ export function AccountModal({
                         </p>
                       </div>
                       <button
-                        onClick={() => handleUpgrade("pro")}
+                        onClick={() => {
+                          track("subscription_resubscribed", { plan: "pro" });
+                          handleUpgrade("pro");
+                        }}
                         disabled={billingLoading}
                         className="w-full h-9 rounded-lg text-[13px] font-medium bg-violet-600 text-white hover:bg-violet-500 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                       >

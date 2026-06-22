@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { reportOutcome } from "@/lib/api/intelligence";
+import { track } from "@/lib/analytics/track";
 import { OutcomeResponseDisplay } from "./OutcomeResponseDisplay";
 
 type OutcomeResult =
@@ -68,6 +69,7 @@ export function OutcomeReporter({
 
         setOutcomeResponse(data);
         setStep("response");
+        track("outcome_reported", { result });
         // NOTE: We intentionally do NOT call onResponse here.
         // The outcome response is displayed inline in the OutcomeReporter component.
         // onResponse is only called when the user clicks a suggested follow-up pill.

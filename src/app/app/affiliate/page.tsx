@@ -19,6 +19,7 @@ import {
 } from "@/lib/api/affiliate";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics/track";
 
 type TabId = "overview" | "referrals" | "clicks" | "withdrawals";
 
@@ -83,7 +84,7 @@ function WithdrawalModal({
       return;
     }
     if (numAmount < 25) {
-      setError("Minimum withdrawal amount is $25");
+      setError("Withdrawal amount is $25");
       return;
     }
 
@@ -97,6 +98,10 @@ function WithdrawalModal({
         amount: numAmount,
         payout_method: method,
         ...formData,
+      });
+      track("affiliate_payout_requested", {
+        amount: numAmount,
+        payout_method: method,
       });
       onSuccess();
       onClose();
@@ -695,9 +700,10 @@ export default function AffiliateDashboardPage() {
               </code>
             </p>
             <button
-              onClick={() =>
-                navigator.clipboard.writeText(profile.referral_code)
-              }
+              onClick={() => {
+                navigator.clipboard.writeText(profile.referral_code);
+                track("referral_link_copied", { type: "code" });
+              }}
               className="text-[11px] text-violet-400 hover:text-violet-300 transition-colors"
             >
               Copy
