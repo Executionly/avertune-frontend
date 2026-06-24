@@ -333,6 +333,78 @@ export async function archiveConversation(
   );
 }
 
+// ── Public shared conversation (no auth) ─────────────────────────────────────
+
+export interface SharedConversationMessage {
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+}
+
+export interface SharedConversationResponse {
+  title: string;
+  mode: string;
+  messages: SharedConversationMessage[];
+  created_at: string;
+  shared_by?: string;
+  is_revoked?: boolean;
+}
+
+export async function getSharedConversation(
+  shareId: string,
+): Promise<SharedConversationResponse> {
+  const res = await fetch(`${BASE}/public/shared/${shareId}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as any).message || `API error ${res.status}`);
+  }
+  return res.json();
+}
+
+// ── Share conversation ──────────────────────────────────────────────────────────
+
+export interface ShareResponse {
+  share_id: string;
+  share_url: string;
+  is_revoked: boolean;
+}
+
+export async function getShareStatus(
+  token: string,
+  conversationId: string,
+): Promise<ShareResponse | null> {
+  try {
+    return await authFetch(
+      `${BASE}/intelligence/conversations/${conversationId}/share`,
+      token,
+    );
+  } catch {
+    return null;
+  }
+}
+
+export async function createShare(
+  token: string,
+  conversationId: string,
+): Promise<ShareResponse> {
+  return authFetch(
+    `${BASE}/intelligence/conversations/${conversationId}/share`,
+    token,
+    { method: "POST" },
+  );
+}
+
+export async function revokeShare(
+  token: string,
+  conversationId: string,
+): Promise<void> {
+  await authFetch(
+    `${BASE}/intelligence/conversations/${conversationId}/share`,
+    token,
+    { method: "DELETE" },
+  );
+}
+
 // ── Report outcome ─────────────────────────────────────────────────────────────
 
 export async function reportOutcome(

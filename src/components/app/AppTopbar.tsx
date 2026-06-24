@@ -1,21 +1,37 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { Conversation } from "@/lib/api/intelligence";
+import { ShareModal } from "@/components/ui/ShareModal";
 
 interface AppTopbarProps {
   panelOpen: boolean;
   onTogglePanel: () => void;
   activeConversation?: Conversation | null;
+  activeThreadId?: string;
 }
 
 export function AppTopbar({
   panelOpen,
   onTogglePanel,
   activeConversation,
+  activeThreadId,
 }: AppTopbarProps) {
   const title = activeConversation?.title || "New conversation";
+  const [isShareOpen, setIsShareOpen] = useState(false);
+
+  // `activeConversation` is only populated once a conversation is loaded
+  // from history (loadConversation). For a brand-new chat, the backend
+  // assigns a thread/conversation id before the full object is fetched,
+  // so fall back to a minimal shareable conversation built from that id
+  // rather than waiting for a refresh/reselect to populate the full object.
+  const shareableConversation: Conversation | null =
+    activeConversation ??
+    (activeThreadId
+      ? ({ id: activeThreadId, title: "" } as Conversation)
+      : null);
 
   return (
     <div className="h-12 flex items-center justify-between px-4 border-b border-[var(--topbar-border)] bg-[var(--topbar-bg)] flex-shrink-0 md:pl-5">
@@ -35,6 +51,28 @@ export function AppTopbar({
 
       {/* Right */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* Share */}
+        {shareableConversation && (
+          <button
+            onClick={() => setIsShareOpen(true)}
+            title="Share chat"
+            className="w-8 h-8 rounded-lg border border-[var(--border-default)] bg-[var(--card-bg)] flex items-center justify-center text-[var(--text-muted)] hover:border-violet-400/50 hover:text-[var(--text-primary)] transition-all"
+          >
+            <svg
+              viewBox="0 0 14 14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              className="w-3.5 h-3.5"
+            >
+              <circle cx="11" cy="3" r="1.8" />
+              <circle cx="3" cy="7" r="1.8" />
+              <circle cx="11" cy="11" r="1.8" />
+              <path d="M4.6 6.2l4.8-2.4M4.6 7.8l4.8 2.4" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
+
         {/* Upgrade */}
         <Link
           href="/pricing"
@@ -78,6 +116,12 @@ export function AppTopbar({
           </svg>
         </button>
       </div>
+      {isShareOpen && shareableConversation && (
+        <ShareModal
+          conversation={shareableConversation}
+          onClose={() => setIsShareOpen(false)}
+        />
+      )}
     </div>
   );
 }

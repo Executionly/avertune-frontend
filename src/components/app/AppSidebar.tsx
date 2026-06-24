@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { AccountModal } from "@/components/ui/AccountModal";
+import { ShareModal } from "@/components/ui/ShareModal";
 import type { User } from "@/lib/api/auth";
 import {
   getConversations,
@@ -45,6 +46,33 @@ const NAV_ITEMS = [
           strokeLinejoin="round"
         />
         <rect x="1" y="1" width="14" height="14" rx="2" />
+      </svg>
+    ),
+  },
+];
+
+const GUIDE_LINKS = [
+  {
+    label: "Guide",
+    href: "/app/guide",
+    icon: (
+      <svg
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        className="w-4 h-4 flex-shrink-0"
+      >
+        <path
+          d="M2 3.5C2 2.67 2.67 2 3.5 2H8v12H3.5C2.67 14 2 13.33 2 12.5v-9z"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M14 3.5C14 2.67 13.33 2 12.5 2H8v12h4.5c.83 0 1.5-.67 1.5-1.5v-9z"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     ),
   },
@@ -158,6 +186,7 @@ export function AppSidebar({
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null);
+  const [shareTarget, setShareTarget] = useState<Conversation | null>(null);
 
   const userInitial = user.full_name?.charAt(0).toUpperCase() || "U";
 
@@ -408,6 +437,7 @@ export function AppSidebar({
                     setIsMobileOpen(false);
                   }}
                   onDelete={setDeleteTarget}
+                  onShare={setShareTarget}
                   onArchive={handleArchive}
                 />
               )}
@@ -421,6 +451,7 @@ export function AppSidebar({
                     setIsMobileOpen(false);
                   }}
                   onDelete={setDeleteTarget}
+                  onShare={setShareTarget}
                   onArchive={handleArchive}
                 />
               )}
@@ -434,6 +465,7 @@ export function AppSidebar({
                     setIsMobileOpen(false);
                   }}
                   onDelete={setDeleteTarget}
+                  onShare={setShareTarget}
                   onArchive={handleArchive}
                 />
               )}
@@ -443,8 +475,28 @@ export function AppSidebar({
       )}
       {isCollapsed && <div className="flex-1" />}
 
+      {/* guide link */}
+      <div className="px-2 pt-1 flex-shrink-0 border-t border-[var(--border-default)]">
+        {GUIDE_LINKS.map((item) => (
+          <Link
+            key={item.label}
+            href={item.href}
+            onClick={() => setIsMobileOpen(false)}
+            className={cn(
+              "flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[var(--text-muted)] text-[13px]",
+              "hover:bg-[var(--card-muted-bg)] hover:text-[var(--text-primary)] transition-all mb-0.5",
+              isCollapsed && "justify-center px-2",
+            )}
+            title={isCollapsed ? item.label : undefined}
+          >
+            {item.icon}
+            {!isCollapsed && item.label}
+          </Link>
+        ))}
+      </div>
+
       {/* affiliate links */}
-      <div className="px-2 pb-1 mt-1 flex-shrink-0 border-t border-[var(--border-default)]">
+      <div className="px-2 pb-1 mt-1 flex-shrink-0">
         {AFFILIATE_LINKS.map((item) => (
           <Link
             key={item.label}
@@ -570,6 +622,12 @@ export function AppSidebar({
           onCancel={() => setDeleteTarget(null)}
         />
       )}
+      {shareTarget && (
+        <ShareModal
+          conversation={shareTarget}
+          onClose={() => setShareTarget(null)}
+        />
+      )}
     </>
   );
 }
@@ -582,6 +640,7 @@ function ConversationGroup({
   activeId,
   onSelect,
   onDelete,
+  onShare,
   onArchive,
 }: {
   label: string;
@@ -589,6 +648,7 @@ function ConversationGroup({
   activeId?: string;
   onSelect: (id: string) => void;
   onDelete: (c: Conversation) => void;
+  onShare: (c: Conversation) => void;
   onArchive: (c: Conversation) => void;
 }) {
   return (
@@ -603,6 +663,7 @@ function ConversationGroup({
           active={c.id === activeId}
           onSelect={onSelect}
           onDelete={onDelete}
+          onShare={onShare}
           onArchive={onArchive}
         />
       ))}
@@ -615,12 +676,14 @@ function ConversationItem({
   active,
   onSelect,
   onDelete,
+  onShare,
   onArchive,
 }: {
   conversation: Conversation;
   active: boolean;
   onSelect: (id: string) => void;
   onDelete: (c: Conversation) => void;
+  onShare: (c: Conversation) => void;
   onArchive: (c: Conversation) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -698,6 +761,28 @@ function ConversationItem({
               </svg>
               Archive
             </button>*/}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(false);
+                onShare(conversation);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-muted-bg)] transition-all"
+            >
+              <svg
+                viewBox="0 0 14 14"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                className="w-3.5 h-3.5"
+              >
+                <circle cx="11" cy="3" r="1.8" />
+                <circle cx="3" cy="7" r="1.8" />
+                <circle cx="11" cy="11" r="1.8" />
+                <path d="M4.6 6.2l4.8-2.4M4.6 7.8l4.8 2.4" strokeLinecap="round" />
+              </svg>
+              Share
+            </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
