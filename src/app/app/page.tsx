@@ -1,286 +1,388 @@
-// FILE: src/app/app/guide/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { AppSidebar } from "@/components/app/AppSidebar";
+import { AppTopbar } from "@/components/app/AppTopbar";
+import { ChatMessages } from "@/components/app/ChatMessages";
+import { ChatInput } from "@/components/app/ChatInput";
+import { SessionIntelligencePanel } from "@/components/app/SessionIntelligencePanel";
+import { useChat } from "@/lib/hooks/useChat";
+import { useAuth } from "@/lib/contexts/AuthContext";
+import { CreditReminder } from "@/components/app/CreditReminder";
+import { useCredits } from "@/lib/contexts/CreditsContext";
+import { NotificationBanner } from "@/components/ui/NotificationBanner";
+import { useNotification } from "@/lib/contexts/NotificationContext";
+import { track } from "@/lib/analytics/track";
 
-type SectionId =
-  | "getting-started"
-  | "modes"
-  | "capabilities"
-  | "intelligence"
-  | "sharing"
-  | "tips";
-
-const SECTIONS: { id: SectionId; label: string }[] = [
-  { id: "getting-started", label: "Getting started" },
-  { id: "modes", label: "Choosing a mode" },
-  { id: "capabilities", label: "Capabilities" },
-  { id: "intelligence", label: "Session Intelligence" },
-  { id: "sharing", label: "Sharing a conversation" },
-  { id: "tips", label: "Tips for better results" },
-];
-
-function StepIcon({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="w-7 h-7 rounded-lg bg-violet-500/10 border border-violet-500/15 flex items-center justify-center flex-shrink-0 text-violet-400">
-      {children}
-    </div>
-  );
-}
-
-export default function GuidePage() {
+export default function AppPage() {
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [pasteValue, setPasteValue] = useState("");
+  const handlePasteToInput = (s: string) => setPasteValue(s);
+  const { user, isLoading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
-  const [active, setActive] = useState<SectionId>("getting-started");
+  const pendingProcessed = useRef(false);
 
-  const scrollTo = (id: SectionId) => {
-    setActive(id);
-    document
-      .getElementById(id)
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  // Session Intelligence panel is open by default on desktop, but on
+  // mobile/tablet it renders as a full overlay (see SessionIntelligencePanel's
+  // `lg:hidden` backdrop), so default it closed there to avoid covering chat.
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setPanelOpen(false);
+    }
+  }, []);
+
+  const [outcomeSuggestions, setOutcomeSuggestions] = useState<
+    Array<{ text: string; category: string; position: number }>
+  >([]);
+  const {
+    messages,
+    isTyping,
+    streamingPhase,
+    detectedCapability,
+    activeMode,
+    threadId,
+    activeConversation,
+    sessionStats,
+    loadingConversation,
+    modeLocked,
+    insufficientCredits,
+    chatError,
+    chatErrorCode,
+    pendingChallenge,
+    dismissCreditsAlert,
+    dismissChatError,
+    silentRefreshStats,
+    appendMessage,
+    proceedChallenge,
+    dismissChallenge,
+    setActiveMode,
+    sendMessage,
+    retryLastMessage,
+    lastFailedMessageId,
+    sendFile,
+    sendVoice,
+    pendingVoice,
+    isTranscribing,
+    confirmVoiceSend,
+    dismissPendingVoice,
+    startNewConversation,
+    loadConversation,
+    restoreLastConversation,
+    refreshSidebar,
+  } = useChat();
+  const { refreshCredits } = useCredits();
+  const { notify, dismiss } = useNotification();
+
+  // Track notification IDs so we can dismiss them when the underlying state clears
+  const chatErrorNotifId = useRef<string | null>(null);
+  const insufficientCreditsNotifId = useRef<string | null>(null);
+
+  // Handler for retrying a specific failed message
+  const handleRetryMessage = (content: string) => {
+    sendMessage(content);
   };
 
-  return (
-    <div className="flex-1 overflow-y-auto bg-[var(--bg-page)] p-6 md:p-8">
-      {/* Back button */}
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mb-6"
-      >
-        <svg
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="w-3.5 h-3.5"
-        >
-          <path d="M10 3L5 8l5 5" />
-        </svg>
-        Back
-      </button>
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) router.push("/auth/signin");
+  }, [isLoading, isAuthenticated, router]);
 
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-[22px] font-semibold text-[var(--text-primary)] mb-1">
-          Guide
-        </h1>
-        <p className="text-[13px] text-[var(--text-muted)] max-w-[560px]">
-          A quick walkthrough of how to get the most out of Avertune —
-          choosing the right mode, using capabilities, reading your session
-          intelligence, and sharing conversations.
-        </p>
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) refreshCredits();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [refreshCredits]);
+
+  // ── Restore pending analysis / file from marketing pages ───────────────────
+  useEffect(() => {
+    if (isLoading || !isAuthenticated) return;
+    if (pendingProcessed.current) return;
+
+    const pendingAnalysis = localStorage.getItem("pendingAnalysis");
+    const pendingMode = localStorage.getItem("pendingMode") as any;
+    const pendingFileData = localStorage.getItem("pendingFile");
+
+    pendingProcessed.current = true;
+
+    if (pendingAnalysis || pendingFileData) {
+      startNewConversation();
+      if (pendingMode) setActiveMode(pendingMode);
+
+      localStorage.removeItem("pendingAnalysis");
+      localStorage.removeItem("pendingMode");
+      localStorage.removeItem("pendingCapability");
+      localStorage.removeItem("pendingFile");
+
+      setTimeout(async () => {
+        if (pendingFileData) {
+          try {
+            const { base64, name, type, text } = JSON.parse(pendingFileData);
+            const byteString = atob(base64);
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+              ia[i] = byteString.charCodeAt(i);
+            }
+            const file = new File([ab], name, { type });
+            await sendFile(file, text || "");
+          } catch {
+            if (pendingAnalysis) await sendMessage(pendingAnalysis);
+          }
+        } else if (pendingAnalysis) {
+          await sendMessage(pendingAnalysis);
+        }
+      }, 150);
+    } else {
+      restoreLastConversation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, isAuthenticated]);
+
+  // ── Chat error → central notification (with retry button) ──────────────────────
+  useEffect(() => {
+    if (chatError) {
+      if (chatErrorNotifId.current) {
+        dismiss(chatErrorNotifId.current);
+      }
+
+      const isUpgrade = chatErrorCode === "CAPABILITY_LOCKED";
+      const isWordLimit = chatErrorCode === "WORD_LIMIT_EXCEEDED";
+      const isRetryable =
+        chatErrorCode &&
+        [
+          "CREDIT_DEDUCTION_FAILED",
+          "GENERATION_FAILED",
+          "PROCESSING_ERROR",
+        ].includes(chatErrorCode);
+
+      const title = isUpgrade
+        ? "Plan upgrade required"
+        : isWordLimit
+          ? "Message too long"
+          : "Something went wrong";
+
+      chatErrorNotifId.current = notify({
+        severity: isUpgrade ? "credit" : "error",
+        title,
+        message: chatError,
+        actionLabel: isRetryable ? "Retry" : undefined,
+        actionHref: undefined,
+        duration: 8000,
+        onDismiss: () => {
+          dismissChatError();
+          if (isRetryable && retryLastMessage) {
+            retryLastMessage();
+          }
+        },
+      });
+    } else {
+      if (chatErrorNotifId.current) {
+        dismiss(chatErrorNotifId.current);
+        chatErrorNotifId.current = null;
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatError, chatErrorCode, retryLastMessage]);
+
+  // ── Insufficient credits → central notification ─────────────────────────────
+  useEffect(() => {
+    if (insufficientCredits) {
+      if (insufficientCreditsNotifId.current) {
+        dismiss(insufficientCreditsNotifId.current);
+      }
+      insufficientCreditsNotifId.current = notify({
+        severity: "credit",
+        title: "Insufficient credits",
+        message: "Top up or upgrade your plan to continue.",
+        actionLabel: "View Plans →",
+        actionHref: "/pricing",
+        duration: 0,
+        onDismiss: dismissCreditsAlert,
+      });
+    } else {
+      if (insufficientCreditsNotifId.current) {
+        dismiss(insufficientCreditsNotifId.current);
+        insufficientCreditsNotifId.current = null;
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [insufficientCredits]);
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/auth/signin");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[var(--bg-page)]">
+        <div className="w-8 h-8 rounded-full border-[3px] border-violet-500/30 border-t-violet-500 animate-spin" />
       </div>
+    );
+  }
 
-      <div className="grid grid-cols-1 lg:grid-cols-[180px_1fr] gap-8 max-w-[920px]">
-        {/* Section nav */}
-        <nav className="hidden lg:block">
-          <div className="sticky top-6 space-y-0.5">
-            {SECTIONS.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => scrollTo(s.id)}
-                className={cn(
-                  "w-full text-left px-3 py-2 rounded-lg text-[12.5px] transition-all",
-                  active === s.id
-                    ? "bg-violet-500/10 text-violet-400 font-medium"
-                    : "text-[var(--text-muted)] hover:bg-[var(--card-muted-bg)] hover:text-[var(--text-primary)]",
-                )}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </nav>
+  if (!isAuthenticated || !user) return null;
 
-        {/* Content */}
-        <div className="space-y-10 min-w-0">
-          {/* Getting started */}
-          <section id="getting-started">
-            <h2 className="text-[16px] font-semibold text-[var(--text-primary)] mb-3">
-              Getting started
-            </h2>
-            <p className="text-[13.5px] text-[var(--text-secondary)] leading-[1.7] mb-4">
-              Avertune helps you communicate more effectively by analyzing
-              what you're trying to say and giving you better, calibrated
-              ways to say it. Paste in a message you've received, describe a
-              situation, or just start typing what you want to respond to —
-              the app takes it from there.
-            </p>
-            <div className="space-y-3">
-              {[
-                {
-                  title: "Start a conversation",
-                  body: "Use the input box to describe your situation or paste a message you need to respond to.",
-                },
-                {
-                  title: "Pick a mode",
-                  body: "Select Professional, Sales, or Relationship mode depending on the context — this shapes the tone and strategy of every response.",
-                },
-                {
-                  title: "Review your options",
-                  body: "Avertune returns ranked response options, each scored for clarity, confidence, and predicted outcome.",
-                },
-              ].map((step, i) => (
-                <div key={step.title} className="flex items-start gap-3">
-                  <StepIcon>
-                    <span className="text-[11px] font-bold">{i + 1}</span>
-                  </StepIcon>
-                  <div>
-                    <p className="text-[13px] font-medium text-[var(--text-primary)]">
-                      {step.title}
+  return (
+    <div className="flex h-screen overflow-hidden bg-[var(--bg-page)]">
+      <AppSidebar
+        user={user}
+        onLogout={handleLogout}
+        activeThreadId={threadId}
+        onSelectThread={loadConversation}
+        onNewConversation={startNewConversation}
+        refreshTrigger={refreshSidebar}
+      />
+
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <AppTopbar
+          panelOpen={panelOpen}
+          onTogglePanel={() => setPanelOpen((v) => !v)}
+          activeConversation={activeConversation}
+          activeThreadId={threadId}
+        />
+
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
+          <CreditReminder />
+
+          <ChatMessages
+            messages={messages}
+            isTyping={isTyping}
+            streamingPhase={streamingPhase}
+            detectedCapability={detectedCapability}
+            loadingConversation={loadingConversation}
+            onSuggestionClick={(text) => {
+              track("chat_suggested_prompt_clicked", { mode: activeMode });
+              sendMessage(text);
+            }}
+            onPasteToInput={handlePasteToInput}
+            activeConversationId={threadId}
+            activeMode={activeMode}
+            onOutcomeResponse={(text) => {
+              if (text) sendMessage(text);
+            }}
+            conversationSuggestions={
+              activeConversation?.last_suggested_prompts || []
+            }
+            failedMessageId={lastFailedMessageId}
+            onRetryMessage={handleRetryMessage}
+          />
+
+          {/* Challenge warning */}
+          {pendingChallenge && (
+            <div className="absolute inset-x-0 bottom-[84px] flex justify-center z-40 px-4">
+              <div className="w-full max-w-[720px] bg-[var(--card-bg)] border border-amber-500/40 rounded-2xl p-4 shadow-lg">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-400/10 border border-amber-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      className="w-4 h-4 text-amber-400"
+                    >
+                      <path
+                        d="M8 1.5L14.5 13H1.5L8 1.5z"
+                        strokeLinejoin="round"
+                      />
+                      <path d="M8 6v3.5" strokeLinecap="round" />
+                      <circle
+                        cx="8"
+                        cy="11.5"
+                        r=".6"
+                        fill="currentColor"
+                        stroke="none"
+                      />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13.5px] font-semibold text-amber-400 mb-1">
+                      Risk detected
                     </p>
-                    <p className="text-[12.5px] text-[var(--text-muted)] mt-0.5 leading-[1.6]">
-                      {step.body}
+                    <p className="text-[13px] text-[var(--text-primary)] leading-relaxed mb-3">
+                      {pendingChallenge.challenge}
                     </p>
+                    {pendingChallenge.risk_type && (
+                      <p className="text-[11px] text-[var(--text-muted)] mb-3">
+                        Risk type:{" "}
+                        <span className="text-amber-400/80">
+                          {pendingChallenge.risk_type}
+                        </span>
+                      </p>
+                    )}
+                    {pendingChallenge.suggestions &&
+                    pendingChallenge.suggestions.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {pendingChallenge.suggestions.map((s, i) => {
+                          const isProceed =
+                            s.toLowerCase().includes("yes") ||
+                            s.toLowerCase().includes("proceed") ||
+                            s.toLowerCase().includes("help me write");
+                          return (
+                            <button
+                              key={i}
+                              onClick={
+                                isProceed ? proceedChallenge : dismissChallenge
+                              }
+                              className={
+                                isProceed
+                                  ? "px-3.5 py-1.5 rounded-lg text-[12.5px] font-medium bg-amber-400/10 border border-amber-400/30 text-amber-400 hover:bg-amber-400/20 transition-all"
+                                  : "px-3.5 py-1.5 rounded-lg text-[12.5px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-muted-bg)] transition-all"
+                              }
+                            >
+                              {s}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={proceedChallenge}
+                          className="px-3.5 py-1.5 rounded-lg text-[12.5px] font-medium bg-amber-400/10 border border-amber-400/30 text-amber-400 hover:bg-amber-400/20 transition-all"
+                        >
+                          Proceed anyway
+                        </button>
+                        <button
+                          onClick={dismissChallenge}
+                          className="px-3.5 py-1.5 rounded-lg text-[12.5px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-muted-bg)] transition-all"
+                        >
+                          Revise message
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Modes */}
-          <section id="modes">
-            <h2 className="text-[16px] font-semibold text-[var(--text-primary)] mb-3">
-              Choosing a mode
-            </h2>
-            <p className="text-[13.5px] text-[var(--text-secondary)] leading-[1.7] mb-4">
-              The mode you pick changes how Avertune reads the situation.
-              Switch modes any time from the chat input — the right mode
-              makes a noticeable difference in response quality.
-            </p>
-            <div className="grid sm:grid-cols-3 gap-3">
-              <div className="rounded-xl border border-[var(--border-default)] bg-[var(--card-bg)] p-4">
-                <span className="inline-block px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-400 text-[10.5px] font-semibold mb-2">
-                  Professional
-                </span>
-                <p className="text-[12.5px] text-[var(--text-muted)] leading-[1.6]">
-                  Workplace dynamics, manager conversations, negotiations,
-                  and difficult professional messages.
-                </p>
-              </div>
-              <div className="rounded-xl border border-[var(--border-default)] bg-[var(--card-bg)] p-4">
-                <span className="inline-block px-2 py-0.5 rounded-md bg-amber-400/15 text-amber-400 text-[10.5px] font-semibold mb-2">
-                  Sales
-                </span>
-                <p className="text-[12.5px] text-[var(--text-muted)] leading-[1.6]">
-                  Objection handling, pricing pressure, deal recovery, and
-                  closing conversations.
-                </p>
-              </div>
-              <div className="rounded-xl border border-[var(--border-default)] bg-[var(--card-bg)] p-4">
-                <span className="inline-block px-2 py-0.5 rounded-md bg-green-500/15 text-green-400 text-[10.5px] font-semibold mb-2">
-                  Relationship
-                </span>
-                <p className="text-[12.5px] text-[var(--text-muted)] leading-[1.6]">
-                  Personal conversations that call for emotional
-                  intelligence and care.
-                </p>
               </div>
             </div>
-          </section>
+          )}
 
-          {/* Capabilities */}
-          <section id="capabilities">
-            <h2 className="text-[16px] font-semibold text-[var(--text-primary)] mb-3">
-              Capabilities
-            </h2>
-            <p className="text-[13.5px] text-[var(--text-secondary)] leading-[1.7] mb-4">
-              Beyond general replies, Avertune has focused tools for specific
-              jobs. You can call on these directly when you know exactly
-              what you need:
-            </p>
-            <ul className="space-y-2.5">
-              {[
-                ["Reply Generator", "Ranked response options for any message."],
-                ["Tone Checker", "Checks how a draft message will likely come across before you send it."],
-                ["Intent Detector", "Surfaces what's really being asked or implied in a message."],
-                ["Boundary Builder", "Helps you say no or hold a line without damaging the relationship."],
-                ["Follow-Up Writer", "Drafts a follow-up when a conversation has gone quiet."],
-                ["Difficult Email Helper", "Structures hard professional emails clearly and calmly."],
-              ].map(([title, body]) => (
-                <li key={title} className="flex items-start gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0 mt-[7px]" />
-                  <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
-                    <span className="font-medium text-[var(--text-primary)]">
-                      {title}
-                    </span>{" "}
-                    — {body}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <NotificationBanner offsetBottom={84} maxWidth={720} />
 
-          {/* Session Intelligence */}
-          <section id="intelligence">
-            <h2 className="text-[16px] font-semibold text-[var(--text-primary)] mb-3">
-              Session Intelligence
-            </h2>
-            <p className="text-[13.5px] text-[var(--text-secondary)] leading-[1.7] mb-3">
-              The panel on the right of your chat tracks how a conversation
-              is going in real time — it's open by default so you can keep
-              an eye on it as you work. It includes:
-            </p>
-            <ul className="space-y-2 mb-4">
-              {[
-                "CI Score — an overall read on how the conversation is trending.",
-                "Skill scores — clarity, tone control, negotiation, boundaries, and relationships.",
-                "Relationship impact — whether your messages are landing positively, neutrally, or negatively.",
-                "Insights — short, specific observations about the conversation as it develops.",
-              ].map((line) => (
-                <li key={line} className="flex items-start gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0 mt-[7px]" />
-                  <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
-                    {line}
-                  </p>
-                </li>
-              ))}
-            </ul>
-            <p className="text-[12.5px] text-[var(--text-muted)] leading-[1.6]">
-              You can collapse it any time using the close icon in its
-              header, and reopen it again from the chat toolbar.
-            </p>
-          </section>
-
-          {/* Sharing */}
-          <section id="sharing">
-            <h2 className="text-[16px] font-semibold text-[var(--text-primary)] mb-3">
-              Sharing a conversation
-            </h2>
-            <p className="text-[13.5px] text-[var(--text-secondary)] leading-[1.7]">
-              Use the share icon in the top bar of any conversation to
-              generate a read-only link. You can toggle it between private
-              and public at any time, and revoke access by turning sharing
-              off again — the link stops working immediately once revoked.
-            </p>
-          </section>
-
-          {/* Tips */}
-          <section id="tips" className="pb-4">
-            <h2 className="text-[16px] font-semibold text-[var(--text-primary)] mb-3">
-              Tips for better results
-            </h2>
-            <ul className="space-y-2.5">
-              {[
-                "Give context, not just the message — who you're talking to and what you want to happen matters as much as the words themselves.",
-                "Switch modes if a response feels off — the wrong mode is the most common reason a reply doesn't land right.",
-                "Check the Skill scores panel after a few exchanges to see what's actually moving the conversation forward.",
-                "Use Boundary Builder before a conversation turns confrontational, not after.",
-              ].map((tip) => (
-                <li key={tip} className="flex items-start gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0 mt-[7px]" />
-                  <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
-                    {tip}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <ChatInput
+            onSend={sendMessage}
+            onSendFile={sendFile}
+            onSendVoice={sendVoice}
+            activeMode={activeMode}
+            onModeChange={(mode) => {
+              track("chat_mode_changed", { from: activeMode, to: mode });
+              setActiveMode(mode);
+            }}
+            modeLocked={modeLocked}
+            pasteValue={pasteValue}
+            onPasteConsumed={() => setPasteValue("")}
+          />
         </div>
       </div>
+
+      <SessionIntelligencePanel
+        isOpen={panelOpen}
+        onClose={() => setPanelOpen(false)}
+        stats={sessionStats}
+      />
     </div>
   );
 }
