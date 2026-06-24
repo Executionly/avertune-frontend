@@ -5,18 +5,12 @@ import { useCredits } from "@/lib/contexts/CreditsContext";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useNotification } from "@/lib/contexts/NotificationContext";
 
-type CreditState = "safe" | "warning" | "critical";
+type CreditState = "safe" | "low";
 
 function getCreditState(remaining: number, total: number): CreditState {
-  const percent = total > 0 ? (remaining / total) * 100 : 0;
-
-  if (remaining <= 0) return "critical";
-
-  if (remaining <= 10 || percent <= 10) return "critical";
-
-  if (remaining <= 50 || percent <= 25) return "warning";
-
-  return "safe";
+  if (total <= 0) return "safe";
+  const percent = (remaining / total) * 100;
+  return percent <= 20 ? "low" : "safe";
 }
 
 export function CreditReminder() {
@@ -55,22 +49,24 @@ export function CreditReminder() {
     }
 
     const handleDismiss = () => {
-      const snoozeMs =
-        state === "critical"
-          ? 60 * 1000 // test mode
-          : 4 * 60 * 1000;
-
+      const snoozeMs = 4 * 60 * 1000;
       const until = Date.now() + snoozeMs;
       localStorage.setItem("credit_reminder_dismissed", String(until));
       setDismissedUntil(until);
     };
 
-    if (state === "warning") {
+    if (state !== "low") return;
+
+    const planTier = user.plan_tier || "trial";
+    const isHighestPlan = planTier === "pro" || planTier === "pro_annual";
+
+    // Pro (highest plan) users can't upgrade further — only offer top-up.
+    if (isHighestPlan) {
       activeIdRef.current = notify({
         severity: "warning",
         title: "You're running low on credits",
-        message: "You’re approaching your usage limit. Top up soon.",
-        actionLabel: "Buy Credits →",
+        message: "You're approaching your usage limit. Top up to keep going.",
+        actionLabel: "Top Up Credits →",
         actionHref: "/pricing#addons",
         duration: 0,
         onDismiss: handleDismiss,
@@ -78,18 +74,15 @@ export function CreditReminder() {
       return;
     }
 
-    if (state === "critical") {
-      activeIdRef.current = notify({
-        severity: "error",
-        title: "Credits almost depleted",
-        message: "Top up now to avoid service interruption.",
-        actionLabel: "Upgrade Now →",
-        actionHref: "/pricing#addons",
-        duration: 0,
-        onDismiss: handleDismiss,
-      });
-      return;
-    }
+    activeIdRef.current = notify({
+      severity: "warning",
+      title: "You're running low on credits",
+      message: "You're approaching your usage limit. Top up or upgrade your plan.",
+      actionLabel: "Top Up or Upgrade →",
+      actionHref: "/pricing#addons",
+      duration: 0,
+      onDismiss: handleDismiss,
+    });
   }, [credits, user, dismissedUntil, isDismissed, notify, dismissSilent]);
 
   return null;
