@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { createCheckout, cancelSubscription, getSubscription } from "@/lib/api/auth";
 import type { User } from "@/lib/api/auth";
 import { track } from "@/lib/analytics/track";
+import { daysUntil } from "@/lib/utils";
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -279,6 +280,16 @@ export function AccountModal({
     }
 
     return `Billed ${user.billing_period || "monthly"}`;
+  };
+
+  const getExpiryWarning = () => {
+    const left = daysUntil(subData?.current_period_end);
+    if (left === null || left > 3 || left < 0) return null;
+
+    if (subData?.cancel_at_period_end) {
+      return `Access ends in ${left} day${left !== 1 ? "s" : ""} — resubscribe to keep your features.`;
+    }
+    return `Renews in ${left} day${left !== 1 ? "s" : ""}.`;
   };
 
   useEffect(() => {
@@ -697,6 +708,22 @@ export function AccountModal({
                     <p className="text-[12px] text-gray-400 mt-0.5">
                       {getBillingExpiryText()}
                     </p>
+                    {getExpiryWarning() && (
+                      <p className="text-[11.5px] text-amber-500 mt-1 flex items-center gap-1">
+                        <svg
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          className="w-3 h-3 flex-shrink-0"
+                        >
+                          <path d="M8 1.5L14.5 13H1.5L8 1.5z" strokeLinejoin="round" />
+                          <path d="M8 6v3.5" strokeLinecap="round" />
+                          <circle cx="8" cy="11.5" r=".6" fill="currentColor" stroke="none" />
+                        </svg>
+                        {getExpiryWarning()}
+                      </p>
+                    )}
                   </div>
 
                   {successMessage && (

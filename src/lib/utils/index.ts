@@ -45,6 +45,16 @@ export function getRiskColor(risk: "low" | "medium" | "high"): string {
 }
 
 /** Get mode accent color */
+// Days remaining until an ISO date string (e.g. subscription current_period_end).
+// Rounds up so "2 days, 4 hours left" reads as 3, not 2.
+export function daysUntil(dateString?: string | null): number | null {
+  if (!dateString) return null;
+  const target = new Date(dateString).getTime();
+  if (Number.isNaN(target)) return null;
+  const diffMs = target - Date.now();
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+}
+
 export function getModeColor(mode: string): string {
   const map: Record<string, string> = {
     professional: "violet",

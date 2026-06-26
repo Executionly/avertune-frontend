@@ -14,6 +14,8 @@ import { useCredits } from "@/lib/contexts/CreditsContext";
 import { NotificationBanner } from "@/components/ui/NotificationBanner";
 import { useNotification } from "@/lib/contexts/NotificationContext";
 import { track } from "@/lib/analytics/track";
+import { getSubscription } from "@/lib/api/auth";
+import { daysUntil } from "@/lib/utils";
 
 export default function AppPage() {
   const [panelOpen, setPanelOpen] = useState(true);
@@ -77,6 +79,55 @@ export default function AppPage() {
   // Track notification IDs so we can dismiss them when the underlying state clears
   const chatErrorNotifId = useRef<string | null>(null);
   const insufficientCreditsNotifId = useRef<string | null>(null);
+  const expiryNotifId = useRef<string | null>(null);
+
+  // ── Subscription/trial expiring soon (≤3 days) → global banner ─────────────
+  useEffect(() => {
+    if (isLoading || !isAuthenticated || !user) return;
+
+    // Trial users: expiry is already on the user object, no extra fetch needed.
+    if (user.plan_tier === "trial") {
+      const left = user.trial_days_left;
+      if (left === undefined || left === null || left > 3 || left < 0) return;
+
+      expiryNotifId.current = notify({
+        severity: "warning",
+        title: "Trial ending soon",
+        message: `Your trial ends in ${left} day${left !== 1 ? "s" : ""}. Upgrade to keep enjoying avertune.`,
+        actionLabel: "Upgrade",
+        actionHref: "/pricing",
+        duration: 0,
+        persistent: false,
+      });
+      return;
+    }
+
+    // Everyone else (free + paid): check real subscription period end, if any.
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+
+    getSubscription(token)
+      .then((sub) => {
+        const left = daysUntil(sub?.current_period_end);
+
+        if (left === null || left > 3 || left < 0) return;
+
+        const isEnding = sub?.cancel_at_period_end === true;
+        expiryNotifId.current = notify({
+          severity: "warning",
+          title: isEnding ? "Access ending soon" : "Subscription renewing soon",
+          message: isEnding
+            ? `Your plan is cancelled and access ends in ${left} day${left !== 1 ? "s" : ""}. Resubscribe to keep your features.`
+            : `Your subscription renews in ${left} day${left !== 1 ? "s" : ""}.`,
+          actionLabel: isEnding ? "Resubscribe" : "Manage billing",
+          actionHref: "/pricing",
+          duration: 0,
+          persistent: false,
+        });
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, isAuthenticated, user?.plan_tier, user?.trial_days_left]);
 
   // Handler for retrying a specific failed message
   const handleRetryMessage = (content: string) => {

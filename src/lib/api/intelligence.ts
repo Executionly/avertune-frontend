@@ -353,7 +353,7 @@ export interface SharedConversationResponse {
 export async function getSharedConversation(
   shareId: string,
 ): Promise<SharedConversationResponse> {
-  const res = await fetch(`${BASE}/public/shared/${shareId}`);
+  const res = await fetch(`${BASE}/conversations/share/${shareId}`);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as any).message || `API error ${res.status}`);
@@ -364,9 +364,9 @@ export async function getSharedConversation(
 // ── Share conversation ──────────────────────────────────────────────────────────
 
 export interface ShareResponse {
-  share_id: string;
+  token: string;
   share_url: string;
-  is_revoked: boolean;
+  expires_at: string;
 }
 
 export async function getShareStatus(
@@ -379,6 +379,7 @@ export async function getShareStatus(
       token,
     );
   } catch {
+    // Status endpoint may not exist on the backend — treat as "no existing share"
     return null;
   }
 }
@@ -387,11 +388,10 @@ export async function createShare(
   token: string,
   conversationId: string,
 ): Promise<ShareResponse> {
-  return authFetch(
-    `${BASE}/intelligence/conversations/${conversationId}/share`,
-    token,
-    { method: "POST" },
-  );
+  return authFetch(`${BASE}/conversations/share`, token, {
+    method: "POST",
+    body: JSON.stringify({ conversation_id: conversationId }),
+  });
 }
 
 export async function revokeShare(
