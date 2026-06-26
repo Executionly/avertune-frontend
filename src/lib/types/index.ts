@@ -354,3 +354,64 @@ export interface ProfileMetrics {
   boundaryStrength: number;
   escalationControl: number;
 }
+
+// ─── Shared Conversation (API Response) ─────────────────────────
+
+export interface SharedMessageScoring {
+  risk_score: number;
+  tone_detected: string;
+  confidence_score: number;
+  influence_potential: number;
+  relationship_impact: string;
+  intent_clarity_score: number;
+  escalation_probability: number;
+}
+
+export interface SharedResponseOption {
+  label: string;
+  advice: string;
+  approach: string;
+  when_to_use: string;
+  action_steps: string[];
+  what_to_avoid: string[];
+  why_this_works: string;
+  generated_reply: string;
+}
+
+export interface SharedAssistantIntelligence {
+  answer?: string;
+  situation_read?: string;
+  question_asked?: string;
+  next_best_action?: string;
+  strategic_reasoning?: string;
+  scoring?: SharedMessageScoring;
+  recommended?: SharedResponseOption;
+  alternative?: SharedResponseOption;
+}
+
+export interface SharedMessage {
+  role: "user" | "assistant";
+  content: string;
+  mode?: string;
+  capability?: string | null;
+  scoring?: SharedMessageScoring | null;
+  coach_note?: string | null;
+  created_at?: string;
+  model_used?: string | null;
+  credits_used?: number;
+  intelligence?: SharedAssistantIntelligence | null;
+}
+
+export interface SharedConversation {
+  id: string;
+  mode: string;
+  capability?: string | null;
+  created_at: string;
+}
+
+export interface SharedConversationResponse {
+  conversation: SharedConversation;
+  messages: SharedMessage[];
+  snapshotted_at?: string;
+  shared_at?: string;
+}
