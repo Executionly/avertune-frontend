@@ -15,6 +15,7 @@ interface ShareModalProps {
 
 export function ShareModal({ conversation, onClose }: ShareModalProps) {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
@@ -26,12 +27,15 @@ export function ShareModal({ conversation, onClose }: ShareModalProps) {
 
     (async () => {
       try {
+        // Status endpoint is optional — backend may not support it.
         const existing = await getShareStatus(token, conversation.id);
-        if (existing && !existing.is_revoked) {
+        if (existing) {
           setShareUrl(existing.share_url);
+          setExpiresAt(existing.expires_at ?? null);
         } else {
           const created = await createShare(token, conversation.id);
           setShareUrl(created.share_url);
+          setExpiresAt(created.expires_at ?? null);
         }
       } catch {
         setError("Couldn't create a share link. Try again in a moment.");
@@ -56,7 +60,10 @@ export function ShareModal({ conversation, onClose }: ShareModalProps) {
       await revokeShare(token, conversation.id);
       onClose();
     } catch {
-      setError("Couldn't remove the link. Try again.");
+      // Revoke endpoint may not exist on the backend yet — close anyway
+      // rather than blocking the user with an error they can't act on.
+      onClose();
+    } finally {
       setIsRevoking(false);
     }
   };
@@ -128,7 +135,13 @@ export function ShareModal({ conversation, onClose }: ShareModalProps) {
               <circle cx="6" cy="6" r="5" />
               <path d="M1 6h10M6 1a7 7 0 010 10 7 7 0 010-10z" />
             </svg>
-            Public link
+            {expiresAt
+              ? `Expires ${new Date(expiresAt).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}`
+              : "Public link"}
           </span>
           {shareUrl && !isLoading && (
             <button

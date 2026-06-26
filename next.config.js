@@ -7,6 +7,14 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
   },
+  async rewrites() {
+    return [
+      {
+        source: "/public/shared/:token",
+        destination: "/shared/:token",
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
