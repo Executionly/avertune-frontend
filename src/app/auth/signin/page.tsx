@@ -1,9 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/contexts/AuthContext";
+
+const EXTENSION_ID = "hllpepfbhjidhdheagfembdjdljklbke"; // TODO: move to env, will be changed later
+
+function notifyExtensionOfLogin(
+  accessToken: string,
+  refreshToken: string,
+  user: unknown,
+) {
+  // @ts-ignore - chrome is injected by the extension's content script context
+  if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.sendMessage) {
+    return;
+  }
+  // @ts-ignore
+  chrome.runtime.sendMessage(
+    EXTENSION_ID,
+    {
+      type: "AVERTUNE_LOGIN_SUCCESS",
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      user,
+    },
+    (response: unknown) => {
+      // @ts-ignore
+      if (chrome.runtime.lastError) {
+        console.warn(
+          "Could not reach Avertune extension:",
+          // @ts-ignore
+          chrome.runtime.lastError.message,
+        );
+        return;
+      }
+      console.log("Extension notified of login:", response);
+    },
+  );
+}
 
 function AvertuneLogoMark() {
   return <div></div>;
@@ -90,8 +125,21 @@ export default function SignInPage() {
   const [step, setStep] = useState<"login" | "2fa">("login");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isFromExtension, setIsFromExtension] = useState(false);
+  const [extensionNotified, setExtensionNotified] = useState(false);
   const { login, signInWithGoogle, complete2FA } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    const fromExtension =
+      new URLSearchParams(window.location.search).get("source") === "extension";
+    setIsFromExtension(fromExtension);
+    if (fromExtension) {
+      // Persist across the redirect to Google's OAuth page and back,
+      // since the query param won't survive that round trip.
+      sessionStorage.setItem("avertune_ext_login", "1");
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,6 +150,11 @@ export default function SignInPage() {
       if (result.requires2fa && result.temp_token) {
         setTempToken(result.temp_token);
         setStep("2fa");
+      } else if (isFromExtension) {
+        if (result.access_token && result.refresh_token) {
+          notifyExtensionOfLogin(result.access_token, result.refresh_token, result.user);
+        }
+        setExtensionNotified(true);
       } else {
         router.push("/app");
       }
@@ -117,8 +170,13 @@ export default function SignInPage() {
     setError("");
     setLoading(true);
     try {
-      await complete2FA(tempToken, code2FA);
-      router.push("/app");
+      const result = await complete2FA(tempToken, code2FA);
+      if (isFromExtension) {
+        notifyExtensionOfLogin(result.access_token, result.refresh_token, result.user);
+        setExtensionNotified(true);
+      } else {
+        router.push("/app");
+      }
     } catch (err: any) {
       setError(err.message || "Invalid code");
     } finally {
@@ -169,7 +227,29 @@ export default function SignInPage() {
           </div>
         )}
 
-        {step === "login" ? (
+        {extensionNotified ? (
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-green-500/15 flex items-center justify-center mx-auto mb-5">
+              <svg
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-6 h-6 text-green-500"
+              >
+                <polyline points="4 10 8 14 16 6" />
+              </svg>
+            </div>
+            <h2 className="text-[16px] font-medium text-[var(--text-primary)] mb-1.5">
+              You&apos;re logged in
+            </h2>
+            <p className="text-[14px] text-[var(--text-muted)]">
+              You can close this tab and continue in the extension.
+            </p>
+          </div>
+        ) : step === "login" ? (
           <>
             {/* Google */}
             <button

@@ -30,7 +30,13 @@ interface AuthContextType {
   login: (
     email: string,
     password: string,
-  ) => Promise<{ requires2fa?: boolean; temp_token?: string }>;
+  ) => Promise<{
+    requires2fa?: boolean;
+    temp_token?: string;
+    access_token?: string;
+    refresh_token?: string;
+    user?: User;
+  }>;
   register: (
     email: string,
     password: string,
@@ -45,7 +51,10 @@ interface AuthContextType {
   signInWithGoogle: () => void;
   forgotPw: (email: string) => Promise<void>;
   resetPw: (access_token: string, new_password: string) => Promise<void>;
-  complete2FA: (temp_token: string, code: string) => Promise<void>;
+  complete2FA: (
+    temp_token: string,
+    code: string,
+  ) => Promise<{ access_token: string; refresh_token: string; user: User }>;
   wordLimit: number;
 }
 
@@ -116,7 +125,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         track("signin_completed", {});
-        return {};
+        return {
+          access_token: auth.access_token,
+          refresh_token: auth.refresh_token,
+          user: auth.user,
+        };
       } catch (err) {
         track("signin_failed", {});
         throw err;
@@ -140,6 +153,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       track("signin_completed", { via_2fa: true });
+
+      return {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        user: data.user,
+      };
     },
     [queryClient],
   );
