@@ -5,7 +5,42 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 
-type Status = "processing" | "success" | "error";
+type Status = "processing" | "success" | "error" | "extension-success";
+
+const EXTENSION_ID = "hllpepfbhjidhdheagfembdjdljklbke"; // TODO: move to env, will be changed later
+
+function notifyExtensionOfLogin(
+  accessToken: string,
+  refreshToken: string,
+  user: unknown,
+) {
+  // @ts-ignore - chrome is injected by the extension's content script context
+  if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.sendMessage) {
+    return;
+  }
+  // @ts-ignore
+  chrome.runtime.sendMessage(
+    EXTENSION_ID,
+    {
+      type: "AVERTUNE_LOGIN_SUCCESS",
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      user,
+    },
+    (response: unknown) => {
+      // @ts-ignore
+      if (chrome.runtime.lastError) {
+        console.warn(
+          "Could not reach Avertune extension:",
+          // @ts-ignore
+          chrome.runtime.lastError.message,
+        );
+        return;
+      }
+      console.log("Extension notified of login:", response);
+    },
+  );
+}
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -48,6 +83,8 @@ export default function AuthCallbackPage() {
       return;
     }
 
+    const isFromExtension = sessionStorage.getItem("avertune_ext_login") === "1";
+
     // ── Normal OAuth / magic-link flow ──────────────────────────
     localStorage.setItem("access_token", accessToken);
     if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
@@ -55,12 +92,25 @@ export default function AuthCallbackPage() {
     getMe(accessToken)
       .then((user) => {
         queryClient.setQueryData(["user", accessToken], user);
-        setStatus("success");
-        setTimeout(() => router.replace("/app"), 600);
+        if (isFromExtension) {
+          sessionStorage.removeItem("avertune_ext_login");
+          if (refreshToken) {
+            notifyExtensionOfLogin(accessToken, refreshToken, user);
+          }
+          setStatus("extension-success");
+        } else {
+          setStatus("success");
+          setTimeout(() => router.replace("/app"), 600);
+        }
       })
       .catch(() => {
-        setStatus("success");
-        setTimeout(() => router.replace("/app"), 600);
+        if (isFromExtension) {
+          sessionStorage.removeItem("avertune_ext_login");
+          setStatus("extension-success");
+        } else {
+          setStatus("success");
+          setTimeout(() => router.replace("/app"), 600);
+        }
       });
   }, [router, queryClient]);
 
@@ -99,6 +149,30 @@ export default function AuthCallbackPage() {
             </h1>
             <p className="text-[14px] text-[var(--text-muted)]">
               Redirecting you to the app…
+            </p>
+          </>
+        )}
+
+        {status === "extension-success" && (
+          <>
+            <div className="w-12 h-12 rounded-full bg-green-500/15 flex items-center justify-center mx-auto mb-5">
+              <svg
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-6 h-6 text-green-500"
+              >
+                <polyline points="4 10 8 14 16 6" />
+              </svg>
+            </div>
+            <h1 className="text-[18px] font-semibold text-[var(--text-primary)] mb-1.5">
+              You&apos;re logged in
+            </h1>
+            <p className="text-[14px] text-[var(--text-muted)]">
+              You can close this tab and continue in the extension.
             </p>
           </>
         )}
