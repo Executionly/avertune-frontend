@@ -367,6 +367,17 @@ export interface ShareResponse {
   token: string;
   share_url: string;
   expires_at: string;
+  conversation_id?: string;
+  status?: string;
+}
+
+/** List the current user's shared links — GET /api/conversations/share */
+export async function listShares(token: string): Promise<ShareResponse[]> {
+  const data = await authFetch(`${BASE}/conversations/share`, token);
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.shares)) return data.shares;
+  if (Array.isArray(data?.data)) return data.data;
+  return [];
 }
 
 export async function getShareStatus(
@@ -374,12 +385,14 @@ export async function getShareStatus(
   conversationId: string,
 ): Promise<ShareResponse | null> {
   try {
-    return await authFetch(
-      `${BASE}/intelligence/conversations/${conversationId}/share`,
-      token,
+    const shares = await listShares(token);
+    return (
+      shares.find(
+        (s) => s.conversation_id === conversationId && s.status !== "revoked",
+      ) ?? null
     );
   } catch {
-    // Status endpoint may not exist on the backend — treat as "no existing share"
+    // Listing failed — treat as "no existing share"
     return null;
   }
 }
@@ -394,15 +407,14 @@ export async function createShare(
   });
 }
 
+/** Revoke a shared link — DELETE /api/conversations/share/{token}, keyed by share token (not conversation id) */
 export async function revokeShare(
-  token: string,
-  conversationId: string,
+  authToken: string,
+  shareToken: string,
 ): Promise<void> {
-  await authFetch(
-    `${BASE}/intelligence/conversations/${conversationId}/share`,
-    token,
-    { method: "DELETE" },
-  );
+  await authFetch(`${BASE}/conversations/share/${shareToken}`, authToken, {
+    method: "DELETE",
+  });
 }
 
 // ── Report outcome ─────────────────────────────────────────────────────────────

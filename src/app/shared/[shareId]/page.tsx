@@ -329,8 +329,12 @@ export default function SharedConversationPage() {
         // Handle both old flat format and new nested format
         const normalized = normalizeResponse(res);
         setData(normalized);
-      } catch {
-        setError("This shared link doesn't exist or has been removed.");
+      } catch (err) {
+        setError(
+          err instanceof Error && err.message
+            ? err.message
+            : "This shared link doesn't exist or has been removed.",
+        );
       } finally {
         setIsLoading(false);
       }
