@@ -276,6 +276,9 @@ export function AccountModal({
       if (user.trial_days_left > 0) {
         return `Trial ends in ${user.trial_days_left} day${user.trial_days_left !== 1 ? "s" : ""}`;
       }
+      if (planTier === "trial" && user.trial_days_left === 0) {
+        return "Trial ended — upgrade to continue";
+      }
       return "Free plan — no billing";
     }
 
