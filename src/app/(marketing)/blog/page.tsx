@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import {
+  getBlogPosts,
+  stripHtml,
+  estimateReadTime,
+  formatPostDate,
+} from "@/lib/api/blog";
 
 export const metadata: Metadata = {
   title: "Blog | Avertune",
@@ -15,32 +21,9 @@ const CATEGORIES = [
   "Negotiation Strategies",
 ];
 
-const ARTICLES = [
-  {
-    slug: "why-smart-professionals-lose-opportunities-through-poor-communication",
-    category: "Communication Intelligence",
-    title:
-      "Why Smart Professionals Lose Opportunities Through Poor Communication And How Communication Intelligence Changes Everything",
-    excerpt:
-      "Every day, talented professionals miss opportunities that they never realize were within reach. A promotion is delayed. A client decides to work with a competitor. A strategic partnership loses momentum. In many cases, these outcomes are not caused by a lack of competence—they are caused by communication.",
-    author: "Avertune Team",
-    date: "June 2025",
-    readTime: "8 min read",
-  },
-  {
-    slug: "psychology-of-sales-communication-why-prospects-say-no",
-    category: "Sales Communication",
-    title:
-      "The Psychology of Sales Communication: Why Prospects Say 'No' Even When They Need What You Offer",
-    excerpt:
-      "Sales professionals often assume that deals are won or lost based on product quality, pricing, or features. But the truth is more complex. People buy based on trust, confidence, and how well they feel understood—not just logic.",
-    author: "Avertune Team",
-    date: "June 2025",
-    readTime: "7 min read",
-  },
-];
+export default async function BlogPage() {
+  const { posts } = await getBlogPosts({ status: "published", pageSize: 100 });
 
-export default function BlogPage() {
   return (
     <main className="bg-cream-100 min-h-screen">
       {/* Hero */}
@@ -82,28 +65,37 @@ export default function BlogPage() {
       <section className="py-16 px-8">
         <div className="max-w-[1120px] mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {ARTICLES.map((article) => (
-              <Link
-                key={article.slug}
-                href={`/blog/${article.slug}`}
-                className="group bg-white border border-navy-100/80 rounded-[24px] p-8 hover:border-violet-200 hover:shadow-sm transition-all flex flex-col"
-              >
-                <span className="inline-block text-[11px] font-semibold uppercase tracking-widest text-violet-500 mb-4">
-                  {article.category}
-                </span>
-                <h3 className="text-[18px] font-semibold text-navy-800 leading-[1.4] mb-3 group-hover:text-violet-700 transition-colors line-clamp-3">
-                  {article.title}
-                </h3>
-                <p className="text-[14px] text-navy-500 leading-[1.65] mb-5 flex-1 line-clamp-3">
-                  {article.excerpt}
-                </p>
-                <div className="flex items-center gap-3 text-[12px] text-navy-400 pt-4 border-t border-navy-100">
-                  <span>{article.date}</span>
-                  <span>·</span>
-                  <span>{article.readTime}</span>
-                </div>
-              </Link>
-            ))}
+            {posts.map((post) => {
+              const date = formatPostDate(post.published_at ?? post.created_at);
+              return (
+                <Link
+                  key={post.id}
+                  href={`/blog/${post.slug}`}
+                  className="group bg-white border border-navy-100/80 rounded-[24px] p-8 hover:border-violet-200 hover:shadow-sm transition-all flex flex-col"
+                >
+                  {post.category && (
+                    <span className="inline-block text-[11px] font-semibold uppercase tracking-widest text-violet-500 mb-4">
+                      {post.category}
+                    </span>
+                  )}
+                  <h3 className="text-[18px] font-semibold text-navy-800 leading-[1.4] mb-3 group-hover:text-violet-700 transition-colors line-clamp-3">
+                    {post.title}
+                  </h3>
+                  <p className="text-[14px] text-navy-500 leading-[1.65] mb-5 flex-1 line-clamp-3">
+                    {post.excerpt || stripHtml(post.content, 220)}
+                  </p>
+                  <div className="flex items-center gap-3 text-[12px] text-navy-400 pt-4 border-t border-navy-100">
+                    {date && (
+                      <>
+                        <span>{date}</span>
+                        <span>·</span>
+                      </>
+                    )}
+                    <span>{estimateReadTime(post.content)}</span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
 
           {/* CTA */}

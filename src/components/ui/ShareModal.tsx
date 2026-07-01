@@ -15,6 +15,7 @@ interface ShareModalProps {
 
 export function ShareModal({ conversation, onClose }: ShareModalProps) {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareToken, setShareToken] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
@@ -32,10 +33,12 @@ export function ShareModal({ conversation, onClose }: ShareModalProps) {
         if (existing) {
           setShareUrl(existing.share_url);
           setExpiresAt(existing.expires_at ?? null);
+          setShareToken(existing.token);
         } else {
           const created = await createShare(token, conversation.id);
           setShareUrl(created.share_url);
           setExpiresAt(created.expires_at ?? null);
+          setShareToken(created.token);
         }
       } catch {
         setError("Couldn't create a share link. Try again in a moment.");
@@ -54,10 +57,10 @@ export function ShareModal({ conversation, onClose }: ShareModalProps) {
 
   const handleRevoke = async () => {
     const token = localStorage.getItem("access_token");
-    if (!token) return;
+    if (!token || !shareToken) return;
     setIsRevoking(true);
     try {
-      await revokeShare(token, conversation.id);
+      await revokeShare(token, shareToken);
       onClose();
     } catch {
       // Revoke endpoint may not exist on the backend yet — close anyway
@@ -86,7 +89,13 @@ export function ShareModal({ conversation, onClose }: ShareModalProps) {
             onClick={onClose}
             className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-muted-bg)] transition-all"
           >
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-3.5 h-3.5">
+            <svg
+              viewBox="0 0 14 14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              className="w-3.5 h-3.5"
+            >
               <path d="M2 2l10 10M12 2L2 12" strokeLinecap="round" />
             </svg>
           </button>
@@ -116,8 +125,18 @@ export function ShareModal({ conversation, onClose }: ShareModalProps) {
             >
               {isCopied ? (
                 <>
-                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5">
-                    <path d="M2.5 7.5l3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
+                  <svg
+                    viewBox="0 0 14 14"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    className="w-3.5 h-3.5"
+                  >
+                    <path
+                      d="M2.5 7.5l3 3 6-7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                   Copied
                 </>
@@ -131,7 +150,13 @@ export function ShareModal({ conversation, onClose }: ShareModalProps) {
         {/* Footer */}
         <div className="flex items-center justify-between pt-3 border-t border-[var(--border-default)]">
           <span className="text-[12px] text-[var(--text-muted)] flex items-center gap-1.5">
-            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3">
+            <svg
+              viewBox="0 0 12 12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="w-3 h-3"
+            >
               <circle cx="6" cy="6" r="5" />
               <path d="M1 6h10M6 1a7 7 0 010 10 7 7 0 010-10z" />
             </svg>
@@ -140,6 +165,7 @@ export function ShareModal({ conversation, onClose }: ShareModalProps) {
                   month: "short",
                   day: "numeric",
                   year: "numeric",
+                  timeZone: "UTC",
                 })}`
               : "Public link"}
           </span>
