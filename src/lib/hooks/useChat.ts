@@ -618,6 +618,10 @@ export function useChat(): UseChatReturn {
 
         if (code === "INSUFFICIENT_CREDITS") {
           setInsufficientCredits(true);
+        } else if (code === "TRIAL_EXPIRED") {
+          setChatError(
+            "Your free trial has ended. Upgrade to keep using Avertune.",
+          );
         } else if (code === "CAPABILITY_LOCKED") {
           setChatError(
             `This capability requires a higher plan. ${output.upgrade_required ? "Upgrade to unlock it." : ""}`,
@@ -1066,6 +1070,10 @@ export function useChat(): UseChatReturn {
               if (code === "INSUFFICIENT_CREDITS") {
                 setInsufficientCredits(true);
                 setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
+              } else if (code === "TRIAL_EXPIRED") {
+                setChatError(
+                  "Your free trial has ended. Upgrade to keep using Avertune.",
+                );
               } else if (code === "USER_NOT_FOUND") {
                 localStorage.removeItem("access_token");
                 localStorage.removeItem("refresh_token");
@@ -1086,7 +1094,14 @@ export function useChat(): UseChatReturn {
       } catch (err: any) {
         setStreamingPhase("idle");
         setIsTyping(false);
-        setChatError(err?.message ?? "Something went wrong. Please try again.");
+        setChatErrorCode(err?.code ?? null);
+        if (err?.code === "TRIAL_EXPIRED") {
+          setChatError(
+            "Your free trial has ended. Upgrade to keep using Avertune.",
+          );
+        } else {
+          setChatError(err?.message ?? "Something went wrong. Please try again.");
+        }
         setLastFailedMessage(content);
         setLastFailedMessageId(userMsgId);
         setLastFailedSkipChallenge(skipChallenge);
@@ -1188,6 +1203,10 @@ export function useChat(): UseChatReturn {
             if (code === "INSUFFICIENT_CREDITS") {
               setInsufficientCredits(true);
               setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
+            } else if (code === "TRIAL_EXPIRED") {
+              setChatError(
+                "Your free trial has ended. Upgrade to keep using Avertune.",
+              );
             } else if (code === "USER_NOT_FOUND") {
               localStorage.removeItem("access_token");
               localStorage.removeItem("refresh_token");
@@ -1205,7 +1224,14 @@ export function useChat(): UseChatReturn {
       } catch (err: any) {
         setStreamingPhase("idle");
         setIsTyping(false);
-        setChatError(err?.message ?? "Something went wrong. Please try again.");
+        setChatErrorCode(err?.code ?? null);
+        if (err?.code === "TRIAL_EXPIRED") {
+          setChatError(
+            "Your free trial has ended. Upgrade to keep using Avertune.",
+          );
+        } else {
+          setChatError(err?.message ?? "Something went wrong. Please try again.");
+        }
         setLastFailedMessage(label);
         setLastFailedMessageId(userMsgId);
         setLastFailedSkipChallenge(false);

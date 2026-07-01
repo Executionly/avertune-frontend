@@ -90,10 +90,13 @@ export default function AppPage() {
       const left = user.trial_days_left;
       if (left === undefined || left === null || left > 3 || left < 0) return;
 
+      const isExpired = left === 0;
       expiryNotifId.current = notify({
         severity: "warning",
-        title: "Trial ending soon",
-        message: `Your trial ends in ${left} day${left !== 1 ? "s" : ""}. Upgrade to keep enjoying avertune.`,
+        title: isExpired ? "Trial ended" : "Trial ending soon",
+        message: isExpired
+          ? "Your trial has ended. Upgrade to keep using Avertune."
+          : `Your trial ends in ${left} day${left !== 1 ? "s" : ""}. Upgrade to keep enjoying avertune.`,
         actionLabel: "Upgrade",
         actionHref: "/pricing",
         duration: 0,

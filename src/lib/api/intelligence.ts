@@ -138,6 +138,28 @@ export interface OutcomeRequest {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
+// Custom error that preserves the backend's error code (e.g. TRIAL_EXPIRED,
+// INSUFFICIENT_CREDITS) so callers can branch on it instead of just showing
+// a raw "API error 403" string. Falls back through message/error/detail
+// fields since the backend isn't consistent about which one it populates.
+export class ApiError extends Error {
+  code?: string;
+  status?: number;
+  constructor(message: string, code?: string, status?: number) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
+function extractErrorInfo(err: any, status: number) {
+  const message =
+    err?.message || err?.error || err?.detail || `API error ${status}`;
+  const code = err?.code;
+  return { message, code };
+}
+
 async function authFetch(url: string, token: string, options?: RequestInit) {
   const res = await fetch(url, {
     ...options,
@@ -149,7 +171,8 @@ async function authFetch(url: string, token: string, options?: RequestInit) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).message || `API error ${res.status}`);
+    const { message, code } = extractErrorInfo(err, res.status);
+    throw new ApiError(message, code, res.status);
   }
   return res.json();
 }
@@ -188,7 +211,8 @@ export async function analyseMessageStream(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).message || `API error ${res.status}`);
+    const { message, code } = extractErrorInfo(err, res.status);
+    throw new ApiError(message, code, res.status);
   }
 
   const contentType = res.headers.get("content-type") || "";

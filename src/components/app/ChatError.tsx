@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const RETRYABLE = new Set([
@@ -8,6 +9,8 @@ const RETRYABLE = new Set([
   "GENERATION_FAILED",
   "PROCESSING_ERROR",
 ]);
+
+const UPGRADE_CODES = new Set(["CAPABILITY_LOCKED", "TRIAL_EXPIRED"]);
 
 interface ChatErrorProps {
   message: string;
@@ -23,16 +26,20 @@ export function ChatError({
   onRetry,
 }: ChatErrorProps) {
   const [visible, setVisible] = useState(false);
+  const router = useRouter();
 
-  const isUpgrade = errorCode === "CAPABILITY_LOCKED";
+  const isUpgrade = errorCode ? UPGRADE_CODES.has(errorCode) : false;
+  const isTrialExpired = errorCode === "TRIAL_EXPIRED";
   const isRetryable = errorCode ? RETRYABLE.has(errorCode) : false;
   const isWordLimit = errorCode === "WORD_LIMIT_EXCEEDED";
 
-  const title = isUpgrade
-    ? "Plan upgrade required"
-    : isWordLimit
-      ? "Message too long"
-      : "Something went wrong";
+  const title = isTrialExpired
+    ? "Trial ended"
+    : isUpgrade
+      ? "Plan upgrade required"
+      : isWordLimit
+        ? "Message too long"
+        : "Something went wrong";
 
   const borderColor = isUpgrade ? "border-violet-500/30" : "border-red-500/30";
   const shadowColor = isUpgrade
@@ -115,6 +122,14 @@ export function ChatError({
               className="mt-2 px-3 py-1 rounded-lg text-[12px] font-medium bg-[var(--card-muted-bg)] border border-[var(--border-default)] text-[var(--text-primary)] hover:border-violet-400/50 transition-all"
             >
               Try again
+            </button>
+          )}
+          {isUpgrade && (
+            <button
+              onClick={() => router.push("/pricing")}
+              className="mt-2 px-3 py-1 rounded-lg text-[12px] font-medium bg-violet-600 text-white hover:bg-violet-500 transition-all"
+            >
+              Upgrade
             </button>
           )}
         </div>
