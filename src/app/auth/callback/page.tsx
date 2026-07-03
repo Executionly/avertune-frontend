@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 type Status = "processing" | "success" | "error" | "extension-success";
 
@@ -44,7 +44,7 @@ function notifyExtensionOfLogin(
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const { setSession } = useAuth();
   const [status, setStatus] = useState<Status>("processing");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -86,12 +86,12 @@ export default function AuthCallbackPage() {
     const isFromExtension = sessionStorage.getItem("avertune_ext_login") === "1";
 
     // ── Normal OAuth / magic-link flow ──────────────────────────
-    localStorage.setItem("access_token", accessToken);
-    if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
-
     getMe(accessToken)
       .then((user) => {
-        queryClient.setQueryData(["user", accessToken], user);
+        // Seeds localStorage AND syncs AuthContext's own token state, so
+        // isAuthenticated flips true immediately instead of staying stale
+        // and bouncing us back out of /app.
+        setSession(accessToken, refreshToken, user);
         if (isFromExtension) {
           sessionStorage.removeItem("avertune_ext_login");
           if (refreshToken) {
@@ -104,6 +104,10 @@ export default function AuthCallbackPage() {
         }
       })
       .catch(() => {
+        // getMe failed (e.g. transient network issue) — still sync the
+        // token; AuthContext's own getMe query will retry once it's
+        // enabled, rather than leaving isAuthenticated permanently false.
+        setSession(accessToken, refreshToken);
         if (isFromExtension) {
           sessionStorage.removeItem("avertune_ext_login");
           setStatus("extension-success");
@@ -112,7 +116,7 @@ export default function AuthCallbackPage() {
           setTimeout(() => router.replace("/app"), 600);
         }
       });
-  }, [router, queryClient]);
+  }, [router, setSession]);
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center px-4">
@@ -124,7 +128,7 @@ export default function AuthCallbackPage() {
               Signing you in…
             </h1>
             <p className="text-[14px] text-[var(--text-muted)]">
-              Completing your Google sign-in. Just a moment.
+              Completing your sign-in. Just a moment.
             </p>
           </>
         )}

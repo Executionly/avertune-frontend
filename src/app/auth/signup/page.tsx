@@ -153,6 +153,15 @@ function SignUpContent() {
             <strong className="text-[var(--text-primary)]">{email}</strong>.
             Click it to activate your account.
           </p>
+          <p className="text-[13px] text-[var(--text-muted)] mt-4">
+            Activating on another device or browser?{" "}
+            <Link
+              href="/auth/signin"
+              className="text-violet-500 font-medium hover:text-violet-400 transition-colors"
+            >
+              Go to sign in
+            </Link>
+          </p>
         </div>
       </div>
     );
