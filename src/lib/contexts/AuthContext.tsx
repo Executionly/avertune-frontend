@@ -49,6 +49,11 @@ interface AuthContextType {
     avatar_url?: string;
   }) => Promise<void>;
   signInWithGoogle: () => void;
+  setSession: (
+    accessToken: string,
+    refreshToken: string | null,
+    user?: User,
+  ) => void;
   forgotPw: (email: string) => Promise<void>;
   resetPw: (access_token: string, new_password: string) => Promise<void>;
   complete2FA: (
@@ -207,6 +212,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = "https://avertuneserver.xyz/api/auth/google";
   }, []);
 
+  // Used by the /auth/callback page (Google OAuth, email confirmation links,
+  // etc.) where tokens arrive outside the normal login() call. Without this,
+  // localStorage gets the token but the context's own `token` state — which
+  // isAuthenticated/isLoading are derived from — never updates, so pages that
+  // guard on isAuthenticated (e.g. /app) redirect straight back to sign-in.
+  const setSession = useCallback(
+    (accessToken: string, refreshToken: string | null, user?: User) => {
+      localStorage.setItem("access_token", accessToken);
+      if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
+      setToken(accessToken);
+
+      if (user) {
+        queryClient.setQueryData(["user", accessToken], user);
+        if (user.word_limit) {
+          setWordLimit(user.word_limit);
+          storeWordLimit(user.word_limit);
+        }
+      }
+      // If `user` isn't provided, the context's own getMe query (enabled
+      // whenever `token` is truthy) will fetch it.
+    },
+    [queryClient],
+  );
+
   const forgotPw = useCallback(async (email: string) => {
     await forgotPassword(email);
   }, []);
@@ -229,6 +258,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         updateUser,
         signInWithGoogle,
+        setSession,
         forgotPw,
         resetPw,
         complete2FA,
