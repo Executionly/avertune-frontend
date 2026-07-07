@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { getMe } from "@/lib/api/auth";
 import { useAuth } from "@/lib/contexts/AuthContext";
 
+declare const chrome: any; // injected by the extension's content script context
+
 type Status = "processing" | "success" | "error" | "extension-success";
 
 const EXTENSION_ID = "ggllepchokjppmmlionnoanpjgfgfjif"; // TODO: move to env, will be changed later
