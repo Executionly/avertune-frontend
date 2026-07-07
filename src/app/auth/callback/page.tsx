@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 
 type Status = "processing" | "success" | "error" | "extension-success";
 
-const EXTENSION_ID = "hllpepfbhjidhdheagfembdjdljklbke"; // TODO: move to env, will be changed later
+const EXTENSION_ID = "ggllepchokjppmmlionnoanpjgfgfjif"; // TODO: move to env, will be changed later
 
 function notifyExtensionOfLogin(
   accessToken: string,
@@ -15,7 +15,11 @@ function notifyExtensionOfLogin(
   user: unknown,
 ) {
   // @ts-ignore - chrome is injected by the extension's content script context
-  if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.sendMessage) {
+  if (
+    typeof chrome === "undefined" ||
+    !chrome.runtime ||
+    !chrome.runtime.sendMessage
+  ) {
     return;
   }
   // @ts-ignore
@@ -83,7 +87,8 @@ export default function AuthCallbackPage() {
       return;
     }
 
-    const isFromExtension = sessionStorage.getItem("avertune_ext_login") === "1";
+    const isFromExtension =
+      sessionStorage.getItem("avertune_ext_login") === "1";
 
     // ── Normal OAuth / magic-link flow ──────────────────────────
     getMe(accessToken)
