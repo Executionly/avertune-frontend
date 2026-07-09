@@ -2,7 +2,6 @@
 
 import { Suspense } from "react";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useReferral } from "@/lib/hooks/useReferral";
@@ -98,7 +97,6 @@ function SignUpContent() {
   const [loading, setLoading] = useState(false);
   const { register, signInWithGoogle } = useAuth();
   const urlReferralCode = useReferral();
-  const router = useRouter();
 
   useEffect(() => {
     if (urlReferralCode) {
@@ -170,9 +168,9 @@ function SignUpContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-[400px]">
-        {/* Back button */}
-        <button
-          onClick={() => router.back()}
+        {/* Back to home */}
+        <a
+          href="https://avertune.com"
           className="flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mb-6"
         >
           <svg
@@ -186,8 +184,8 @@ function SignUpContent() {
           >
             <path d="M10 3L5 8l5 5" />
           </svg>
-          Back
-        </button>
+          Back to home
+        </a>
 
         <div className="flex flex-col items-center mb-8">
           <AvertuneLogoMark />
@@ -216,7 +214,7 @@ function SignUpContent() {
         )}
 
         <button
-          onClick={signInWithGoogle}
+          onClick={() => signInWithGoogle(referralCode || undefined)}
           className="w-full h-11 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)]
                 text-[var(--text-primary)] text-[14px] font-medium flex items-center justify-center gap-3
                 hover:border-violet-400/60 hover:bg-[var(--card-muted-bg)] transition-all mb-4"
