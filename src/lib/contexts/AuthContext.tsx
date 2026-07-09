@@ -48,7 +48,7 @@ interface AuthContextType {
     full_name?: string;
     avatar_url?: string;
   }) => Promise<void>;
-  signInWithGoogle: () => void;
+  signInWithGoogle: (referralCode?: string) => void;
   setSession: (
     accessToken: string,
     refreshToken: string | null,
@@ -208,8 +208,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [queryClient],
   );
 
-  const signInWithGoogle = useCallback(() => {
-    window.location.href = "https://avertuneserver.xyz/api/auth/google";
+  const signInWithGoogle = useCallback((referralCode?: string) => {
+    const url = new URL("https://avertuneserver.xyz/api/auth/google");
+    if (referralCode) url.searchParams.set("ref", referralCode);
+    window.location.href = url.toString();
   }, []);
 
   // Used by the /auth/callback page (Google OAuth, email confirmation links,

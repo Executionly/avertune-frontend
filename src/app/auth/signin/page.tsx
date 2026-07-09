@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/contexts/AuthContext";
 
-const EXTENSION_ID = "hllpepfbhjidhdheagfembdjdljklbke"; // TODO: move to env, will be changed later
+const EXTENSION_ID = process.env.NEXT_PUBLIC_EXTENSION_ID!;
 
 function notifyExtensionOfLogin(
   accessToken: string,
@@ -187,16 +187,16 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-[400px]">
-        {/* Back button */}
-        <button
-          onClick={() => router.back()}
+        {/* Back to home */}
+        <a
+          href="https://avertune.com"
           className="flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mb-6"
         >
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
             <path d="M10 3L5 8l5 5" />
           </svg>
-          Back
-        </button>
+          Back to home
+        </a>
 
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
@@ -253,7 +253,7 @@ export default function SignInPage() {
           <>
             {/* Google */}
             <button
-              onClick={signInWithGoogle}
+              onClick={() => signInWithGoogle()}
               className="w-full h-11 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)]
                 text-[var(--text-primary)] text-[14px] font-medium flex items-center justify-center gap-3
                 hover:border-violet-400/60 hover:bg-[var(--card-muted-bg)] transition-all mb-4"

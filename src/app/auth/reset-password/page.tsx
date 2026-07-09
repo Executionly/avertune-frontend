@@ -48,6 +48,25 @@ function ResetPasswordForm() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-[400px]">
+        {/* Back to home */}
+        <a
+          href="https://avertune.com"
+          className="flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mb-6"
+        >
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-3.5 h-3.5"
+          >
+            <path d="M10 3L5 8l5 5" />
+          </svg>
+          Back to home
+        </a>
+
         <div className="flex flex-col items-center mb-8">
           <h1 className="mt-4 text-[22px] font-semibold text-[var(--text-primary)] tracking-tight">
             {success ? "Password updated" : "Set new password"}
