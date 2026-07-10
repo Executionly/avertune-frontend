@@ -26,34 +26,28 @@ export interface AffiliateStats {
   conversion_rate: string;
   monthly_earnings: Array<{
     month: string;
-    earnings: number;
-    clicks: number;
-    referrals: number;
+    amount: number;
   }>;
 }
 
 export interface Referral {
   id: string;
-  email: string;
-  full_name: string;
-  plan_name: string;
-  status: "pending" | "active" | "cancelled" | "expired";
-  commission_earned: number;
-  commission_paid: number;
-  signed_up_at: string;
-  first_payment_at: string | null;
+  plan: string;
+  amount_paid: number;
+  commission: number;
+  status: string;
+  created_at: string;
+  user_email: string;
+  user_fullname: string;
+  user_joined: string;
 }
 
 export interface ReferralsResponse {
-  referrals: Referral[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    total_pages: number;
-    has_next: boolean;
-    has_prev: boolean;
-  };
+  data: Referral[];
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
 }
 
 export interface Click {
