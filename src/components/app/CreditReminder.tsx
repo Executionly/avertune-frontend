@@ -58,6 +58,12 @@ export function CreditReminder() {
     if (state !== "low") return;
 
     const planTier = user.plan_tier || "trial";
+
+    // Trial has fully ended — the "Trial ended" banner already tells the
+    // user what's going on. Piling a "low credits" nudge on top is redundant
+    // and confusing, so skip it entirely in this state.
+    if (planTier === "trial" && (user.trial_days_left ?? 0) <= 0) return;
+
     const isHighestPlan = planTier === "pro" || planTier === "pro_annual";
 
     // Pro (highest plan) users can't upgrade further — only offer top-up.
@@ -77,7 +83,8 @@ export function CreditReminder() {
     activeIdRef.current = notify({
       severity: "warning",
       title: "You're running low on credits",
-      message: "You're approaching your usage limit. Top up or upgrade your plan.",
+      message:
+        "You're approaching your usage limit. Top up or upgrade your plan.",
       actionLabel: "Top Up or Upgrade →",
       actionHref: "/pricing#addons",
       duration: 0,

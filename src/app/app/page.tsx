@@ -74,7 +74,7 @@ export default function AppPage() {
     refreshSidebar,
   } = useChat();
   const { refreshCredits } = useCredits();
-  const { notify, dismiss } = useNotification();
+  const { notify, dismiss, dismissSilent } = useNotification();
 
   // Track notification IDs so we can dismiss them when the underlying state clears
   const chatErrorNotifId = useRef<string | null>(null);
@@ -83,6 +83,8 @@ export default function AppPage() {
 
   // ── Subscription/trial expiring soon (≤3 days) → global banner ─────────────
   useEffect(() => {
+    let cancelled = false;
+
     if (isLoading || !isAuthenticated || !user) return;
 
     // Trial users: expiry is already on the user object, no extra fetch needed.
@@ -102,7 +104,16 @@ export default function AppPage() {
         duration: 0,
         persistent: false,
       });
-      return;
+
+      // Clear this notification before the effect re-runs for a different
+      // account/state (e.g. logout → login as another user), so it can never
+      // linger alongside a newly created one.
+      return () => {
+        if (expiryNotifId.current) {
+          dismissSilent(expiryNotifId.current);
+          expiryNotifId.current = null;
+        }
+      };
     }
 
     // Everyone else (free + paid): check real subscription period end, if any.
@@ -111,6 +122,7 @@ export default function AppPage() {
 
     getSubscription(token)
       .then((sub) => {
+        if (cancelled) return;
         const left = daysUntil(sub?.current_period_end);
 
         if (left === null || left > 3 || left < 0) return;
@@ -129,8 +141,22 @@ export default function AppPage() {
         });
       })
       .catch(() => {});
+
+    return () => {
+      cancelled = true;
+      if (expiryNotifId.current) {
+        dismissSilent(expiryNotifId.current);
+        expiryNotifId.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, isAuthenticated, user?.plan_tier, user?.trial_days_left]);
+  }, [
+    isLoading,
+    isAuthenticated,
+    user?.id,
+    user?.plan_tier,
+    user?.trial_days_left,
+  ]);
 
   // Handler for retrying a specific failed message
   const handleRetryMessage = (content: string) => {

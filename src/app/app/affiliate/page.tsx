@@ -55,6 +55,16 @@ function formatDate(dateStr: string): string {
   });
 }
 
+// Buckets referrals by their signup month, using the same "MMM YY" key
+// format the stats endpoint uses for monthly_earnings (e.g. "Jul 26"),
+// so the chart can show referral counts alongside earnings.
+function monthKeyFromDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    month: "short",
+    year: "2-digit",
+  });
+}
+
 function WithdrawalModal({
   isOpen,
   onClose,
@@ -398,6 +408,7 @@ function StatusBadge({ status }: { status: string }) {
     pending: "bg-amber-500/10 text-amber-400 border-amber-500/20",
     approved: "bg-green-500/10 text-green-400 border-green-500/20",
     active: "bg-green-500/10 text-green-400 border-green-500/20",
+    credited: "bg-green-500/10 text-green-400 border-green-500/20",
     cancelled: "bg-gray-500/10 text-gray-400 border-gray-500/20",
     expired: "bg-gray-500/10 text-gray-400 border-gray-500/20",
     processing: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -540,6 +551,9 @@ export default function AffiliateDashboardPage() {
   const [withdrawalsTotal, setWithdrawalsTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isAffiliate, setIsAffiliate] = useState<boolean | null>(null);
+  const [referralsByMonth, setReferralsByMonth] = useState<
+    Record<string, number>
+  >({});
 
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
@@ -552,13 +566,23 @@ export default function AffiliateDashboardPage() {
     setError(null);
 
     try {
-      const [profileData, statsData] = await Promise.all([
+      const [profileData, statsData, allReferrals] = await Promise.all([
         getAffiliateProfile(token),
         getAffiliateStats(token),
+        getReferrals(token, 1, 1000).catch(() => null),
       ]);
       setProfile(profileData);
       setStats(statsData);
       setIsAffiliate(true);
+
+      if (allReferrals?.data) {
+        const counts: Record<string, number> = {};
+        for (const ref of allReferrals.data) {
+          const key = monthKeyFromDate(ref.user_joined);
+          counts[key] = (counts[key] || 0) + 1;
+        }
+        setReferralsByMonth(counts);
+      }
     } catch (err: any) {
       console.error("Failed to load affiliate data:", err);
       const errorMsg = err.message || "Failed to load affiliate data";
@@ -582,8 +606,8 @@ export default function AffiliateDashboardPage() {
     if (!token) return;
     try {
       const data = await getReferrals(token, referralsPage);
-      setReferrals(data?.referrals || []);
-      setReferralsTotal(data?.pagination?.total || 0);
+      setReferrals(data?.data || []);
+      setReferralsTotal(data?.total || 0);
     } catch (err) {
       console.error("Failed to load referrals:", err);
       setReferrals([]);
@@ -727,21 +751,13 @@ export default function AffiliateDashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <div className="bg-[var(--card-bg)] border border-[var(--border-default)] rounded-2xl p-5">
           <p className="text-[12px] text-[var(--text-muted)] font-medium mb-1">
             Total Earnings
           </p>
           <p className="text-[28px] font-bold text-[var(--text-primary)]">
             {formatCurrency(profile.total_earnings)}
-          </p>
-        </div>
-        <div className="bg-[var(--card-bg)] border border-[var(--border-default)] rounded-2xl p-5">
-          <p className="text-[12px] text-[var(--text-muted)] font-medium mb-1">
-            Pending Earnings
-          </p>
-          <p className="text-[28px] font-bold text-[var(--text-primary)]">
-            {formatCurrency(profile.pending_earnings)}
           </p>
         </div>
         <div className="bg-[var(--card-bg)] border border-[var(--border-default)] rounded-2xl p-5">
@@ -786,11 +802,12 @@ export default function AffiliateDashboardPage() {
           <div className="h-[200px] flex items-end gap-1">
             {stats.monthly_earnings.slice(-12).map((month, i) => {
               const maxEarnings = Math.max(
-                ...stats.monthly_earnings.map((m) => m.earnings),
+                ...stats.monthly_earnings.map((m) => m.amount),
                 100,
               );
-              const earningsHeight = (month.earnings / maxEarnings) * 120;
-              const referralsHeight = Math.min(month.referrals * 15, 80);
+              const monthReferrals = referralsByMonth[month.month] || 0;
+              const earningsHeight = (month.amount / maxEarnings) * 120;
+              const referralsHeight = Math.min(monthReferrals * 15, 80);
               return (
                 <div
                   key={i}
@@ -957,10 +974,10 @@ export default function AffiliateDashboardPage() {
                         <td className="p-3">
                           <div>
                             <p className="font-medium text-[var(--text-primary)]">
-                              {ref.full_name || "—"}
+                              {ref.user_fullname || "—"}
                             </p>
                             <p className="text-[11px] text-[var(--text-muted)]">
-                              {ref.email}
+                              {ref.user_email}
                             </p>
                           </div>
                         </td>
@@ -968,15 +985,10 @@ export default function AffiliateDashboardPage() {
                           <StatusBadge status={ref.status} />
                         </td>
                         <td className="p-3 text-right font-medium text-[var(--text-primary)]">
-                          {formatCurrency(ref.commission_earned)}
-                          {ref.commission_paid > 0 && (
-                            <span className="text-[11px] text-[var(--text-muted)] ml-1">
-                              (paid: {formatCurrency(ref.commission_paid)})
-                            </span>
-                          )}
+                          {formatCurrency(ref.commission)}
                         </td>
                         <td className="p-3 text-[var(--text-muted)]">
-                          {formatDate(ref.signed_up_at)}
+                          {formatDate(ref.user_joined)}
                         </td>
                       </tr>
                     ))}
