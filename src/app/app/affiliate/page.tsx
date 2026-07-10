@@ -538,7 +538,7 @@ export default function AffiliateDashboardPage() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [profile, setProfile] = useState<AffiliateProfile | null>(null);
   const [stats, setStats] = useState<AffiliateStats | null>(null);
-  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [referrals, setReferrals] = useState<Referral[] | null>(null);
   const [clicks, setClicks] = useState<Click[]>([]);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -811,9 +811,9 @@ export default function AffiliateDashboardPage() {
               return (
                 <div
                   key={i}
-                  className="flex-1 flex flex-col items-center gap-1"
+                  className="flex-1 flex flex-col items-center gap-1 min-w-0"
                 >
-                  <div className="relative w-full flex flex-col items-center">
+                  <div className="relative w-full max-w-[36px] mx-auto flex flex-col items-center">
                     <div
                       className="w-full bg-violet-500/60 rounded-t-sm"
                       style={{ height: `${Math.max(earningsHeight, 4)}px` }}
