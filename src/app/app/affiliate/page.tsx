@@ -179,6 +179,24 @@ function WithdrawalModal({
             </div>
             <div>
               <label className="block text-[12px] font-medium text-[var(--text-muted)] mb-1">
+                Country *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.bank_country || ""}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    bank_country: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--input-bg)] text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-violet-500 transition-all"
+                placeholder="United State"
+              />
+            </div>
+            <div>
+              <label className="block text-[12px] font-medium text-[var(--text-muted)] mb-1">
                 SWIFT / BIC Code
               </label>
               <input
