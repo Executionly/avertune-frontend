@@ -1201,7 +1201,7 @@ export default function AffiliateDashboardPage() {
       <WithdrawalModal
         isOpen={withdrawModalOpen}
         onClose={() => setWithdrawModalOpen(false)}
-        balance={profile.pending_earnings}
+        balance={profile.total_earnings}
         onSuccess={handleWithdrawSuccess}
       />
     </div>
