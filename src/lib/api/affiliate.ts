@@ -1,5 +1,5 @@
 // FILE: src/lib/api/affiliate.ts
-const API_URL = "http://localhost:3001/api";
+const API_URL = "https://avertuneserver.xyz/api";
 
 export interface AffiliateProfile {
   is_affiliate: boolean;

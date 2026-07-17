@@ -1,4 +1,4 @@
-const BASE = "http://localhost:3001/api";
+const BASE = "https://avertuneserver.xyz/api";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 

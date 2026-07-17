@@ -31,7 +31,7 @@ export function SolutionRequestForm({
 
     try {
       const response = await fetch(
-        "http://localhost:3001/api/contact/request",
+        "https://avertuneserver.xyz/api/contact/request",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

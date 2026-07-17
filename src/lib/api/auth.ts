@@ -1,5 +1,5 @@
-const API_URL = "http://localhost:3001/api";
-const SUB_URL = "http://localhost:3001/api/v2/subscription";
+const API_URL = "https://avertuneserver.xyz/api";
+const SUB_URL = "https://avertuneserver.xyz/api/v2/subscription";
 export interface User {
   id: string;
   email: string;

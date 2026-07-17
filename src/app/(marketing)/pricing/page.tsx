@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { PricingClient } from "./PricingClient";
 import { getPlans } from "@/lib/api/auth";
-//const SUB_URL = "http://localhost:3001/api/v2/subscription";
+//const SUB_URL = "https://avertuneserver.xyz/api/v2/subscription";
 
 export default async function PricingPage() {
   const data = await getPlans();

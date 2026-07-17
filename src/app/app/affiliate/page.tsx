@@ -480,7 +480,7 @@ function NotAffiliateMessage({
       if (!token) throw new Error("Not authenticated");
 
       const response = await fetch(
-        "http://localhost:3001/api/affiliate/join",
+        "https://avertuneserver.xyz/api/affiliate/join",
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
