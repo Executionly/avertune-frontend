@@ -20,13 +20,28 @@ import {
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics/track";
+import {
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
+
+const MONTH_LABELS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
 
 type TabId = "overview" | "referrals" | "clicks" | "withdrawals";
 
 const tabs: { id: TabId; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "referrals", label: "Referrals" },
-  { id: "clicks", label: "Clicks" },
+  // { id: "clicks", label: "Clicks" },
   { id: "withdrawals", label: "Withdrawals" },
 ];
 
@@ -465,7 +480,7 @@ function NotAffiliateMessage({
       if (!token) throw new Error("Not authenticated");
 
       const response = await fetch(
-        "https://avertuneserver.xyz/api/affiliate/join",
+        "http://localhost:3001/api/affiliate/join",
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
@@ -547,6 +562,156 @@ function NotAffiliateMessage({
           )}
         </button>
       </div>
+    </div>
+  );
+}
+
+
+function buildChartData(
+  monthlyEarnings: { month: string; amount: number }[],
+  referralsByMonth: Record<string, number>
+) {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonthIndex = now.getMonth(); // 0 = Jan
+
+  const yearSuffix = String(currentYear).slice(-2);
+
+  // Build a lookup: "Jul 26" -> amount
+  const earningsByLabel = new Map(
+    monthlyEarnings.map((m) => [m.month, m.amount])
+  );
+
+  const data = [];
+  for (let i = 0; i <= currentMonthIndex; i++) {
+    const label = `${MONTH_LABELS[i]} ${yearSuffix}`;
+    data.push({
+      month: MONTH_LABELS[i],
+      fullLabel: label,
+      earnings: earningsByLabel.get(label) ?? 0,
+      referrals: referralsByMonth[label] ?? 0,
+    });
+  }
+  return data;
+}
+
+function CustomTooltip({ active, payload, label }: any) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <div className="bg-[var(--card-bg)] border border-[var(--border-default)] rounded-lg px-3 py-2 shadow-sm">
+      <p className="text-[12px] font-semibold text-[var(--text-primary)] mb-1">
+        {label}
+      </p>
+      {payload.map((entry: any) => (
+        <p
+          key={entry.dataKey}
+          className="text-[11px] flex items-center gap-1.5"
+          style={{ color: entry.color }}
+        >
+          <span
+            className="w-2 h-2 rounded-full"
+            style={{ backgroundColor: entry.color }}
+          />
+          {entry.dataKey === "earnings"
+            ? `$${entry.value.toFixed(2)}`
+            : `${entry.value} referral${entry.value === 1 ? "" : "s"}`}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function EarningsPerformanceChart({
+  stats,
+  referralsByMonth,
+}: {
+  stats: { monthly_earnings: { month: string; amount: number }[] } | null;
+  referralsByMonth: Record<string, number>;
+}) {
+  if(!stats){
+    return (
+      <p className="text-center text-[13px] text-[var(--text-muted)] py-8">
+          No earnings data available yet
+      </p>
+    )
+  }
+  const hasData = stats?.monthly_earnings && stats.monthly_earnings.length > 0;
+  const chartData = hasData
+    ? buildChartData(stats.monthly_earnings, referralsByMonth)
+    : [];
+
+  return (
+    <div className="bg-[var(--card-bg)] border border-[var(--border-default)] rounded-2xl p-6 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
+          Earnings performance
+        </h3>
+        <div className="flex items-center gap-4 text-[12px] text-[var(--text-secondary)]">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-violet-500" />
+            Earnings
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-teal-500" />
+            Referrals
+          </span>
+        </div>
+      </div>
+
+      {hasData ? (
+        <div className="h-[240px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart
+              data={chartData}
+              margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+              barCategoryGap="30%"
+            >
+              <CartesianGrid
+                vertical={false}
+                stroke="var(--border-default)"
+                strokeOpacity={0.5}
+              />
+              <XAxis
+                dataKey="month"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "var(--text-muted)" }}
+              />
+              <YAxis
+                yAxisId="earnings"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "var(--text-muted)" }}
+                tickFormatter={(v) => `$${v}`}
+                width={40}
+              />
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ fill: "var(--border-default)", opacity: 0.2 }}
+              />
+              <Bar
+                yAxisId="earnings"
+                dataKey="earnings"
+                fill="#8b5cf6"
+                radius={[4, 4, 0, 0]}
+                maxBarSize={28}
+              />
+              <Line
+                yAxisId="earnings"
+                dataKey="referrals"
+                stroke="#14b8a6"
+                strokeWidth={2}
+                dot={{ r: 3, fill: "#14b8a6", strokeWidth: 0 }}
+                activeDot={{ r: 5 }}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <p className="text-center text-[13px] text-[var(--text-muted)] py-8">
+          No earnings data available yet
+        </p>
+      )}
     </div>
   );
 }
@@ -652,7 +817,7 @@ export default function AffiliateDashboardPage() {
     if (!token) return;
     try {
       const data = await getWithdrawals(token, withdrawalsPage);
-      setWithdrawals(data?.withdrawals || []);
+      setWithdrawals(data?.data || []);
       setWithdrawalsTotal(data?.pagination?.total || 0);
     } catch (err) {
       console.error("Failed to load withdrawals:", err);
@@ -769,13 +934,24 @@ export default function AffiliateDashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-[var(--card-bg)] border border-[var(--border-default)] rounded-2xl p-5">
           <p className="text-[12px] text-[var(--text-muted)] font-medium mb-1">
-            Total Earnings
+            Earnings
           </p>
           <p className="text-[28px] font-bold text-[var(--text-primary)]">
             {formatCurrency(profile.total_earnings)}
+          </p>
+          <p className="text-[12px] font-bold text-[var(--text-muted)]">
+            Total Earnings: {formatCurrency(profile.total_earnings + profile.paid_out)}
+          </p>
+        </div>
+        <div className="bg-[var(--card-bg)] border border-[var(--border-default)] rounded-2xl p-5">
+          <p className="text-[12px] text-[var(--text-muted)] font-medium mb-1">
+            Paid Out
+          </p>
+          <p className="text-[28px] font-bold text-[var(--text-primary)]">
+            {formatCurrency(profile.paid_out)}
           </p>
         </div>
         <div className="bg-[var(--card-bg)] border border-[var(--border-default)] rounded-2xl p-5">
@@ -793,69 +969,14 @@ export default function AffiliateDashboardPage() {
           <p className="text-[28px] font-bold text-[var(--text-primary)]">
             {profile.commission_rate}%
           </p>
-          <p className="text-[11px] text-[var(--text-muted)] mt-1">
+          {/* <p className="text-[11px] text-[var(--text-muted)] mt-1">
             {stats?.total_clicks || 0} total clicks
-          </p>
+          </p> */}
         </div>
       </div>
 
       {/* Earnings Chart Summary */}
-      {stats && stats.monthly_earnings && stats.monthly_earnings.length > 0 ? (
-        <div className="bg-[var(--card-bg)] border border-[var(--border-default)] rounded-2xl p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
-              Earnings Performance
-            </h3>
-            <div className="flex items-center gap-4 text-[12px]">
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-violet-500" />
-                Earnings
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-teal-500" />
-                Referrals
-              </span>
-            </div>
-          </div>
-          <div className="h-[200px] flex items-end gap-1">
-            {stats.monthly_earnings.slice(-12).map((month, i) => {
-              const maxEarnings = Math.max(
-                ...stats.monthly_earnings.map((m) => m.amount),
-                100,
-              );
-              const monthReferrals = referralsByMonth[month.month] || 0;
-              const earningsHeight = (month.amount / maxEarnings) * 120;
-              const referralsHeight = Math.min(monthReferrals * 15, 80);
-              return (
-                <div
-                  key={i}
-                  className="flex-1 flex flex-col items-center gap-1 min-w-0"
-                >
-                  <div className="relative w-full max-w-[36px] mx-auto flex flex-col items-center">
-                    <div
-                      className="w-full bg-violet-500/60 rounded-t-sm"
-                      style={{ height: `${Math.max(earningsHeight, 4)}px` }}
-                    />
-                    <div
-                      className="w-full bg-teal-500/60 rounded-t-sm mt-0.5"
-                      style={{ height: `${Math.max(referralsHeight, 2)}px` }}
-                    />
-                  </div>
-                  <span className="text-[9px] text-[var(--text-muted)] rotate-45 origin-left">
-                    {month.month.slice(0, 3)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : (
-        <div className="bg-[var(--card-bg)] border border-[var(--border-default)] rounded-2xl p-6 mb-6">
-          <p className="text-center text-[13px] text-[var(--text-muted)] py-8">
-            No earnings data available yet
-          </p>
-        </div>
-      )}
+      <EarningsPerformanceChart stats={stats} referralsByMonth={referralsByMonth} />
 
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-[var(--border-default)] mb-6">

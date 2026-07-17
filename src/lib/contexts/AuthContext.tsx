@@ -209,7 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signInWithGoogle = useCallback((referralCode?: string) => {
-    const url = new URL("https://avertuneserver.xyz/api/auth/google");
+    const url = new URL("http://localhost:3001/api/auth/google");
     if (referralCode) url.searchParams.set("ref", referralCode);
     window.location.href = url.toString();
   }, []);

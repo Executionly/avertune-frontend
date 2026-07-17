@@ -1,7 +1,7 @@
 // src/lib/analytics/track.ts
 // Client-side visitor/event tracker for the platform analytics endpoints.
 
-const API_URL = "https://avertuneserver.xyz/api";
+const API_URL = "http://localhost:3001/api";
 const SESSION_KEY = "avertune_session_id";
 const IDENTIFIED_KEY = "avertune_session_identified";
 const LAST_PAGEVIEW_KEY = "avertune_last_pageview";

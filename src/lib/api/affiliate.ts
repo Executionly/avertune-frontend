@@ -1,5 +1,5 @@
 // FILE: src/lib/api/affiliate.ts
-const API_URL = "https://avertuneserver.xyz/api";
+const API_URL = "http://localhost:3001/api";
 
 export interface AffiliateProfile {
   is_affiliate: boolean;
@@ -11,6 +11,7 @@ export interface AffiliateProfile {
   total_referrals: number;
   paid_referrals: number;
   total_earnings: number;
+  paid_out: number;
   pending_earnings: number;
   created_at: string;
 }
@@ -103,7 +104,7 @@ export interface Withdrawal {
 }
 
 export interface WithdrawalsResponse {
-  withdrawals: Withdrawal[];
+  data: Withdrawal[];
   pagination: {
     total: number;
     page: number;
